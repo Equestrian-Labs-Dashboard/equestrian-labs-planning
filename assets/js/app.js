@@ -34,16 +34,30 @@ function renderHeader() {
   document.getElementById("modelStatus").innerHTML = optionList(lists.modelStatus, meta.modelStatus);
   document.getElementById("fundingScenario").innerHTML = optionList(lists.fundingScenario, meta.fundingScenario);
   document.getElementById("fundingDate").innerHTML = optionList(lists.fundingDate, meta.fundingDate);
-  document.getElementById("version").value = meta.version;
+  document.getElementById("organicGrowth").innerHTML = optionList(lists.organicGrowth, meta.organicGrowth);
+  document.getElementById("captureRate").innerHTML = optionList(lists.captureRate, meta.captureRate);
   document.getElementById("lastUpdate").value = meta.lastUpdate;
-  document.getElementById("owner").value = meta.owner;
+  document.getElementById("versionBadge").textContent = `v${meta.version}`;
 
   document.getElementById("modelStatus").onchange = e => { meta.modelStatus = e.target.value; scheduleSave(); };
-  document.getElementById("fundingScenario").onchange = e => { meta.fundingScenario = e.target.value; scheduleSave(); };
-  document.getElementById("fundingDate").onchange = e => { meta.fundingDate = e.target.value; scheduleSave(); };
-  document.getElementById("version").oninput = e => { meta.version = e.target.value; scheduleSave(); };
+  document.getElementById("fundingScenario").onchange = e => { meta.fundingScenario = e.target.value; syncScenarioKpis(); renderKpis(); scheduleSave(); };
+  document.getElementById("fundingDate").onchange = e => { meta.fundingDate = e.target.value; syncScenarioKpis(); renderKpis(); scheduleSave(); };
+  document.getElementById("organicGrowth").onchange = e => { meta.organicGrowth = e.target.value; syncScenarioKpis(); renderKpis(); scheduleSave(); };
+  document.getElementById("captureRate").onchange = e => { meta.captureRate = e.target.value; syncScenarioKpis(); renderKpis(); scheduleSave(); };
   document.getElementById("lastUpdate").oninput = e => { meta.lastUpdate = e.target.value; scheduleSave(); };
-  document.getElementById("owner").oninput = e => { meta.owner = e.target.value; scheduleSave(); };
+}
+
+function syncScenarioKpis() {
+  const { meta } = STATE;
+  const updates = {
+    "Funding": meta.fundingScenario,
+    "Organic Growth": meta.organicGrowth,
+    "Capture Rate": meta.captureRate,
+    "Funding Date": meta.fundingDate
+  };
+  STATE.kpis.forEach(k => {
+    if (updates[k.label]) k.value = updates[k.label];
+  });
 }
 
 /* ---------------- KPI cards ---------------- */
@@ -152,16 +166,7 @@ function renderPurchasing() {
 
 /* ---------------- Section 5: Operations Drivers ---------------- */
 function renderOperations() {
-  const table = document.getElementById("opsTable");
-  table.innerHTML = `<thead><tr><th>KPI</th><th>Value</th></tr></thead>`;
-  const tbody = el("tbody");
-  STATE.operations.forEach(row => {
-    const tr = el("tr");
-    tr.appendChild(el("td", { class: "label-cell" }, row.kpi));
-    tr.appendChild(makeEditableCell(row, "value", "text", () => scheduleSave()));
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody);
+  renderDriverTable(document.getElementById("opsTable"), STATE.operations, "kpi");
 }
 
 /* ---------------- Section 6: Margin Structure (waterfall) ---------------- */
