@@ -240,6 +240,39 @@ function renderOperations() {
   renderDriverTable(document.getElementById("opsTable"), STATE.operations);
 }
 
+function renderSheet2Draft() {
+  const formulaTable = document.getElementById("engineFormulaTable");
+  if (formulaTable && STATE.engineSheet && STATE.engineSheet.formulaRows) {
+    const heads = ["Line", "Source / Formula Note", "Current", "2026", "2027", "2028", "2029"];
+    formulaTable.innerHTML = `<thead><tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr></thead>`;
+    const tbody = el("tbody");
+    STATE.engineSheet.formulaRows.forEach(row => {
+      const tr = el("tr");
+      tr.appendChild(el("td", { class: "label-cell" }, row.line));
+      tr.appendChild(el("td", { class: "gray-cell" }, row.source));
+      ["current", "y2026", "y2027", "y2028", "y2029"].forEach(k => {
+        tr.appendChild(makeEditableCell(row, k, () => scheduleSave()));
+      });
+      tbody.appendChild(tr);
+    });
+    formulaTable.appendChild(tbody);
+  }
+
+  const opexTable = document.getElementById("opexDefaultsTable");
+  if (opexTable && STATE.engineSheet && STATE.engineSheet.opexDefaults) {
+    const heads = ["Driver", "Basis", "Default Value", "Notes"];
+    opexTable.innerHTML = `<thead><tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr></thead>`;
+    const tbody = el("tbody");
+    STATE.engineSheet.opexDefaults.forEach(row => {
+      const tr = el("tr");
+      tr.appendChild(el("td", { class: "label-cell" }, row.driver));
+      ["basis", "value", "notes"].forEach(k => tr.appendChild(makeEditableCell(row, k, () => scheduleSave())));
+      tbody.appendChild(tr);
+    });
+    opexTable.appendChild(tbody);
+  }
+}
+
 function renderGrowth() {
   const table = document.getElementById("growthTable");
   table.innerHTML = `<thead><tr><th>Initiative</th><th>Owner</th><th>Funding Trigger</th><th>Status</th><th>Launch Date</th><th>Investment</th></tr></thead>`;
@@ -288,6 +321,7 @@ async function boot() {
   renderBusinessUnits();
   renderPurchasing();
   renderOperations();
+  renderSheet2Draft();
   renderGrowth();
   renderThesis();
   initTabs();

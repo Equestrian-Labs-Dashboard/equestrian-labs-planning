@@ -65,3 +65,25 @@ en layout, listos para conectarse a la lógica de cálculo cuando la definan.
 `data/assumptions.json` es el dataset que ve cualquier persona que abra el sitio por
 primera vez (o que use "Restablecer a valores base"). Editarlo ahí y hacer push actualiza
 el modelo para todo el equipo.
+
+
+## Magic Page V4 status
+
+Implemented from the July 9 feedback:
+
+- Organic Growth is editable, not a dropdown.
+- Current Strategic Scenario feeds from the header controls.
+- Funding & Allocation no longer duplicates the Funding column and includes Unallocated Capital warning.
+- Save and Download buttons were added.
+- Commercial Strategy is split into Acquisition, Retention, and Market Growth.
+- ROAS and Ad Spend are included in Acquisition.
+- Dover Capture in the header feeds 2026 in Market Growth.
+- Growth Engines are inputs only; no Revenue or Gross Profit output is shown on the Magic Page.
+- Purchasing includes COGS Total, Vendor Payment Mix defaults of 80% / 15% / 5%, and Inventory Turns under Capital Efficiency.
+- The Gross Sales → EBITDA waterfall was removed from the Magic Page.
+- Sheet 2 / Growth & Margin Engine now has a draft structure plus OPEX defaults: Payroll $40K/month, G&A $45K/month, S&M 6.62% of Gross Revenue, Technology $0.
+
+Pending data connections:
+
+- Current/Baseline YTD averages from the dashboard.
+- Weighted-average Markup from purchasing/product data.
