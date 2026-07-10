@@ -252,3 +252,55 @@ td.calc-cell { background: var(--white); color: var(--muted); font-style: italic
 
 :focus-visible { outline: 3px solid #6FA8DC; outline-offset: 1px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* ---------------- V3 clean Magic Page additions ---------------- */
+.controls { grid-template-columns: repeat(4, minmax(120px, 1fr)); align-items: end; }
+.control-actions { display: flex; gap: 8px; align-items: end; }
+.action-btn {
+  font-family: var(--font-ui); font-size: 12px; font-weight: 700;
+  border: 1px solid rgba(255,255,255,0.24); border-radius: 6px;
+  padding: 7px 10px; cursor: pointer; color: #E8EFF7;
+  background: rgba(255,255,255,0.08);
+}
+.action-btn:hover { background: rgba(255,255,255,0.16); color: #fff; }
+.action-btn.primary { background: var(--soft-yellow); color: #3B2E00; border-color: var(--soft-yellow-border); }
+.strategy-grid, .engine-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  margin-top: 12px;
+}
+.engine-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.block-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 12px;
+}
+.block-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--navy);
+  margin: 0 0 8px;
+}
+.block-note {
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+  margin: -2px 0 8px;
+}
+.status-pill {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--light-gray);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+td.warning-cell { color: var(--red); background: var(--red-bg); font-weight: 800; font-style: normal; }
+@media (max-width: 1100px) { .controls { grid-template-columns: repeat(3, minmax(120px, 1fr)); } }
+@media (max-width: 900px) { .engine-grid { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .controls { grid-template-columns: 1fr; } .control-actions { align-items: stretch; } .action-btn { flex: 1; } }

@@ -14,12 +14,12 @@
   <div class="header-inner">
     <div>
       <p class="brand-eyebrow">Equestrian Labs</p>
-      <h1 class="brand-title">Strategic Operating Model <span id="versionBadge" class="version-badge">v1.0</span></h1>
+      <h1 class="brand-title">Strategic Operating Model <span id="versionBadge" class="version-badge">v1.1</span></h1>
       <p class="brand-sub">2026 – 2029</p>
       <div class="legend" style="margin-top:10px;">
         <span class="legend-chip"><span class="legend-swatch" style="background:#FFF4CC"></span>Editable</span>
         <span class="legend-chip"><span class="legend-swatch" style="background:#FFFFFF;border:1px solid #4a6d93"></span>Calculated</span>
-        <span class="legend-chip"><span class="legend-swatch" style="background:#F2F2F2"></span>Historical</span>
+        <span class="legend-chip"><span class="legend-swatch" style="background:#F2F2F2"></span>Baseline / Historical</span>
         <span class="save-indicator" id="saveIndicator">Saved ✓</span>
       </div>
     </div>
@@ -27,16 +27,20 @@
       <div class="control-field"><label>Model Status</label><select id="modelStatus"></select></div>
       <div class="control-field"><label>Funding Scenario</label><select id="fundingScenario"></select></div>
       <div class="control-field"><label>Funding Date</label><select id="fundingDate"></select></div>
-      <div class="control-field"><label>Organic Growth</label><select id="organicGrowth"></select></div>
-      <div class="control-field"><label>Capture Rate</label><select id="captureRate"></select></div>
+      <div class="control-field"><label>Organic Growth</label><input id="organicGrowth" /></div>
+      <div class="control-field"><label>Dover Capture</label><input id="doverCapture" /></div>
+      <div class="control-field"><label>ROAS</label><input id="roas" /></div>
       <div class="control-field"><label>Last Updated</label><input id="lastUpdate" /></div>
+      <div class="control-actions">
+        <button class="action-btn primary" id="saveData">Save</button>
+        <button class="action-btn" id="downloadData">Download</button>
+      </div>
     </div>
   </div>
 
-  <!-- Workbook tabs -->
   <nav class="tabbar" id="tabbar">
-    <button class="tab-btn active" data-tab="tab-01">01 · Strategic Assumptions</button>
-    <button class="tab-btn" data-tab="tab-02">02 · Revenue Engine</button>
+    <button class="tab-btn active" data-tab="tab-01">01 · Magic Page</button>
+    <button class="tab-btn" data-tab="tab-02">02 · Growth &amp; Margin Engine</button>
     <button class="tab-btn" data-tab="tab-03">03 · Summary P&amp;L + Cashflow</button>
     <button class="tab-btn" data-tab="tab-04">04 · Funding Scenarios</button>
     <button class="tab-btn" data-tab="tab-05">05 · Board Dashboard</button>
@@ -45,90 +49,76 @@
 </header>
 
 <main class="wrap">
-
-  <!-- ================= TAB 01 — STRATEGIC ASSUMPTIONS ================= -->
   <section class="tab-panel active" id="tab-01">
     <div class="scenario-banner">CURRENT STRATEGIC SCENARIO</div>
     <div class="kpi-grid" id="kpiGrid"></div>
 
-    <!-- SECTION 1 -->
     <section class="section" data-accent="funding">
       <div class="section-header">Section 1 — Funding &amp; Allocation</div>
-      <p class="section-sub">Funding Scenarios &amp; Allocation Rules</p>
+      <p class="section-sub">Funding scenarios &amp; allocation rules</p>
       <table class="grid" id="fundingTable"></table>
+      <p class="section-note">Unallocated Capital = scenario funding total − allocated capital. It should equal $0.</p>
     </section>
 
-    <!-- SECTION 2 -->
     <section class="section" data-accent="commercial">
-      <div class="section-header">Section 2 — Commercial Drivers</div>
-      <div class="two-col">
+      <div class="section-header">Section 2 — Commercial Strategy</div>
+      <p class="section-note">Growth Engines — strategic inputs only. Financial outputs move to Sheet 2.</p>
+      <div class="strategy-grid" id="commercialBlocks"></div>
+    </section>
+
+    <section class="section" data-accent="bu">
+      <div class="section-header">Section 3 — Growth Engines</div>
+      <p class="section-note">Each engine has its own input block according to how that business works. No revenue or gross profit output on the Magic Page.</p>
+      <div class="engine-grid" id="engineBlocks"></div>
+    </section>
+
+    <section class="section" data-accent="margin">
+      <div class="section-header">Section 4 — Purchasing Strategy</div>
+      <span class="owner-tag" style="margin-top:10px; display:inline-block;">Owner: Tatum</span>
+      <div class="two-col" style="margin-top:10px;">
         <div>
-          <p class="section-sub">Customer Drivers</p>
-          <table class="grid" id="customerTable"></table>
+          <p class="section-sub">Commercial Terms</p>
+          <table class="grid" id="purchasingTable"></table>
         </div>
         <div>
-          <p class="section-sub">Marketing Drivers</p>
-          <table class="grid" id="marketingTable"></table>
+          <p class="section-sub">Vendor Payment Mix</p>
+          <table class="grid" id="vendorMixTable"></table>
+          <p class="section-sub">Capital Efficiency</p>
+          <table class="grid" id="capitalEfficiencyTable"></table>
         </div>
       </div>
     </section>
 
-    <!-- SECTION 3 -->
-    <section class="section" data-accent="bu">
-      <div class="section-header">Section 3 — Business Unit Drivers</div>
-      <table class="grid" id="buTable" style="margin-top:10px;"></table>
-    </section>
-
-    <!-- SECTION 4 -->
     <section class="section" data-accent="margin">
-      <div class="section-header">Section 4 — Purchasing Drivers</div>
-      <span class="owner-tag" style="margin-top:10px; display:inline-block;">Owner: Tatum</span>
-      <table class="grid" id="purchasingTable"></table>
-      <p class="section-sub">Vendor Payment Mix</p>
-      <table class="grid" id="vendorMixTable" style="max-width:420px;"></table>
-    </section>
-
-    <!-- SECTION 5 -->
-    <section class="section" data-accent="margin">
-      <div class="section-header">Section 5 — Operations Drivers</div>
+      <div class="section-header">Section 5 — Operations Strategy</div>
       <span class="owner-tag" style="margin-top:10px; display:inline-block;">Owner: Jordyn</span>
-      <table class="grid" id="opsTable" style="max-width:420px;"></table>
+      <table class="grid" id="opsTable" style="max-width:760px;"></table>
     </section>
 
-    <!-- SECTION 6 -->
-    <section class="section" data-accent="margin">
-      <div class="section-header">Section 6 — Margin Structure</div>
-      <p class="section-note">Vertical waterfall — layout only, formulas coming next.</p>
-      <div class="waterfall" id="waterfall"></div>
-    </section>
-
-    <!-- SECTION 7 -->
     <section class="section" data-accent="growth">
-      <div class="section-header">Section 7 — Growth Initiatives</div>
+      <div class="section-header">Section 6 — Growth Initiatives</div>
       <table class="grid" id="growthTable" style="margin-top:10px;"></table>
       <button class="add-row-btn" id="addGrowthRow">+ Add initiative</button>
     </section>
 
-    <!-- SECTION 8 -->
     <section class="section" data-accent="thesis">
-      <div class="section-header">Section 8 — Investment Thesis Checks</div>
-      <p class="section-note">Traffic-light targets — formulas coming next.</p>
+      <div class="section-header">Section 7 — Strategic Targets</div>
+      <p class="section-note">Company-level targets only. Detailed dollar outputs are kept out of the Magic Page.</p>
       <div class="thesis-grid" id="thesisGrid"></div>
     </section>
 
     <div class="footer">
-      Equestrian Labs · Strategic Operating Model · feeds the Board Deck, Budget, Forecast, Fundraising, Strategic Planning &amp; Operating Review.
+      Magic Page = what we assume and choose. Growth &amp; Margin Engine = what those assumptions generate.
       <br />
       <button class="add-row-btn" id="resetData" style="margin-top:10px;">Reset to base values</button>
     </div>
   </section>
 
-  <!-- ================= TABS 02–06 — PLACEHOLDER (PHASE 2) ================= -->
   <section class="tab-panel" id="tab-02">
     <div class="placeholder-card" data-accent="funding">
       <div class="placeholder-tag">02</div>
-      <h2>Revenue Engine</h2>
-      <p>Coming in Phase 2 — revenue build-up by channel, cohort &amp; business unit.</p>
+      <h2>Growth &amp; Margin Engine</h2>
+      <p>Coming next — formulas for revenue, margin and engine-level output generated by Magic Page assumptions.</p>
     </div>
   </section>
 
@@ -136,7 +126,7 @@
     <div class="placeholder-card" data-accent="commercial">
       <div class="placeholder-tag">03</div>
       <h2>Summary P&amp;L + Cashflow</h2>
-      <p>Coming in Phase 2 — summary P&amp;L, cashflow, and formulas wired to the assumptions above.</p>
+      <p>Coming next — summary P&amp;L, cashflow and funding need.</p>
     </div>
   </section>
 
@@ -144,7 +134,7 @@
     <div class="placeholder-card" data-accent="bu">
       <div class="placeholder-tag">04</div>
       <h2>Funding Scenarios</h2>
-      <p>Coming in Phase 2 — side-by-side comparison across all funding scenarios.</p>
+      <p>Coming next — side-by-side comparison across all funding scenarios.</p>
     </div>
   </section>
 
@@ -152,7 +142,7 @@
     <div class="placeholder-card" data-accent="margin">
       <div class="placeholder-tag">05</div>
       <h2>Board Dashboard</h2>
-      <p>Coming in Phase 2 — the executive summary view for board &amp; investor meetings.</p>
+      <p>Coming next — executive summary view for board &amp; investor meetings.</p>
     </div>
   </section>
 
@@ -160,10 +150,9 @@
     <div class="placeholder-card" data-accent="thesis">
       <div class="placeholder-tag">06</div>
       <h2>Operating Review</h2>
-      <p>Coming in Phase 2 — monthly operating review against plan.</p>
+      <p>Coming next — monthly operating review against plan.</p>
     </div>
   </section>
-
 </main>
 
 <script src="assets/js/dataService.js"></script>

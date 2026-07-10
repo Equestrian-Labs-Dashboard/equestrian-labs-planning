@@ -3,399 +3,146 @@
     "modelStatus": "Board",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "1.0",
-    "lastUpdate": "2026-07-07",
+    "version": "1.1",
+    "lastUpdate": "2026-07-09",
     "organicGrowth": "35%",
-    "captureRate": "20%"
+    "doverCapture": "20%",
+    "roas": "4.0x"
   },
   "lists": {
-    "modelStatus": [
-      "Draft",
-      "Budget",
-      "Board",
-      "Investor"
-    ],
-    "fundingScenario": [
-      "Base $0",
-      "$500K",
-      "$1M",
-      "$3M",
-      "$5M"
-    ],
-    "fundingDate": [
-      "Aug-26",
-      "Oct-26",
-      "Jan-27"
-    ],
-    "captureRate": [
-      "5%",
-      "10%",
-      "15%",
-      "20%",
-      "30%"
-    ],
-    "organicGrowth": [
-      "5%",
-      "7.5%",
-      "10%",
-      "20%",
-      "35%"
-    ]
+    "modelStatus": ["Draft", "Budget", "Board", "Investor", "Forecast"],
+    "fundingScenario": ["Base $0", "$500K", "$1M", "$3M", "$5M"],
+    "fundingDate": ["Aug-26", "Oct-26", "Jan-27"]
   },
-  "kpis": [
-    {
-      "label": "Funding",
-      "value": "$3M",
-      "sub": "$0 · $500K · $1M · $3M · $5M"
-    },
-    {
-      "label": "Organic Growth",
-      "value": "35%",
-      "sub": "Low 5% · Med 7.5% · High 10%"
-    },
-    {
-      "label": "Capture Rate",
-      "value": "20%",
-      "sub": "Low 10% · Med 20% · High 30%"
-    },
-    {
-      "label": "Funding Date",
-      "value": "Oct-26",
-      "sub": "Editable assumption"
-    }
-  ],
   "funding": [
+    { "scenario": "Base",  "total": 0,       "date": "-",      "marketing": 0,       "inventory": 0,       "payables": 0,      "embroidery": 0,     "privateLabel": 0 },
+    { "scenario": "$500K", "total": 500000,  "date": "Jul-26", "marketing": 100000,  "inventory": 150000,  "payables": 250000, "embroidery": 0,     "privateLabel": 0 },
+    { "scenario": "$1M",   "total": 1000000, "date": "Jul-26", "marketing": 350000,  "inventory": 300000,  "payables": 300000, "embroidery": 50000, "privateLabel": 0 },
+    { "scenario": "$3M",   "total": 3000000, "date": "Oct-26", "marketing": 900000,  "inventory": 900000,  "payables": 750000, "embroidery": 50000, "privateLabel": 400000 },
+    { "scenario": "$5M",   "total": 5000000, "date": "Jul-26", "marketing": 1750000, "inventory": 1900000, "payables": 600000, "embroidery": 50000, "privateLabel": 700000 }
+  ],
+  "commercial": [
     {
-      "scenario": "Base",
-      "funding": 0,
-      "date": "-",
-      "marketing": 0,
-      "inventory": 0,
-      "payables": 0,
-      "embroidery": 0,
-      "privateLabel": 0
+      "title": "Acquisition Strategy — Emma",
+      "rows": [
+        { "driver": "Total Ad Spend", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+        { "driver": "Incremental Ad Spend", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+        { "driver": "ROAS", "current": "", "y2026": "4.0x", "y2027": "", "y2028": "", "y2029": "" },
+        { "driver": "Ad Spend % of Gross Sales", "current": "", "y2026": "Calculated", "y2027": "Calculated", "y2028": "Calculated", "y2029": "Calculated", "calculated": ["y2026", "y2027", "y2028", "y2029"] },
+        { "driver": "CAC", "current": "", "y2026": "KPI / calculated", "y2027": "KPI / calculated", "y2028": "KPI / calculated", "y2029": "KPI / calculated", "calculated": ["y2026", "y2027", "y2028", "y2029"] },
+        { "driver": "New Customer %", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" }
+      ]
     },
     {
-      "scenario": "$500K",
-      "funding": 500000,
-      "date": "Jul-26",
-      "marketing": 100000,
-      "inventory": 150000,
-      "payables": 250000,
-      "embroidery": 0,
-      "privateLabel": 0
+      "title": "Retention Strategy — Berna",
+      "rows": [
+        { "driver": "Returning Customers %", "current": "", "y2026": "45%", "y2027": "48%", "y2028": "50%", "y2029": "52%" },
+        { "driver": "Purchase Frequency", "current": "", "y2026": "2.8", "y2027": "3.0", "y2028": "3.2", "y2029": "3.4" },
+        { "driver": "Email Revenue %", "current": "", "y2026": "10%", "y2027": "12%", "y2028": "13%", "y2029": "14%" },
+        { "driver": "LTV", "current": "", "y2026": "Calculated", "y2027": "Calculated", "y2028": "Calculated", "y2029": "Calculated", "calculated": ["y2026", "y2027", "y2028", "y2029"] }
+      ]
     },
     {
-      "scenario": "$1M",
-      "funding": 1000000,
-      "date": "Jul-26",
-      "marketing": 350000,
-      "inventory": 300000,
-      "payables": 300000,
-      "embroidery": 50000,
-      "privateLabel": 0
-    },
-    {
-      "scenario": "$3M",
-      "funding": 3000000,
-      "date": "Oct-26",
-      "marketing": 900000,
-      "inventory": 900000,
-      "payables": 750000,
-      "embroidery": 50000,
-      "privateLabel": 400000
-    },
-    {
-      "scenario": "$5M",
-      "funding": 5000000,
-      "date": "Jul-26",
-      "marketing": 1750000,
-      "inventory": 1900000,
-      "payables": 600000,
-      "embroidery": 50000,
-      "privateLabel": 700000
+      "title": "Market Growth Strategy",
+      "rows": [
+        { "driver": "Organic Growth %", "current": "", "y2026": "35%", "y2027": "", "y2028": "", "y2029": "" },
+        { "driver": "Dover Capture %", "current": "0%", "y2026": "20%", "y2027": "", "y2028": "", "y2029": "" },
+        { "driver": "Dover Market Opportunity", "current": "$100M", "y2026": "$100M", "y2027": "$100M", "y2028": "$100M", "y2029": "$100M" }
+      ]
     }
   ],
-  "commercial": {
-    "customer": [
-      {
-        "driver": "Conversion",
-        "current": "",
-        "y2026": "2.5%",
-        "y2027": "3.0%",
-        "y2028": "3.3%",
-        "y2029": "3.5%"
-      },
-      {
-        "driver": "Organic Growth",
-        "current": "",
-        "y2026": "",
-        "y2027": "",
-        "y2028": "",
-        "y2029": ""
-      },
-      {
-        "driver": "Purchase Frequency",
-        "current": "",
-        "y2026": "2.8",
-        "y2027": "3.0",
-        "y2028": "3.2",
-        "y2029": "3.4"
-      },
-      {
-        "driver": "Returning %",
-        "current": "",
-        "y2026": "45%",
-        "y2027": "48%",
-        "y2028": "50%",
-        "y2029": "52%"
-      }
+  "growthEngines": [
+    {
+      "title": "Ecommerce — Emma",
+      "note": "Core acquisition engine.",
+      "rows": [
+        { "driver": "Orders", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+        { "driver": "AOV", "current": "", "y2026": "$", "y2027": "$", "y2028": "$", "y2029": "$" },
+        { "driver": "GM1 %", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" }
+      ]
+    },
+    {
+      "title": "Concierge — Nicole",
+      "rows": [
+        { "driver": "Active Clients", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+        { "driver": "Orders per Client", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+        { "driver": "AOV", "current": "", "y2026": "$", "y2027": "$", "y2028": "$", "y2029": "$" },
+        { "driver": "GM1 %", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" }
+      ]
+    },
+    {
+      "title": "Wellington — Nicole",
+      "rows": [
+        { "driver": "Orders", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+        { "driver": "AOV", "current": "", "y2026": "$", "y2027": "$", "y2028": "$", "y2029": "$" },
+        { "driver": "GM1 %", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" }
+      ]
+    },
+    {
+      "title": "Cavali — Angela",
+      "note": "Subscription model.",
+      "rows": [
+        { "driver": "Signature Active Members", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+        { "driver": "Signature Boxes per Year", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+        { "driver": "Signature Price", "current": "$99", "y2026": "$99", "y2027": "$99", "y2028": "$99", "y2029": "$99" },
+        { "driver": "Premium Active Members", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+        { "driver": "Premium Boxes per Year", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+        { "driver": "Premium Price", "current": "$199", "y2026": "$199", "y2027": "$199", "y2028": "$199", "y2029": "$199" },
+        { "driver": "GM1 %", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+        { "driver": "Organic Member Growth", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+        { "driver": "Cavali Ad Spend", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+        { "driver": "Cavali CAC", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" }
+      ]
+    },
+    {
+      "title": "Embroidery — Tatum",
+      "status": "🔒 Locked below $1M funding",
+      "rows": [
+        { "driver": "Orders", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+        { "driver": "AOV", "current": "", "y2026": "$", "y2027": "$", "y2028": "$", "y2029": "$" },
+        { "driver": "GM1 %", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" }
+      ]
+    },
+    {
+      "title": "Private Label — Tatum",
+      "status": "🔒 Locked below $3M funding",
+      "rows": [
+        { "driver": "Units Sold", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+        { "driver": "Average Selling Price", "current": "", "y2026": "$", "y2027": "$", "y2028": "$", "y2029": "$" },
+        { "driver": "GM1 %", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" }
+      ]
+    }
+  ],
+  "purchasing": {
+    "commercialTerms": [
+      { "driver": "Markup %", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+      { "driver": "Booking Amount", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+      { "driver": "Booking Discount %", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+      { "driver": "COGS Total", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" }
     ],
-    "marketing": [
-      {
-        "driver": "Email Revenue %",
-        "current": "",
-        "y2026": "10%",
-        "y2027": "12%",
-        "y2028": "13%",
-        "y2029": "14%"
-      },
-      {
-        "driver": "Affiliate %",
-        "current": "",
-        "y2026": "0%",
-        "y2027": "3%",
-        "y2028": "5%",
-        "y2029": "6%"
-      },
-      {
-        "driver": "Capture Rate",
-        "current": "",
-        "y2026": "",
-        "y2027": "",
-        "y2028": "",
-        "y2029": ""
-      },
-      {
-        "driver": "Dis&Ret %",
-        "current": "",
-        "y2026": "",
-        "y2027": "",
-        "y2028": "",
-        "y2029": ""
-      }
+    "vendorMix": { "prepaid": "80%", "under15": "15%", "d30to45": "5%" },
+    "capitalEfficiency": [
+      { "driver": "Inventory Turns", "current": "3.0x", "y2026": "3.2x", "y2027": "4.0x", "y2028": "4.5x", "y2029": "5.0x" }
     ]
-  },
-  "businessUnits": [
-    {
-      "unit": "Ecommerce",
-      "owner": "Emma",
-      "orders": "",
-      "aov": "",
-      "gm1": ""
-    },
-    {
-      "unit": "Concierge",
-      "owner": "Nicole",
-      "orders": "",
-      "aov": "",
-      "gm1": ""
-    },
-    {
-      "unit": "Wellington",
-      "owner": "Nicole",
-      "orders": "",
-      "aov": "",
-      "gm1": ""
-    },
-    {
-      "unit": "Cavali",
-      "owner": "Angela",
-      "orders": "",
-      "aov": "",
-      "gm1": ""
-    },
-    {
-      "unit": "Embroidery",
-      "owner": "Tatum",
-      "orders": "",
-      "aov": "",
-      "gm1": ""
-    },
-    {
-      "unit": "Private Label",
-      "owner": "Tatum",
-      "orders": "",
-      "aov": "",
-      "gm1": ""
-    }
-  ],
-  "purchasing": [
-    {
-      "kpi": "Inventory Turns",
-      "current": "3.0",
-      "y2026": "3.2",
-      "y2027": "4.0",
-      "y2028": "4.5",
-      "y2029": "5.0"
-    },
-    {
-      "kpi": "Markup %",
-      "current": "",
-      "y2026": "",
-      "y2027": "",
-      "y2028": "",
-      "y2029": ""
-    },
-    {
-      "kpi": "Booking Amount",
-      "current": "",
-      "y2026": "",
-      "y2027": "",
-      "y2028": "",
-      "y2029": ""
-    },
-    {
-      "kpi": "Booking Discount %",
-      "current": "",
-      "y2026": "",
-      "y2027": "",
-      "y2028": "",
-      "y2029": ""
-    }
-  ],
-  "vendorMix": {
-    "prepaid": "",
-    "under15": "",
-    "d30to45": ""
   },
   "operations": [
-    {
-      "kpi": "Shipping Cost %",
-      "current": "",
-      "y2026": "",
-      "y2027": "",
-      "y2028": "",
-      "y2029": ""
-    },
-    {
-      "kpi": "Shipping Revenue %",
-      "current": "",
-      "y2026": "",
-      "y2027": "",
-      "y2028": "",
-      "y2029": ""
-    },
-    {
-      "kpi": "Packaging Cost %",
-      "current": "",
-      "y2026": "",
-      "y2027": "",
-      "y2028": "",
-      "y2029": ""
-    }
-  ],
-  "waterfall": [
-    {
-      "label": "Gross Sales",
-      "sub": false
-    },
-    {
-      "label": "Discounts",
-      "sub": false
-    },
-    {
-      "label": "Net Sales",
-      "sub": true
-    },
-    {
-      "label": "COGS",
-      "sub": false
-    },
-    {
-      "label": "GM1",
-      "sub": true
-    },
-    {
-      "label": "Total Shipping Expenses",
-      "sub": false
-    },
-    {
-      "label": "GM2",
-      "sub": true
-    },
-    {
-      "label": "Ad Spend",
-      "sub": false
-    },
-    {
-      "label": "GM3",
-      "sub": true
-    },
-    {
-      "label": "Payroll",
-      "sub": false
-    },
-    {
-      "label": "S&M",
-      "sub": false
-    },
-    {
-      "label": "Technology",
-      "sub": false
-    },
-    {
-      "label": "G&A",
-      "sub": false
-    },
-    {
-      "label": "EBITDA",
-      "sub": true
-    }
+    { "driver": "Outbound Shipping Cost %", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+    { "driver": "Shipping Revenue %", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" },
+    { "driver": "Packaging Cost %", "current": "", "y2026": "", "y2027": "", "y2028": "", "y2029": "" }
   ],
   "growthInitiatives": [
-    {
-      "initiative": "",
-      "owner": "",
-      "trigger": "",
-      "launch": "",
-      "investment": ""
-    },
-    {
-      "initiative": "",
-      "owner": "",
-      "trigger": "",
-      "launch": "",
-      "investment": ""
-    },
-    {
-      "initiative": "",
-      "owner": "",
-      "trigger": "",
-      "launch": "",
-      "investment": ""
-    }
+    { "initiative": "Affiliate", "owner": "Berna / Emma", "trigger": "Base", "status": "Active", "launch": "Editable", "investment": "Editable" },
+    { "initiative": "Concierge Expansion", "owner": "Nicole", "trigger": "Base", "status": "Active", "launch": "Editable", "investment": "Editable" },
+    { "initiative": "Cavali Paid Growth", "owner": "Angela / Marketing", "trigger": "≥$1M", "status": "Locked", "launch": "Editable", "investment": "Editable" },
+    { "initiative": "Embroidery", "owner": "Tatum", "trigger": "≥$1M", "status": "Locked", "launch": "Editable", "investment": "$50K" },
+    { "initiative": "Private Label", "owner": "Tatum", "trigger": "≥$3M", "status": "Locked", "launch": "Editable", "investment": "Scenario" },
+    { "initiative": "Market Expansion", "owner": "Leadership", "trigger": "≥$5M", "status": "Locked", "launch": "Editable", "investment": "Editable" }
   ],
   "thesis": [
-    {
-      "label": "GM3",
-      "target": "Target > 35%",
-      "status": "green"
-    },
-    {
-      "label": "EBITDA Margin",
-      "target": "Target > 20%",
-      "status": "green"
-    },
-    {
-      "label": "LTV / CAC",
-      "target": "Target > 3.0x",
-      "status": "red"
-    },
-    {
-      "label": "Capture Rate",
-      "target": "Target 20%",
-      "status": "green"
-    }
+    { "label": "Gross Sales", "target": "Company target", "status": "gray" },
+    { "label": "GM3 %", "target": "Target > 35%", "status": "green" },
+    { "label": "EBITDA %", "target": "Target > 20%", "status": "green" },
+    { "label": "Organic Growth %", "target": "Scenario target", "status": "green" },
+    { "label": "Dover Capture %", "target": "Scenario target", "status": "green" }
   ]
 }

@@ -1,16 +1,6 @@
 let STATE = null;
 let saveTimer = null;
 
-function scheduleSave() {
-  clearTimeout(saveTimer);
-  const indicator = document.getElementById("saveIndicator");
-  if (indicator) indicator.textContent = "Saving…";
-  saveTimer = setTimeout(() => {
-    DataService.save(STATE);
-    if (indicator) indicator.textContent = "Saved ✓";
-  }, 400);
-}
-
 function el(tag, attrs = {}, children = []) {
   const node = document.createElement(tag);
   Object.entries(attrs).forEach(([k, v]) => {
@@ -19,7 +9,7 @@ function el(tag, attrs = {}, children = []) {
     else node.setAttribute(k, v);
   });
   (Array.isArray(children) ? children : [children]).forEach(c => {
-    if (c) node.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+    if (c !== null && c !== undefined && c !== "") node.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
   });
   return node;
 }
@@ -28,102 +18,166 @@ function optionList(values, selected) {
   return values.map(v => `<option value="${v}" ${v === selected ? "selected" : ""}>${v}</option>`).join("");
 }
 
-/* ---------------- Header ---------------- */
-function renderHeader() {
-  const { meta, lists } = STATE;
-  document.getElementById("modelStatus").innerHTML = optionList(lists.modelStatus, meta.modelStatus);
-  document.getElementById("fundingScenario").innerHTML = optionList(lists.fundingScenario, meta.fundingScenario);
-  document.getElementById("fundingDate").innerHTML = optionList(lists.fundingDate, meta.fundingDate);
-  document.getElementById("organicGrowth").innerHTML = optionList(lists.organicGrowth, meta.organicGrowth);
-  document.getElementById("captureRate").innerHTML = optionList(lists.captureRate, meta.captureRate);
-  document.getElementById("lastUpdate").value = meta.lastUpdate;
-  document.getElementById("versionBadge").textContent = `v${meta.version}`;
-
-  document.getElementById("modelStatus").onchange = e => { meta.modelStatus = e.target.value; scheduleSave(); };
-  document.getElementById("fundingScenario").onchange = e => { meta.fundingScenario = e.target.value; syncScenarioKpis(); renderKpis(); scheduleSave(); };
-  document.getElementById("fundingDate").onchange = e => { meta.fundingDate = e.target.value; syncScenarioKpis(); renderKpis(); scheduleSave(); };
-  document.getElementById("organicGrowth").onchange = e => { meta.organicGrowth = e.target.value; syncScenarioKpis(); renderKpis(); scheduleSave(); };
-  document.getElementById("captureRate").onchange = e => { meta.captureRate = e.target.value; syncScenarioKpis(); renderKpis(); scheduleSave(); };
-  document.getElementById("lastUpdate").oninput = e => { meta.lastUpdate = e.target.value; scheduleSave(); };
+function parseMoney(v) {
+  if (typeof v === "number") return v;
+  if (!v) return 0;
+  return Number(String(v).replace(/[$,]/g, "")) || 0;
 }
 
-function syncScenarioKpis() {
-  const { meta } = STATE;
-  const updates = {
-    "Funding": meta.fundingScenario,
-    "Organic Growth": meta.organicGrowth,
-    "Capture Rate": meta.captureRate,
-    "Funding Date": meta.fundingDate
-  };
-  STATE.kpis.forEach(k => {
-    if (updates[k.label]) k.value = updates[k.label];
-  });
+function formatCurrency(n) {
+  return "$" + Number(n || 0).toLocaleString("en-US");
 }
 
-/* ---------------- KPI cards ---------------- */
-function renderKpis() {
-  const wrap = document.getElementById("kpiGrid");
-  wrap.innerHTML = "";
-  STATE.kpis.forEach(k => {
-    wrap.appendChild(el("div", { class: "kpi-card" }, [
-      el("div", { class: "kpi-label" }, k.label),
-      el("div", { class: "kpi-value" }, k.value),
-      el("div", { class: "kpi-sub" }, k.sub),
-    ]));
-  });
+function fundingTotal(row) {
+  return row.total || parseMoney(row.scenario === "Base" ? 0 : row.scenario.replace("K", "000").replace("M", "000000"));
 }
 
-/* ---------------- Section 1: Funding & Allocation ---------------- */
-function renderFunding() {
-  const cols = ["scenario", "funding", "date", "marketing", "inventory", "payables", "embroidery", "privateLabel"];
-  const heads = ["Scenario", "Funding", "Date", "Marketing", "Inventory", "Payables", "Embroidery", "Private Label"];
-  const table = document.getElementById("fundingTable");
-  table.innerHTML = `<thead><tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr></thead>`;
-  const tbody = el("tbody");
-  STATE.funding.forEach((row, i) => {
-    const tr = el("tr");
-    cols.forEach(col => {
-      if (col === "scenario") {
-        tr.appendChild(el("td", { class: "label-cell gray-cell" }, row.scenario));
-      } else if (col === "date") {
-        tr.appendChild(makeEditableCell(row, col, "text", () => scheduleSave(), false));
-      } else {
-        tr.appendChild(makeEditableCell(row, col, "number", () => scheduleSave(), true));
-      }
-    });
-    tbody.appendChild(tr);
-  });
-  table.appendChild(tbody);
+function scenarioLabel() {
+  return STATE.meta.fundingScenario === "Base $0" ? "Base" : STATE.meta.fundingScenario;
 }
 
-function makeEditableCell(rowObj, key, type, onChange, formatMoney) {
+function selectedFundingRow() {
+  return STATE.funding.find(r => r.scenario === scenarioLabel()) || STATE.funding[0];
+}
+
+function updateIndicator(text) {
+  const indicator = document.getElementById("saveIndicator");
+  if (indicator) indicator.textContent = text;
+}
+
+function saveNow() {
+  clearTimeout(saveTimer);
+  DataService.save(STATE);
+  updateIndicator("Saved ✓");
+}
+
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  updateIndicator("Saving…");
+  saveTimer = setTimeout(saveNow, 400);
+}
+
+function downloadState() {
+  saveNow();
+  const blob = new Blob([JSON.stringify(STATE, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `strategic-model-assumptions-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function makeEditableCell(rowObj, key, onChange, opts = {}) {
   const td = el("td", { class: "editable" });
-  const input = el("input", { type: type === "number" ? "text" : "text" });
-  input.value = rowObj[key] === 0 || rowObj[key] ? (formatMoney && typeof rowObj[key] === "number" ? formatCurrency(rowObj[key]) : rowObj[key]) : "";
+  const input = el("input", { type: "text" });
+  input.value = rowObj[key] ?? "";
+  if (opts.money && typeof rowObj[key] === "number") input.value = formatCurrency(rowObj[key]);
   input.addEventListener("change", e => {
-    let v = e.target.value.replace(/[$,]/g, "");
-    rowObj[key] = formatMoney && v !== "" && !isNaN(v) ? Number(v) : v;
-    if (formatMoney && !isNaN(v) && v !== "") input.value = formatCurrency(Number(v));
+    let v = e.target.value;
+    if (opts.money) {
+      rowObj[key] = parseMoney(v);
+      input.value = rowObj[key] ? formatCurrency(rowObj[key]) : "$0";
+    } else {
+      rowObj[key] = v;
+    }
     onChange();
   });
   td.appendChild(input);
   return td;
 }
 
-function formatCurrency(n) {
-  return "$" + Number(n).toLocaleString("en-US");
+function makeCalcCell(value, className = "calc-cell") {
+  return el("td", { class: className }, value);
 }
 
-/* ---------------- Section 2: Commercial Drivers ---------------- */
-function renderDriverTable(tableEl, rows, keyField = "driver") {
-  const heads = [keyField === "driver" ? "Driver" : "KPI", "Current", "2026", "2027", "2028", "2029"];
+function renderHeader() {
+  const { meta, lists } = STATE;
+  document.getElementById("modelStatus").innerHTML = optionList(lists.modelStatus, meta.modelStatus);
+  document.getElementById("fundingScenario").innerHTML = optionList(lists.fundingScenario, meta.fundingScenario);
+  document.getElementById("fundingDate").innerHTML = optionList(lists.fundingDate, meta.fundingDate);
+  document.getElementById("organicGrowth").value = meta.organicGrowth;
+  document.getElementById("doverCapture").value = meta.doverCapture;
+  document.getElementById("roas").value = meta.roas;
+  document.getElementById("lastUpdate").value = meta.lastUpdate;
+  document.getElementById("versionBadge").textContent = `v${meta.version}`;
+
+  document.getElementById("modelStatus").onchange = e => { meta.modelStatus = e.target.value; scheduleSave(); };
+  document.getElementById("fundingScenario").onchange = e => { meta.fundingScenario = e.target.value; renderKpis(); scheduleSave(); };
+  document.getElementById("fundingDate").onchange = e => { meta.fundingDate = e.target.value; renderKpis(); scheduleSave(); };
+  document.getElementById("organicGrowth").onchange = e => { meta.organicGrowth = e.target.value; syncHeaderToTables(); renderKpis(); renderCommercial(); scheduleSave(); };
+  document.getElementById("doverCapture").onchange = e => { meta.doverCapture = e.target.value; syncHeaderToTables(); renderKpis(); renderCommercial(); scheduleSave(); };
+  document.getElementById("roas").onchange = e => { meta.roas = e.target.value; syncHeaderToTables(); renderKpis(); renderCommercial(); scheduleSave(); };
+  document.getElementById("lastUpdate").oninput = e => { meta.lastUpdate = e.target.value; scheduleSave(); };
+}
+
+function syncHeaderToTables() {
+  const market = STATE.commercial.find(b => b.title.includes("Market Growth"));
+  if (market) {
+    const org = market.rows.find(r => r.driver === "Organic Growth %");
+    const dover = market.rows.find(r => r.driver === "Dover Capture %");
+    if (org) org.y2026 = STATE.meta.organicGrowth;
+    if (dover) dover.y2026 = STATE.meta.doverCapture;
+  }
+  const acq = STATE.commercial.find(b => b.title.includes("Acquisition"));
+  if (acq) {
+    const roas = acq.rows.find(r => r.driver === "ROAS");
+    if (roas) roas.y2026 = STATE.meta.roas;
+  }
+}
+
+function renderKpis() {
+  const wrap = document.getElementById("kpiGrid");
+  const row = selectedFundingRow();
+  const cards = [
+    { label: "Funding", value: STATE.meta.fundingScenario, sub: "$0 · $500K · $1M · $3M · $5M" },
+    { label: "Organic Growth", value: STATE.meta.organicGrowth, sub: "Editable assumption" },
+    { label: "Dover Capture", value: STATE.meta.doverCapture, sub: "Feeds 2026 scenario" },
+    { label: "ROAS", value: STATE.meta.roas, sub: "Editable assumption" },
+    { label: "Funding Date", value: STATE.meta.fundingDate || row.date, sub: "Scenario timing" },
+  ];
+  wrap.innerHTML = "";
+  cards.forEach(k => wrap.appendChild(el("div", { class: "kpi-card" }, [
+    el("div", { class: "kpi-label" }, k.label),
+    el("div", { class: "kpi-value" }, k.value),
+    el("div", { class: "kpi-sub" }, k.sub),
+  ])));
+}
+
+function renderFunding() {
+  const cols = ["scenario", "date", "marketing", "inventory", "payables", "embroidery", "privateLabel"];
+  const heads = ["Scenario", "Date", "Marketing", "Inventory", "Payables", "Embroidery", "Private Label", "Unallocated Capital"];
+  const table = document.getElementById("fundingTable");
+  table.innerHTML = `<thead><tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr></thead>`;
+  const tbody = el("tbody");
+  STATE.funding.forEach(row => {
+    const tr = el("tr");
+    cols.forEach(col => {
+      if (col === "scenario") tr.appendChild(el("td", { class: "label-cell gray-cell" }, row.scenario));
+      else if (col === "date") tr.appendChild(makeEditableCell(row, col, () => { renderFunding(); scheduleSave(); }));
+      else tr.appendChild(makeEditableCell(row, col, () => { renderFunding(); scheduleSave(); }, { money: true }));
+    });
+    const allocated = ["marketing", "inventory", "payables", "embroidery", "privateLabel"].reduce((sum, k) => sum + parseMoney(row[k]), 0);
+    const unallocated = fundingTotal(row) - allocated;
+    const cls = unallocated === 0 ? "calc-cell" : "calc-cell warning-cell";
+    tr.appendChild(makeCalcCell((unallocated === 0 ? "✓ " : "⚠ ") + formatCurrency(unallocated), cls));
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+}
+
+function renderDriverTable(tableEl, rows) {
+  const heads = ["Driver", "Baseline / Current", "2026", "2027", "2028", "2029"];
   tableEl.innerHTML = `<thead><tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr></thead>`;
   const tbody = el("tbody");
   rows.forEach(row => {
     const tr = el("tr");
-    tr.appendChild(el("td", { class: "label-cell" }, row[keyField]));
+    tr.appendChild(el("td", { class: "label-cell" }, row.driver));
     ["current", "y2026", "y2027", "y2028", "y2029"].forEach(k => {
-      tr.appendChild(makeEditableCell(row, k, "text", () => scheduleSave()));
+      if (row.calculated && row.calculated.includes(k)) tr.appendChild(makeCalcCell(row[k] || "Calculated"));
+      else tr.appendChild(makeEditableCell(row, k, () => scheduleSave()));
     });
     tbody.appendChild(tr);
   });
@@ -131,110 +185,102 @@ function renderDriverTable(tableEl, rows, keyField = "driver") {
 }
 
 function renderCommercial() {
-  renderDriverTable(document.getElementById("customerTable"), STATE.commercial.customer);
-  renderDriverTable(document.getElementById("marketingTable"), STATE.commercial.marketing);
+  syncHeaderToTables();
+  const wrap = document.getElementById("commercialBlocks");
+  wrap.innerHTML = "";
+  STATE.commercial.forEach(block => {
+    const card = el("div", { class: "block-card" }, [
+      el("div", { class: "block-title" }, block.title),
+      el("table", { class: "grid" })
+    ]);
+    renderDriverTable(card.querySelector("table"), block.rows);
+    wrap.appendChild(card);
+  });
 }
 
-/* ---------------- Section 3: Business Unit Drivers ---------------- */
-function renderBusinessUnits() {
-  const table = document.getElementById("buTable");
-  table.innerHTML = `<thead><tr><th>Business Unit</th><th>Owner</th><th>Orders</th><th>AOV</th><th>GM1 %</th><th>Revenue (calc.)</th></tr></thead>`;
+function renderEngineTable(tableEl, rows) {
+  const heads = ["Driver", "Baseline / Current", "2026", "2027", "2028", "2029"];
+  tableEl.innerHTML = `<thead><tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr></thead>`;
   const tbody = el("tbody");
-  STATE.businessUnits.forEach(row => {
+  rows.forEach(row => {
     const tr = el("tr");
-    tr.appendChild(el("td", { class: "label-cell" }, row.unit));
-    tr.appendChild(el("td", { class: "gray-cell" }, row.owner));
-    ["orders", "aov", "gm1"].forEach(k => tr.appendChild(makeEditableCell(row, k, "text", () => scheduleSave())));
-    tr.appendChild(el("td", { class: "calc-cell" }, "—"));
+    tr.appendChild(el("td", { class: "label-cell" }, row.driver));
+    ["current", "y2026", "y2027", "y2028", "y2029"].forEach(k => tr.appendChild(makeEditableCell(row, k, () => scheduleSave())));
     tbody.appendChild(tr);
   });
-  table.appendChild(tbody);
+  tableEl.appendChild(tbody);
 }
 
-/* ---------------- Section 4: Purchasing Drivers ---------------- */
-function renderPurchasing() {
-  renderDriverTable(document.getElementById("purchasingTable"), STATE.purchasing, "kpi");
-  const vm = STATE.vendorMix;
-  const table = document.getElementById("vendorMixTable");
-  table.innerHTML = `<thead><tr><th>Prepaid %</th><th>&lt;15 Days %</th><th>30–45 Days %</th></tr></thead>`;
-  const tr = el("tr");
-  tr.appendChild(makeEditableCell(vm, "prepaid", "text", () => scheduleSave()));
-  tr.appendChild(makeEditableCell(vm, "under15", "text", () => scheduleSave()));
-  tr.appendChild(makeEditableCell(vm, "d30to45", "text", () => scheduleSave()));
-  table.appendChild(el("tbody", {}, tr));
-}
-
-/* ---------------- Section 5: Operations Drivers ---------------- */
-function renderOperations() {
-  renderDriverTable(document.getElementById("opsTable"), STATE.operations, "kpi");
-}
-
-/* ---------------- Section 6: Margin Structure (waterfall) ---------------- */
-function renderWaterfall() {
-  const wrap = document.getElementById("waterfall");
+function renderBusinessUnits() {
+  const wrap = document.getElementById("engineBlocks");
   wrap.innerHTML = "";
-  STATE.waterfall.forEach((row, i) => {
-    const wfRow = el("div", { class: "wf-row" + (row.sub ? " sub" : "") }, [
-      el("div", {}, row.label),
-      el("div", { class: "wf-val" }, "—"),
+  STATE.growthEngines.forEach(engine => {
+    const card = el("div", { class: "block-card" }, [
+      el("div", { class: "block-title" }, engine.title),
+      engine.note ? el("div", { class: "block-note" }, engine.note) : null,
+      el("table", { class: "grid" }),
+      engine.status ? el("div", { class: "status-pill" }, engine.status) : null,
     ]);
-    wrap.appendChild(wfRow);
-    if (i < STATE.waterfall.length - 1) {
-      wrap.appendChild(el("div", { class: "wf-arrow" }, "↓"));
-    }
+    renderEngineTable(card.querySelector("table"), engine.rows);
+    wrap.appendChild(card);
   });
 }
 
-/* ---------------- Section 7: Growth Initiatives ---------------- */
+function renderPurchasing() {
+  renderDriverTable(document.getElementById("purchasingTable"), STATE.purchasing.commercialTerms);
+  const vmTable = document.getElementById("vendorMixTable");
+  vmTable.innerHTML = `<thead><tr><th>Prepaid %</th><th>&lt;15 Days %</th><th>30–45 Days %</th></tr></thead>`;
+  const tr = el("tr");
+  ["prepaid", "under15", "d30to45"].forEach(k => tr.appendChild(makeEditableCell(STATE.purchasing.vendorMix, k, () => scheduleSave())));
+  vmTable.appendChild(el("tbody", {}, tr));
+  renderDriverTable(document.getElementById("capitalEfficiencyTable"), STATE.purchasing.capitalEfficiency);
+}
+
+function renderOperations() {
+  renderDriverTable(document.getElementById("opsTable"), STATE.operations);
+}
+
 function renderGrowth() {
   const table = document.getElementById("growthTable");
-  table.innerHTML = `<thead><tr><th>Initiative</th><th>Owner</th><th>Trigger</th><th>Launch</th><th>Investment</th></tr></thead>`;
+  table.innerHTML = `<thead><tr><th>Initiative</th><th>Owner</th><th>Funding Trigger</th><th>Status</th><th>Launch Date</th><th>Investment</th></tr></thead>`;
   const tbody = el("tbody");
   STATE.growthInitiatives.forEach(row => {
     const tr = el("tr");
-    ["initiative", "owner", "trigger", "launch", "investment"].forEach(k => {
-      tr.appendChild(makeEditableCell(row, k, "text", () => scheduleSave()));
-    });
+    ["initiative", "owner", "trigger", "status", "launch", "investment"].forEach(k => tr.appendChild(makeEditableCell(row, k, () => scheduleSave())));
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
 }
 
 function addGrowthRow() {
-  STATE.growthInitiatives.push({ initiative: "", owner: "", trigger: "", launch: "", investment: "" });
+  STATE.growthInitiatives.push({ initiative: "", owner: "", trigger: "", status: "", launch: "", investment: "" });
   renderGrowth();
   scheduleSave();
 }
 
-/* ---------------- Section 8: Investment Thesis Checks ---------------- */
 function renderThesis() {
   const wrap = document.getElementById("thesisGrid");
   wrap.innerHTML = "";
-  STATE.thesis.forEach(t => {
-    wrap.appendChild(el("div", { class: "thesis-card" }, [
-      el("div", { class: "thesis-label" }, t.label),
-      el("div", { class: `dot ${t.status}` }),
-      el("div", { class: "thesis-target" }, t.target),
-    ]));
-  });
+  STATE.thesis.forEach(t => wrap.appendChild(el("div", { class: "thesis-card" }, [
+    el("div", { class: "thesis-label" }, t.label),
+    el("div", { class: `dot ${t.status || "gray"}` }),
+    el("div", { class: "thesis-target" }, t.target),
+  ])));
 }
 
-/* ---------------- Tabs ---------------- */
 function initTabs() {
   const buttons = document.querySelectorAll(".tab-btn");
-  buttons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      buttons.forEach(b => b.classList.remove("active"));
-      document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
-      btn.classList.add("active");
-      document.getElementById(btn.dataset.tab).classList.add("active");
-    });
-  });
+  buttons.forEach(btn => btn.addEventListener("click", () => {
+    buttons.forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).classList.add("active");
+  }));
 }
 
-/* ---------------- Boot ---------------- */
 async function boot() {
   STATE = await DataService.load();
+  syncHeaderToTables();
   renderHeader();
   renderKpis();
   renderFunding();
@@ -242,11 +288,12 @@ async function boot() {
   renderBusinessUnits();
   renderPurchasing();
   renderOperations();
-  renderWaterfall();
   renderGrowth();
   renderThesis();
   initTabs();
   document.getElementById("addGrowthRow").addEventListener("click", addGrowthRow);
+  document.getElementById("saveData").addEventListener("click", saveNow);
+  document.getElementById("downloadData").addEventListener("click", downloadState);
   document.getElementById("resetData").addEventListener("click", () => {
     if (confirm("Reset the model to its base values? Your local edits will be lost.")) {
       DataService.reset();

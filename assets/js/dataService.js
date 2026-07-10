@@ -8,7 +8,7 @@
  * sin tocar una sola línea de app.js.
  */
 const DataService = (() => {
-  const STORAGE_KEY = "som_assumptions_v2";
+  const STORAGE_KEY = "som_assumptions_v3";
 
   async function load() {
     const local = localStorage.getItem(STORAGE_KEY);
