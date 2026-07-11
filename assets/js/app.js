@@ -613,8 +613,11 @@ function initTabs() {
 
 /* ---------------- External actuals from Google Sheets ---------------- */
 function sheetCsvUrl(source) {
-  if (!source || !source.spreadsheetId || !source.gid) return null;
-  return `https://docs.google.com/spreadsheets/d/${source.spreadsheetId}/gviz/tq?tqx=out:csv&gid=${source.gid}`;
+  if (!source || !source.spreadsheetId) return null;
+  const base = `https://docs.google.com/spreadsheets/d/${source.spreadsheetId}/gviz/tq?tqx=out:csv`;
+  if (source.gid) return `${base}&gid=${encodeURIComponent(source.gid)}`;
+  if (source.sheet) return `${base}&sheet=${encodeURIComponent(source.sheet)}`;
+  return null;
 }
 
 function parseCsv(text) {
@@ -654,8 +657,31 @@ async function fetchSheetRows(source) {
   const url = sheetCsvUrl(source);
   if (!url) throw new Error("Missing sheet source");
   const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`${source.label || "Sheet"}: HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`${source.label || source.sheet || "Sheet"}: HTTP ${res.status}`);
   return parseCsv(await res.text());
+}
+
+async function fetchOptionalSheetRows(source, sheetName, label) {
+  try {
+    return await fetchSheetRows({ ...source, gid: "", sheet: sheetName, label });
+  } catch (err) {
+    console.warn(`Optional sheet not loaded: ${label || sheetName}`, err);
+    return [];
+  }
+}
+
+async function fetchDashboardBundle(source, brand) {
+  const tabs = source.tabs || {};
+  const base = { spreadsheetId: source.spreadsheetId };
+  const [kpis, revenueShare, newVsReturning, adSpend, smartrrProductVolume, productsQ1] = await Promise.all([
+    fetchOptionalSheetRows(base, tabs.kpis || source.sheet || "kpis_daily", `${brand} kpis_daily`),
+    fetchOptionalSheetRows(base, tabs.revenueShare || "revenue_share", `${brand} revenue_share`),
+    fetchOptionalSheetRows(base, tabs.newVsReturning || "new_vs_returning", `${brand} new_vs_returning`),
+    fetchOptionalSheetRows(base, tabs.adSpend || "ad_spend", `${brand} ad_spend`),
+    brand === "cavali" ? fetchOptionalSheetRows(base, tabs.smartrrProductVolume || "smartrr_product_volume", `${brand} smartrr_product_volume`) : Promise.resolve([]),
+    fetchOptionalSheetRows(base, tabs.products || "products_q1_2026", `${brand} products_q1_2026`)
+  ]);
+  return { kpis, revenueShare, newVsReturning, adSpend, smartrrProductVolume, productsQ1 };
 }
 
 function monthlyRows(rows) {
@@ -706,8 +732,11 @@ function dashboardActuals(rows) {
   const returning = sumField(ytd, "returning_customers");
   const discountsReturns = sumField(ytd, "total_discounts") + sumField(ytd, "total_returns");
   return {
+    latest,
     periodLabel: `${latest.year} YTD through ${String(latest.month).padStart(2, "0")}`,
     grossSales: gross,
+    netSales: sumField(ytd, "net_sales"),
+    grossProfit: sumField(ytd, "gross_profit"),
     organicGrowth: prevGross ? (gross / prevGross) - 1 : 0,
     discountReturnsPct: gross ? discountsReturns / gross : 0,
     orders,
@@ -715,8 +744,107 @@ function dashboardActuals(rows) {
     gm1: weightedGm1(ytd),
     returningCustomerPct: customers ? returning / customers : 0,
     purchaseFrequency: customers ? orders / customers : 0,
-    newCustomerPct: customers ? sumField(ytd, "new_customers") / customers : 0
+    newCustomerPct: customers ? sumField(ytd, "new_customers") / customers : 0,
+    newCustomers: sumField(ytd, "new_customers")
   };
+}
+
+function adSpendActuals(rows, kpiActuals) {
+  if (!rows || !rows.length || !kpiActuals || !kpiActuals.latest) return null;
+  const ytd = rowsForYtd(rows, kpiActuals.latest.year, kpiActuals.latest.month);
+  const spend = sumField(ytd, "ad_spend");
+  const weightedRoasNumerator = (ytd || []).reduce((s, r) => s + parseNumber(r.ad_spend) * parseNumber(r.roas), 0);
+  const roas = spend ? weightedRoasNumerator / spend : 0;
+  const cos = kpiActuals.grossSales ? spend / kpiActuals.grossSales : 0;
+  const cac = kpiActuals.newCustomers ? spend / kpiActuals.newCustomers : 0;
+  return { spend, roas, cos, cac };
+}
+
+function channelRevenueYtd(rows, channel, latest) {
+  if (!rows || !rows.length || !latest) return 0;
+  const ytd = rowsForYtd(rows, latest.year, latest.month);
+  return ytd
+    .filter(r => String(r.channel || "").toLowerCase().includes(String(channel).toLowerCase()))
+    .reduce((s, r) => s + parseNumber(r.amount), 0);
+}
+
+function normalizeProductKey(product) {
+  const raw = String(product || "").toLowerCase();
+  if (raw.includes("signature")) return "signature";
+  if (raw.includes("premier") || raw.includes("premium")) return "premium";
+  return raw.replace(/[^a-z0-9]+/g, "");
+}
+
+function latestRowsByPeriodStart(rows) {
+  if (!rows || !rows.length) return [];
+  const valid = rows.filter(r => r.period_start || r.period);
+  if (!valid.length) return rows;
+  const periods = valid.map(r => `${r.period_start || ""}|${r.period || ""}`).sort();
+  const latestKey = periods[periods.length - 1];
+  const [latestStart, latestPeriod] = latestKey.split("|");
+  return valid.filter(r => String(r.period_start || "") === latestStart && String(r.period || "") === latestPeriod);
+}
+
+function smartrrMembershipActuals(rows) {
+  const latestRows = latestRowsByPeriodStart(rows);
+  const out = { signatureActive: 0, premiumActive: 0, signatureNew: 0, premiumNew: 0 };
+  latestRows.forEach(r => {
+    const key = normalizeProductKey(r.product_variant || r.product || "");
+    const active = parseNumber(r.active_subscribers_current);
+    const newer = parseNumber(r.new_subscribers);
+    if (key === "signature") {
+      out.signatureActive += active;
+      out.signatureNew += newer;
+    } else if (key === "premium") {
+      out.premiumActive += active;
+      out.premiumNew += newer;
+    }
+  });
+  return out;
+}
+
+
+function firstPresent(row, names) {
+  const keys = Object.keys(row || {});
+  for (const wanted of names) {
+    const exact = keys.find(k => k.toLowerCase() === wanted.toLowerCase());
+    if (exact && row[exact] !== "") return row[exact];
+  }
+  for (const wanted of names) {
+    const partial = keys.find(k => k.toLowerCase().replace(/[^a-z0-9]/g, "").includes(wanted.toLowerCase().replace(/[^a-z0-9]/g, "")));
+    if (partial && row[partial] !== "") return row[partial];
+  }
+  return "";
+}
+
+function parsePctOrDecimal(v) {
+  const raw = String(v || "").trim();
+  if (!raw) return null;
+  const n = parseNumber(raw);
+  if (!Number.isFinite(n)) return null;
+  if (raw.includes("%")) return n / 100;
+  return Math.abs(n) > 3 ? n / 100 : n;
+}
+
+function weightedMarkupActuals(productRowsList) {
+  const rows = (productRowsList || []).flat().filter(Boolean);
+  let numerator = 0;
+  let denominator = 0;
+  rows.forEach(r => {
+    const explicitMarkup = parsePctOrDecimal(firstPresent(r, ["markup_pct", "pct_markup", "markup %", "markup", "margin_markup"]));
+    const cost = parseNumber(firstPresent(r, ["cost", "unit_cost", "cost_per_item", "product_cost", "variant_cost", "cogs", "cost_of_goods_sold"]));
+    const price = parseNumber(firstPresent(r, ["price", "selling_price", "average_selling_price", "avg_price", "retail_price", "unit_price", "aov"]));
+    let weight = parseNumber(firstPresent(r, ["units_sold", "nb_units", "quantity", "qty", "total_quantity", "orders", "inventory_quantity", "variant_inventory_qty"]));
+    if (!weight || weight < 0) weight = 1;
+
+    let markup = explicitMarkup;
+    if (markup === null && cost > 0 && price > 0) markup = (price - cost) / cost;
+    if (markup === null || !Number.isFinite(markup)) return;
+
+    numerator += markup * weight;
+    denominator += weight;
+  });
+  return denominator ? numerator / denominator : null;
 }
 
 function setCurrentInRows(rows, driver, value) {
@@ -724,30 +852,68 @@ function setCurrentInRows(rows, driver, value) {
   if (row && Object.keys(row).length) row.current = value;
 }
 
-function applyActualsToState(corroRows, cavaliRows) {
-  const corro = dashboardActuals(corroRows);
-  const cavali = dashboardActuals(cavaliRows);
+function applyActualsToState(corroBundle, cavaliBundle) {
+  const corro = dashboardActuals(corroBundle.kpis);
+  const cavali = dashboardActuals(cavaliBundle.kpis);
+  const corroAds = adSpendActuals(corroBundle.adSpend, corro);
+  const cavaliAds = adSpendActuals(cavaliBundle.adSpend, cavali);
+  const cavaliMembers = smartrrMembershipActuals(cavaliBundle.smartrrProductVolume);
+
   if (!STATE.actuals) STATE.actuals = {};
   STATE.actuals.lastRefresh = new Date().toISOString();
   STATE.actuals.corroPeriod = corro ? corro.periodLabel : "No monthly rows found";
   STATE.actuals.cavaliPeriod = cavali ? cavali.periodLabel : "No monthly rows found";
+  STATE.actuals.sources = {
+    corro: {
+      kpis_daily: (corroBundle.kpis || []).length,
+      revenue_share: (corroBundle.revenueShare || []).length,
+      new_vs_returning: (corroBundle.newVsReturning || []).length,
+      ad_spend: (corroBundle.adSpend || []).length,
+      products_q1_2026: (corroBundle.productsQ1 || []).length
+    },
+    cavali: {
+      kpis_daily: (cavaliBundle.kpis || []).length,
+      revenue_share: (cavaliBundle.revenueShare || []).length,
+      new_vs_returning: (cavaliBundle.newVsReturning || []).length,
+      ad_spend: (cavaliBundle.adSpend || []).length,
+      smartrr_product_volume: (cavaliBundle.smartrrProductVolume || []).length,
+      products_q1_2026: (cavaliBundle.productsQ1 || []).length
+    }
+  };
 
   const acq = getBlock(STATE.commercial, "Acquisition");
   const retention = getBlock(STATE.commercial, "Retention");
   const market = getBlock(STATE.commercial, "Market Growth");
   const ecommerce = getBlock(STATE.growthEngines, "Ecommerce");
   const cavaliEngine = getBlock(STATE.growthEngines, "Cavali");
+  const concierge = getBlock(STATE.growthEngines, "Concierge");
+  const wellington = getBlock(STATE.growthEngines, "Wellington");
+
+  const markupActual = weightedMarkupActuals([corroBundle.productsQ1, cavaliBundle.productsQ1]);
+  if (markupActual !== null && STATE.purchasing && STATE.purchasing.commercialTerms) {
+    setCurrentInRows(STATE.purchasing.commercialTerms, "Markup %", formatPercent(markupActual));
+  }
 
   if (corro) {
     if (acq) {
       setCurrentInRows(acq.rows, "New Customer %", formatPercent(corro.newCustomerPct));
-      setCurrentInRows(acq.rows, "Total Ad Spend", "Needs ads source");
-      setCurrentInRows(acq.rows, "Incremental Ad Spend", "Needs ads source");
-      setCurrentInRows(acq.rows, "ROAS", "Needs ads source");
+      if (corroAds && corroAds.spend) {
+        setCurrentInRows(acq.rows, "Total Ad Spend", formatCurrency(Math.round(corroAds.spend)));
+        setCurrentInRows(acq.rows, "Incremental Ad Spend", formatCurrency(Math.round(corroAds.spend)));
+        setCurrentInRows(acq.rows, "ROAS", formatMultiple(corroAds.roas));
+        setCurrentInRows(acq.rows, "Ad Spend % of Gross Sales", formatPercent(corroAds.cos));
+        setCurrentInRows(acq.rows, "CAC", formatCurrency(Math.round(corroAds.cac)));
+      } else {
+        setCurrentInRows(acq.rows, "Total Ad Spend", "No ad_spend rows");
+        setCurrentInRows(acq.rows, "Incremental Ad Spend", "No ad_spend rows");
+        setCurrentInRows(acq.rows, "ROAS", "No ad_spend rows");
+      }
     }
     if (retention) {
       setCurrentInRows(retention.rows, "Returning Customers %", formatPercent(corro.returningCustomerPct));
       setCurrentInRows(retention.rows, "Purchase Frequency", corro.purchaseFrequency.toFixed(2));
+      const annualGp = corro.aov * corro.purchaseFrequency * corro.gm1;
+      setCurrentInRows(retention.rows, "Annual Customer Gross Profit", formatCurrency(Math.round(annualGp)));
     }
     if (market) {
       setCurrentInRows(market.rows, "Organic Growth %", formatPercent(corro.organicGrowth));
@@ -758,37 +924,56 @@ function applyActualsToState(corroRows, cavaliRows) {
       setCurrentInRows(ecommerce.rows, "AOV", formatCurrency(Math.round(corro.aov)));
       setCurrentInRows(ecommerce.rows, "GM1 %", formatPercent(corro.gm1));
     }
+    if (concierge) {
+      const conciergeRevenue = channelRevenueYtd(corroBundle.revenueShare, "Concierge", corro.latest);
+      if (conciergeRevenue) setCurrentInRows(concierge.rows, "AOV", `Revenue share: ${formatCurrency(Math.round(conciergeRevenue))}`);
+    }
+    if (wellington) {
+      const wellingtonRevenue = channelRevenueYtd(corroBundle.revenueShare, "Wellington", corro.latest);
+      if (wellingtonRevenue) setCurrentInRows(wellington.rows, "AOV", `Revenue share: ${formatCurrency(Math.round(wellingtonRevenue))}`);
+    }
   }
 
   if (cavali && cavaliEngine) {
     setCurrentInRows(cavaliEngine.rows, "GM1 %", formatPercent(cavali.gm1));
     setCurrentInRows(cavaliEngine.rows, "Organic Member Growth", formatPercent(cavali.organicGrowth));
-    setCurrentInRows(cavaliEngine.rows, "Cavali Ad Spend", "Needs ads source");
-    setCurrentInRows(cavaliEngine.rows, "Cavali CAC", "Needs member/ad source");
+    if (cavaliAds && cavaliAds.spend) {
+      setCurrentInRows(cavaliEngine.rows, "Cavali Ad Spend", formatCurrency(Math.round(cavaliAds.spend)));
+      setCurrentInRows(cavaliEngine.rows, "Cavali CAC", formatCurrency(Math.round(cavaliAds.cac)));
+    } else {
+      setCurrentInRows(cavaliEngine.rows, "Cavali Ad Spend", "No ad_spend rows");
+      setCurrentInRows(cavaliEngine.rows, "Cavali CAC", "Needs members/ad source");
+    }
+    if (cavaliMembers.signatureActive || cavaliMembers.premiumActive) {
+      setCurrentInRows(cavaliEngine.rows, "Signature Active Members", Math.round(cavaliMembers.signatureActive).toLocaleString("en-US"));
+      setCurrentInRows(cavaliEngine.rows, "Premium Active Members", Math.round(cavaliMembers.premiumActive).toLocaleString("en-US"));
+    }
   }
 }
 
 async function refreshActualsFromSheets({ silent = false } = {}) {
   const sources = STATE.dataSources || {};
-  if (!sources.corroDashboard || !sources.cavaliDashboard) return;
+  const corroSource = sources.corroDashboard || sources.corro;
+  const cavaliSource = sources.cavaliDashboard || sources.cavali;
+  if (!corroSource || !cavaliSource) return;
   try {
     updateIndicator("Refreshing actuals…");
-    const [corroRows, cavaliRows] = await Promise.all([
-      fetchSheetRows(sources.corroDashboard),
-      fetchSheetRows(sources.cavaliDashboard)
+    const [corroBundle, cavaliBundle] = await Promise.all([
+      fetchDashboardBundle(corroSource, "corro"),
+      fetchDashboardBundle(cavaliSource, "cavali")
     ]);
-    applyActualsToState(corroRows, cavaliRows);
+    applyActualsToState(corroBundle, cavaliBundle);
     renderCommercial();
     renderBusinessUnits();
     renderSheet2Draft();
     saveNow();
     const msg = `Actuals refreshed ✓ ${STATE.actuals.corroPeriod || ""}`;
     updateIndicator(msg);
-    if (!silent) alert(`Actuals connected.\nCorro: ${STATE.actuals.corroPeriod}\nCavali: ${STATE.actuals.cavaliPeriod}\n\nStill needed: ad spend source, Klaviyo/email revenue, weighted markup/product cost source.`);
+    if (!silent) alert(`Actuals connected from Google Sheets.\nCorro: ${STATE.actuals.corroPeriod}\nCavali: ${STATE.actuals.cavaliPeriod}\n\nLoaded tabs:\nCorro: ${JSON.stringify(STATE.actuals.sources.corro)}\nCavali: ${JSON.stringify(STATE.actuals.sources.cavali)}\n\nStill needed for full automation: Klaviyo/email revenue and clean QuickBooks shipping/packaging/OPEX. Markup weighted average is read from products_q1_2026 when price/cost/units columns are present.`);
   } catch (err) {
     console.error(err);
     updateIndicator("Actuals refresh failed");
-    if (!silent) alert(`Could not refresh Google Sheet actuals: ${err.message}\n\nMake sure both Google Sheets are shared as Viewer with the link.`);
+    if (!silent) alert(`Could not refresh Google Sheet actuals: ${err.message}\n\nMake sure both Google Sheets are shared as Viewer with the link and tabs are named kpis_daily, revenue_share, new_vs_returning, ad_spend, and smartrr_product_volume for Cavali.`);
   }
 }
 

@@ -794,8 +794,8 @@
       },
       {
         "item": "Current / Baseline YTD automation",
-        "status": "pending external data",
-        "needed": "Financial dashboard JSON/CSV/API with monthly YTD metrics by brand/channel"
+        "status": "connected to Corro/Cavali Google Sheets",
+        "needed": "Sheets must be shareable and tabs must exist: kpis_daily, revenue_share, new_vs_returning, ad_spend; Cavali also smartrr_product_volume"
       },
       {
         "item": "Markup weighted average",
@@ -809,8 +809,8 @@
       },
       {
         "item": "Cavali CAC / new members",
-        "status": "pending external data",
-        "needed": "Cavali member acquisition data or paid-spend-to-member mapping"
+        "status": "partially connected",
+        "needed": "Cavali ad_spend tab plus Smartrr product volume / membership rows; if ad_spend is empty, keep manual input"
       }
     ]
   },
@@ -886,14 +886,25 @@
   ],
   "dataSources": {
     "corroDashboard": {
-      "label": "Corro Dashboard Data",
+      "label": "Corro Dashboard Google Sheet",
       "spreadsheetId": "1nq8xkDzowAvhD3wpMBlVK2M3FZSNS2DrAiPxz-Y2tdU",
-      "gid": "459401991"
+      "tabs": {
+        "kpis": "kpis_daily",
+        "revenueShare": "revenue_share",
+        "newVsReturning": "new_vs_returning",
+        "adSpend": "ad_spend"
+      }
     },
     "cavaliDashboard": {
-      "label": "Cavali Dashboard Data",
+      "label": "Cavali Dashboard Google Sheet",
       "spreadsheetId": "1QUdJc2EIdElIX5nlLQxWxS98aAz-TgQnSg9glJpNtig",
-      "gid": "1684751027"
+      "tabs": {
+        "kpis": "kpis_daily",
+        "revenueShare": "revenue_share",
+        "newVsReturning": "new_vs_returning",
+        "adSpend": "ad_spend",
+        "smartrrProductVolume": "smartrr_product_volume"
+      }
     }
   }
 }

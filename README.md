@@ -1,191 +1,147 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Equestrian Labs · Strategic Operating Model</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/styles.css" />
-</head>
-<body>
+# Equestrian Labs — Strategic Operating Model (Web)
 
-<header class="header">
-  <div class="header-inner">
-    <div>
-      <p class="brand-eyebrow">Equestrian Labs</p>
-      <h1 class="brand-title">Strategic Operating Model <span id="versionBadge" class="version-badge">v1.1</span></h1>
-      <p class="brand-sub">2026 – 2029</p>
-      <div class="legend" style="margin-top:10px;">
-        <span class="legend-chip"><span class="legend-swatch" style="background:#FFF4CC"></span>Editable</span>
-        <span class="legend-chip"><span class="legend-swatch" style="background:#FFFFFF;border:1px solid #4a6d93"></span>Calculated</span>
-        <span class="legend-chip"><span class="legend-swatch" style="background:#F2F2F2"></span>Baseline / Historical</span>
-        <span class="save-indicator" id="saveIndicator">Saved ✓</span>
-      </div>
-    </div>
-    <div class="controls">
-      <div class="control-field"><label>Model Status</label><select id="modelStatus"></select></div>
-      <div class="control-field"><label>Funding Scenario</label><select id="fundingScenario"></select></div>
-      <div class="control-field"><label>Funding Date</label><select id="fundingDate"></select></div>
-      <div class="control-field"><label>Organic Growth</label><input id="organicGrowth" /></div>
-      <div class="control-field"><label>Dover Capture</label><select id="doverCapture"></select></div>
-      <div class="control-field"><label>ROAS</label><select id="roas"></select></div>
-      <div class="control-field"><label>Last Updated</label><input id="lastUpdate" /></div>
-      <div class="control-actions">
-        <button class="action-btn primary" id="saveData">Save</button>
-        <button class="action-btn" id="refreshActuals">Refresh Actuals</button>
-        <button class="action-btn" id="downloadData">Download</button>
-      </div>
-    </div>
-  </div>
+Dashboard ejecutivo del **Strategic Operating Model** (hoja `01_Strategic_Assumptions`),
+convertido de Excel a una pequeña app web — 100% gratuita, sin backend, lista para
+subir a GitHub y publicarse sola.
 
-  <nav class="tabbar" id="tabbar">
-    <button class="tab-btn active" data-tab="tab-01">01 · Magic Page</button>
-    <button class="tab-btn" data-tab="tab-02">02 · Growth &amp; Margin Engine</button>
-    <button class="tab-btn" data-tab="tab-03">03 · Summary P&amp;L + Cashflow</button>
-    <button class="tab-btn" data-tab="tab-04">04 · Funding Scenarios</button>
-    <button class="tab-btn" data-tab="tab-05">05 · Board Dashboard</button>
-    <button class="tab-btn" data-tab="tab-06">06 · Operating Review</button>
-  </nav>
-</header>
+## Por qué esta arquitectura (y no otra)
 
-<main class="wrap">
-  <section class="tab-panel active" id="tab-01">
-    <div class="scenario-banner">CURRENT STRATEGIC SCENARIO</div>
-    <div class="kpi-grid" id="kpiGrid"></div>
+| Necesidad | Elección | Por qué |
+|---|---|---|
+| Hosting | **GitHub Pages** | Gratis para siempre, sin tarjeta, se activa solo con este repo |
+| Deploy | **GitHub Actions** (incluido) | Cada `git push` a `main` publica solo, sin pasos manuales |
+| Frontend | **HTML + CSS + JS puro** | Cero build step, cero dependencias que se rompan con el tiempo, cualquiera en el equipo lo puede editar sin instalar nada |
+| Datos | `data/assumptions.json` + `localStorage` | El modelo carga siempre el dataset base; lo que edite cada persona se guarda en su navegador, sin costo de servidor |
+| Gráficos (fase 2) | Chart.js vía CDN | Gratis, sin instalación, se agrega cuando haya fórmulas reales |
 
-    <section class="section" data-accent="funding">
-      <div class="section-header">Section 1 — Funding &amp; Allocation</div>
-      <p class="section-sub">Funding scenarios &amp; allocation rules</p>
-      <table class="grid" id="fundingTable"></table>
-      <p class="section-note">Unallocated Capital = scenario funding total − allocated capital. It should equal $0.</p>
-    </section>
+**No usé React/Vue ni un framework** porque el sitio es un dashboard de datos, no una
+app compleja de estados — un framework hoy solo agregaría una capa de build (y de
+mantenimiento) sin necesidad real.
 
-    <section class="section" data-accent="commercial">
-      <div class="section-header">Section 2 — Commercial Strategy</div>
-      <p class="section-note">Growth Engines — strategic inputs only. Current/Baseline is reserved for YTD averages from the dashboard where available. Financial outputs move to Sheet 2.</p>
-      <div class="strategy-grid" id="commercialBlocks"></div>
-    </section>
+### Cómo escala a futuro (sin reescribir nada)
 
-    <section class="section" data-accent="bu">
-      <div class="section-header">Section 3 — Growth Engines</div>
-      <p class="section-note">Each engine has its own input block according to how that business works. No revenue or gross profit output on the Magic Page.</p>
-      <div class="engine-grid" id="engineBlocks"></div>
-    </section>
+Toda lectura/escritura de datos pasa por **un solo archivo**: `assets/js/dataService.js`.
+Cuando el equipo necesite que las ediciones se compartan entre personas (no solo en el
+navegador de cada quien), se reemplaza el contenido de `load()`/`save()` por llamadas a:
 
-    <section class="section" data-accent="margin">
-      <div class="section-header">Section 4 — Purchasing Strategy</div>
-      <span class="owner-tag" style="margin-top:10px; display:inline-block;">Owner: Tatum</span>
-      <div class="two-col" style="margin-top:10px;">
-        <div>
-          <p class="section-sub">Commercial Terms</p>
-          <table class="grid" id="purchasingTable"></table>
-        </div>
-        <div>
-          <p class="section-sub">Vendor Payment Mix</p>
-          <table class="grid" id="vendorMixTable"></table>
-          <p class="section-sub">Capital Efficiency</p>
-          <table class="grid" id="capitalEfficiencyTable"></table>
-        </div>
-      </div>
-    </section>
+- **Supabase** (Postgres gratis hasta 500MB, con API instantánea) — la opción recomendada, o
+- **Firebase Firestore** (free tier generoso, ya usado en otros proyectos del equipo)
 
-    <section class="section" data-accent="margin">
-      <div class="section-header">Section 5 — Operations Strategy</div>
-      <span class="owner-tag" style="margin-top:10px; display:inline-block;">Owner: Jordyn</span>
-      <table class="grid" id="opsTable" style="max-width:760px;"></table>
-    </section>
+El resto del sitio (HTML/CSS/`app.js`) no cambia una sola línea, porque no sabe *de dónde*
+vienen los datos, solo que existen `load()` y `save()`.
 
-    <section class="section" data-accent="growth">
-      <div class="section-header">Section 6 — Growth Initiatives</div>
-      <table class="grid" id="growthTable" style="margin-top:10px;"></table>
-      <button class="add-row-btn" id="addGrowthRow">+ Add initiative</button>
-    </section>
+## Estructura del proyecto
 
-    <section class="section" data-accent="thesis">
-      <div class="section-header">Section 7 — Strategic Targets</div>
-      <p class="section-note">Company-level targets only. Detailed dollar outputs are kept out of the Magic Page.</p>
-      <div class="thesis-grid" id="thesisGrid"></div>
-    </section>
+```
+├── index.html                  # Dashboard (una sola página)
+├── assets/
+│   ├── css/styles.css          # Design tokens + estilos (misma identidad del Excel)
+│   └── js/
+│       ├── dataService.js      # Única puerta de datos (ver sección de arriba)
+│       └── app.js              # Renderizado de las 8 secciones + KPIs
+├── data/assumptions.json       # Dataset base del modelo (editable a mano o por PR)
+└── .github/workflows/deploy.yml# Publica solo en cada push a main
+```
 
-    <div class="footer">
-      Magic Page = what we assume and choose. Growth &amp; Margin Engine = what those assumptions generate.
-      <br />
-      <button class="add-row-btn" id="resetData" style="margin-top:10px;">Reset to base values</button>
-    </div>
-  </section>
+## Cómo subirlo a GitHub y publicarlo (5 minutos)
 
-  <section class="tab-panel" id="tab-02">
-    <div class="scenario-banner">GROWTH &amp; MARGIN ENGINE</div>
-    <p class="section-note" style="text-align:center; margin-top:8px;">How strategic drivers translate into growth and profitability. This tab links to Tab 01 and stays formula-driven.</p>
+1. Crea un repo nuevo en GitHub (puede ser privado o público).
+2. Sube esta carpeta completa (`git init`, `git add .`, `git commit -m "base"`, `git push`).
+3. En el repo: **Settings → Pages → Source → GitHub Actions**. Con eso basta, el workflow
+   ya incluido (`.github/workflows/deploy.yml`) hace el resto.
+4. En 1-2 minutos el sitio queda publicado en:
+   `https://<tu-usuario>.github.io/<nombre-del-repo>/`
 
-    <section class="section" data-accent="funding">
-      <div class="section-header">Active Scenario</div>
-      <div class="kpi-grid compact" id="sheet2ScenarioGrid"></div>
-    </section>
+Cada vez que hagas `git push` a `main`, el sitio se actualiza solo.
 
-    <section class="section" data-accent="commercial">
-      <div class="section-header">Financial Snapshot</div>
-      <div class="kpi-grid snapshot-grid" id="financialSnapshotGrid"></div>
-    </section>
+## Qué falta a propósito (fase 2)
 
-    <section class="section" data-accent="bu">
-      <div class="section-header">Growth Engines — Detail</div>
-      <p class="section-note">Calculated from Tab 01 inputs. Paid Revenue Influenced, Klaviyo and Dover are treated as disclosure KPIs only so sales are not double counted.</p>
-      <table class="grid" id="sheet2EngineDetailTable" style="margin-top:10px;"></table>
-    </section>
+Igual que en el Excel: **esto es solo la interfaz**, sin fórmulas todavía. Los campos
+"Revenue (calc.)", el waterfall de márgenes y los semáforos de Investment Thesis están
+en layout, listos para conectarse a la lógica de cálculo cuando la definan.
 
-    <section class="section" data-accent="growth">
-      <div class="section-header">Growth Engines — Executive Summary</div>
-      <table class="grid" id="sheet2ExecSummaryTable" style="margin-top:10px;"></table>
-    </section>
+## Editar el dataset base
 
-    <section class="section" data-accent="margin">
-      <div class="section-header">Margin Bridge</div>
-      <p class="section-note">Gross Sales → Net Sales → GP1 → GP2 → GP3. EBITDA and fixed operating expenses remain in Tab 03.</p>
-      <table class="grid" id="sheet2MarginBridgeTable" style="margin-top:10px;"></table>
-    </section>
+`data/assumptions.json` es el dataset que ve cualquier persona que abra el sitio por
+primera vez (o que use "Restablecer a valores base"). Editarlo ahí y hacer push actualiza
+el modelo para todo el equipo.
 
-    <section class="section" data-accent="margin">
-      <div class="section-header">Formula Notes / Data Needed</div>
-      <table class="grid" id="sheet2FormulaNotesTable" style="margin-top:10px;"></table>
-    </section>
-  </section>
 
-  <section class="tab-panel" id="tab-03">
-    <div class="placeholder-card" data-accent="commercial">
-      <div class="placeholder-tag">03</div>
-      <h2>Summary P&amp;L + Cashflow</h2>
-      <p>Coming next — summary P&amp;L, cashflow and funding need.</p>
-    </div>
-  </section>
+## Magic Page V4 status
 
-  <section class="tab-panel" id="tab-04">
-    <div class="placeholder-card" data-accent="bu">
-      <div class="placeholder-tag">04</div>
-      <h2>Funding Scenarios</h2>
-      <p>Coming next — side-by-side comparison across all funding scenarios.</p>
-    </div>
-  </section>
+Implemented from the July 9 feedback:
 
-  <section class="tab-panel" id="tab-05">
-    <div class="placeholder-card" data-accent="margin">
-      <div class="placeholder-tag">05</div>
-      <h2>Board Dashboard</h2>
-      <p>Coming next — executive summary view for board &amp; investor meetings.</p>
-    </div>
-  </section>
+- Organic Growth is editable, not a dropdown.
+- Current Strategic Scenario feeds from the header controls.
+- Funding & Allocation no longer duplicates the Funding column and includes Unallocated Capital warning.
+- Save and Download buttons were added.
+- Commercial Strategy is split into Acquisition, Retention, and Market Growth.
+- ROAS and Ad Spend are included in Acquisition.
+- Dover Capture in the header feeds 2026 in Market Growth.
+- Growth Engines are inputs only; no Revenue or Gross Profit output is shown on the Magic Page.
+- Purchasing includes COGS Total, Vendor Payment Mix defaults of 80% / 15% / 5%, and Inventory Turns under Capital Efficiency.
+- The Gross Sales → EBITDA waterfall was removed from the Magic Page.
+- Sheet 2 / Growth & Margin Engine now has a draft structure plus OPEX defaults: Payroll $40K/month, G&A $45K/month, S&M 6.62% of Gross Revenue, Technology $0.
 
-  <section class="tab-panel" id="tab-06">
-    <div class="placeholder-card" data-accent="thesis">
-      <div class="placeholder-tag">06</div>
-      <h2>Operating Review</h2>
-      <p>Coming next — monthly operating review against plan.</p>
-    </div>
-  </section>
-</main>
+Pending data connections:
 
-<script src="assets/js/dataService.js"></script>
-<script src="assets/js/app.js"></script>
-</body>
-</html>
+- Current/Baseline YTD averages from the dashboard.
+- Weighted-average Markup from purchasing/product data.
+
+## V6 update
+
+- Tab 02 is now a formula-driven Growth & Margin Engine draft.
+- Tab 02 links to Tab 01 scenario assumptions and calculates 2026 Gross Sales, Net Sales, GP1, GP2 and GP3 where Tab 01 inputs exist.
+- Growth Engines now calculate Gross Sales and GP1 by engine using the approved formulas.
+- Locked engines return zero output until funding gates are met.
+- Formula Notes list exactly what external data is still needed for automation.
+
+## V7 — Google Sheet actuals connection
+
+This version connects the Magic Page current/baseline fields to the public Google Sheets shared by the team:
+
+- Corro Dashboard Data: `1nq8xkDzowAvhD3wpMBlVK2M3FZSNS2DrAiPxz-Y2tdU`, gid `459401991`
+- Cavali Dashboard Data: `1QUdJc2EIdElIX5nlLQxWxS98aAz-TgQnSg9glJpNtig`, gid `1684751027`
+
+The app reads monthly rows where `period` is in `YYYY-MM` format and calculates latest-year YTD actuals for:
+
+- Organic Growth %
+- Discounts & Returns %
+- New Customer %
+- Returning Customers %
+- Purchase Frequency
+- Ecommerce Orders
+- Ecommerce AOV
+- Ecommerce GM1 %
+- Cavali GM1 % and Organic Member Growth
+
+Use the **Refresh Actuals** button in the header to update these values. The app also tries one silent refresh on load. If it fails, make sure the sheets are accessible to anyone with the link as Viewer.
+
+Still needed for full automation:
+
+- Ad spend by month/channel, including Wellington ads and Cavali paid growth.
+- Klaviyo/email revenue monthly export or API.
+- Product/SKU cost data for weighted-average markup.
+- Shipping and packaging expense source from QuickBooks or a cleaned monthly table.
+
+
+## V8 — Google Sheets dashboard connections
+
+This version reads actuals directly from the Corro and Cavali Google Sheets that feed the dashboard.
+
+Expected tabs:
+
+- `kpis_daily` — YTD/current actuals for gross sales, net sales, GP, COGS, orders, AOV, customer mix.
+- `revenue_share` — channel mix such as Online, Wellington, Concierge and Others.
+- `new_vs_returning` — new and returning customer detail.
+- `ad_spend` — monthly ad spend, ROAS, COS and CAC.
+- `smartrr_product_volume` — Cavali membership/subscription product volume and active subscribers.
+
+The Refresh Actuals button pulls those tabs through Google Sheets CSV export. The sheets must be shared with link-view access.
+
+
+## V9 update
+
+- Reads Google Sheets tabs directly: kpis_daily, revenue_share, new_vs_returning, ad_spend, smartrr_product_volume, and products_q1_2026.
+- Uses products_q1_2026 when available to calculate Markup % weighted average from product price/cost/units columns.
+- No Shopify credentials are required in this planning app; it only reads published Google Sheets.
