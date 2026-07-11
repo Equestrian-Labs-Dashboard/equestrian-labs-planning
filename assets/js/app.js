@@ -212,7 +212,10 @@ function renderEngineTable(tableEl, rows) {
   rows.forEach(row => {
     const tr = el("tr");
     tr.appendChild(el("td", { class: "label-cell" }, row.driver));
-    ["current", "y2026", "y2027", "y2028", "y2029"].forEach(k => tr.appendChild(makeEditableCell(row, k, () => scheduleSave())));
+    ["current", "y2026", "y2027", "y2028", "y2029"].forEach(k => {
+      if (k === "current") tr.appendChild(makeCalcCell(row[k] || "", "gray-cell"));
+      else tr.appendChild(makeEditableCell(row, k, () => scheduleSave()));
+    });
     tbody.appendChild(tr);
   });
   tableEl.appendChild(tbody);
@@ -302,8 +305,39 @@ function getRow(rows, driver) {
   return (rows || []).find(r => r.driver === driver) || {};
 }
 
+function isBlankLike(v) {
+  const s = String(v ?? "").trim();
+  if (!s || s === "$" || s === "-" || s === "—") return true;
+  if (/^calculated$/i.test(s) || /^kpi \/ calculated$/i.test(s)) return true;
+  if (/^no ad_spend/i.test(s) || /^needs /i.test(s) || /^revenue share/i.test(s)) return true;
+  return false;
+}
+
 function val(rows, driver, year) {
-  return getRow(rows, driver)[year] || "";
+  const row = getRow(rows, driver);
+  const requested = row[year];
+  if (year !== "current" && isBlankLike(requested) && !isBlankLike(row.current)) return row.current;
+  return requested || "";
+}
+
+function engineKeyFromTitle(title) {
+  const t = String(title || "").toLowerCase();
+  if (t.startsWith("ecommerce")) return "Ecommerce";
+  if (t.startsWith("concierge")) return "Concierge";
+  if (t.startsWith("wellington")) return "Wellington";
+  if (t.startsWith("cavali")) return "Cavali";
+  if (t.startsWith("embroidery")) return "Embroidery";
+  if (t.startsWith("private label")) return "Private Label";
+  return "";
+}
+
+function actualEngineFallback(title, active) {
+  if (!active || !STATE.actuals || !STATE.actuals.engineGrossSales) return null;
+  const key = engineKeyFromTitle(title);
+  const gross = parseNumber(STATE.actuals.engineGrossSales[key]);
+  if (!key || !gross) return null;
+  const gm1 = parsePercent((STATE.actuals.engineGm1 || {})[key]);
+  return { gross, gp1: gross * gm1, gm1, active: true, note: "Google Sheet actual / baseline" };
 }
 
 function engineGrossAndGp(engine, year) {
@@ -326,6 +360,7 @@ function engineGrossAndGp(engine, year) {
     gross = orders * aov;
     gp1 = gross * gm1;
     note = "Orders × AOV";
+    if (!gross) { const fallback = actualEngineFallback(title, active); if (fallback) return fallback; }
     return { gross, gp1, gm1, active, note };
   }
 
@@ -337,6 +372,7 @@ function engineGrossAndGp(engine, year) {
     gross = clients * ordersPerClient * aov;
     gp1 = gross * gm1;
     note = "Clients × Orders/Client × AOV";
+    if (!gross) { const fallback = actualEngineFallback(title, active); if (fallback) return fallback; }
     return { gross, gp1, gm1, active, note };
   }
 
@@ -351,6 +387,7 @@ function engineGrossAndGp(engine, year) {
     gross = sigMembers * sigBoxes * sigPrice + premMembers * premBoxes * premPrice;
     gp1 = gross * gm1;
     note = "$99 + $199 membership products";
+    if (!gross) { const fallback = actualEngineFallback(title, active); if (fallback) return fallback; }
     return { gross, gp1, gm1, active, note };
   }
 
@@ -361,6 +398,7 @@ function engineGrossAndGp(engine, year) {
     gross = units * asp;
     gp1 = gross * gm1;
     note = "Units × ASP";
+    if (!gross) { const fallback = actualEngineFallback(title, active); if (fallback) return fallback; }
     return { gross, gp1, gm1, active, note };
   }
 
@@ -894,6 +932,22 @@ function applyActualsToState(corroBundle, cavaliBundle) {
     setCurrentInRows(STATE.purchasing.commercialTerms, "Markup %", formatPercent(markupActual));
   }
 
+  const conciergeRevenue = corro ? channelRevenueYtd(corroBundle.revenueShare, "Concierge", corro.latest) : 0;
+  const wellingtonRevenue = corro ? channelRevenueYtd(corroBundle.revenueShare, "Wellington", corro.latest) : 0;
+  const onlineRevenue = corro ? channelRevenueYtd(corroBundle.revenueShare, "Online", corro.latest) : 0;
+  STATE.actuals.engineGrossSales = {
+    Ecommerce: onlineRevenue || (corro ? Math.max(0, corro.grossSales - conciergeRevenue - wellingtonRevenue) : 0),
+    Concierge: conciergeRevenue,
+    Wellington: wellingtonRevenue,
+    Cavali: cavali ? cavali.grossSales : 0
+  };
+  STATE.actuals.engineGm1 = {
+    Ecommerce: corro ? corro.gm1 : 0,
+    Concierge: corro ? corro.gm1 : 0,
+    Wellington: corro ? corro.gm1 : 0,
+    Cavali: cavali ? cavali.gm1 : 0
+  };
+
   if (corro) {
     if (acq) {
       setCurrentInRows(acq.rows, "New Customer %", formatPercent(corro.newCustomerPct));
@@ -924,14 +978,9 @@ function applyActualsToState(corroBundle, cavaliBundle) {
       setCurrentInRows(ecommerce.rows, "AOV", formatCurrency(Math.round(corro.aov)));
       setCurrentInRows(ecommerce.rows, "GM1 %", formatPercent(corro.gm1));
     }
-    if (concierge) {
-      const conciergeRevenue = channelRevenueYtd(corroBundle.revenueShare, "Concierge", corro.latest);
-      if (conciergeRevenue) setCurrentInRows(concierge.rows, "AOV", `Revenue share: ${formatCurrency(Math.round(conciergeRevenue))}`);
-    }
-    if (wellington) {
-      const wellingtonRevenue = channelRevenueYtd(corroBundle.revenueShare, "Wellington", corro.latest);
-      if (wellingtonRevenue) setCurrentInRows(wellington.rows, "AOV", `Revenue share: ${formatCurrency(Math.round(wellingtonRevenue))}`);
-    }
+    // Concierge and Wellington revenue comes from revenue_share. It is used in Tab 02
+    // as an actual/baseline fallback, but we do not force it into AOV because
+    // revenue_share does not provide Orders × AOV inputs.
   }
 
   if (cavali && cavaliEngine) {
