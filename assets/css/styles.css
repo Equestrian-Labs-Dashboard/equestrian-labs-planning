@@ -102,8 +102,8 @@ body {
 /* ---------------- KPI cards ---------------- */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
   margin-top: 16px;
 }
 .kpi-card {
@@ -111,11 +111,12 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
-  padding: 14px 12px;
+  padding: 12px 10px;
   text-align: center;
+  min-width: 0;
 }
 .kpi-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
-.kpi-value { font-family: var(--font-mono); font-size: 26px; font-weight: 700; color: var(--navy); margin: 6px 0 4px; font-variant-numeric: tabular-nums; }
+.kpi-value { font-family: var(--font-mono); font-size: 25px; font-weight: 700; color: var(--navy); margin: 6px 0 4px; font-variant-numeric: tabular-nums; }
 .kpi-sub { font-size: 10.5px; color: var(--muted); font-style: italic; }
 
 /* ---------------- Sections ---------------- */
@@ -178,6 +179,8 @@ td.calc-cell { background: var(--white); color: var(--muted); font-style: italic
 .thesis-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
 .thesis-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-card); padding: 14px 10px; text-align: center; }
 .thesis-label { font-size: 10.5px; font-weight: 700; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; }
+.thesis-value { font-family: var(--font-mono); font-size: 26px; font-weight: 700; color: var(--navy); margin: 8px 0 4px; font-variant-numeric: tabular-nums; }
+.target-card { min-height: 96px; display: flex; flex-direction: column; justify-content: center; }
 .dot { width: 22px; height: 22px; border-radius: 50%; margin: 10px auto; }
 .dot.green { background: var(--green); box-shadow: 0 0 0 6px var(--green-bg); }
 .dot.red { background: var(--red); box-shadow: 0 0 0 6px var(--red-bg); }
@@ -298,9 +301,32 @@ td.calc-cell { background: var(--white); color: var(--muted); font-style: italic
   background: var(--light-gray);
   color: var(--muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
+.status-pill.active { background: var(--green-bg); color: var(--green); }
+.status-pill.locked { background: var(--red-bg); color: var(--red); }
+.status-pill.inline { margin-top: 0; }
 td.warning-cell { color: var(--red); background: var(--red-bg); font-weight: 800; font-style: normal; }
 @media (max-width: 1100px) { .controls { grid-template-columns: repeat(3, minmax(120px, 1fr)); } }
 @media (max-width: 900px) { .engine-grid { grid-template-columns: 1fr; } }
 @media (max-width: 520px) { .controls { grid-template-columns: 1fr; } .control-actions { align-items: stretch; } .action-btn { flex: 1; } }
+
+/* V5 refinements */
+td.gray-cell { color: var(--muted); font-style: italic; }
+td.calc-cell .status-pill { font-family: var(--font-ui); }
+@media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+
+/* V6 — Tab 02 formula-driven build */
+.kpi-grid.compact { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.kpi-grid.snapshot-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+#sheet2EngineDetailTable td.calc-cell,
+#sheet2ExecSummaryTable td.calc-cell,
+#sheet2MarginBridgeTable td.calc-cell,
+#sheet2FormulaNotesTable td.calc-cell { font-style: normal; }
+@media (max-width: 1100px) {
+  .kpi-grid.snapshot-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .kpi-grid.compact, .kpi-grid.snapshot-grid { grid-template-columns: 1fr; }
+}
