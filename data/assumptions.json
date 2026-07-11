@@ -3,7 +3,7 @@
     "modelStatus": "Board",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "1.2",
+    "version": "1.5",
     "lastUpdate": "2026-07-10",
     "organicGrowth": "35%",
     "doverCapture": "20%",
@@ -22,12 +22,25 @@
       "$500K",
       "$1M",
       "$3M",
-      "$5M"
+      "$5M",
+      "$10M"
     ],
     "fundingDate": [
       "Aug-26",
       "Oct-26",
       "Jan-27"
+    ],
+    "doverCapture": [
+      "5%",
+      "10%",
+      "15%",
+      "20%",
+      "30%"
+    ],
+    "roas": [
+      "3.0x",
+      "3.5x",
+      "4.0x"
     ]
   },
   "funding": [
@@ -80,11 +93,21 @@
       "payables": 600000,
       "embroidery": 50000,
       "privateLabel": 700000
+    },
+    {
+      "scenario": "$10M",
+      "total": 10000000,
+      "date": "Jan-27",
+      "payables": 1000000,
+      "inventory": 4000000,
+      "marketing": 3500000,
+      "embroidery": 500000,
+      "privateLabel": 1000000
     }
   ],
   "commercial": [
     {
-      "title": "Acquisition Strategy — Emma",
+      "title": "Acquisition Strategy \u2014 Emma",
       "rows": [
         {
           "driver": "Total Ad Spend",
@@ -149,7 +172,7 @@
       ]
     },
     {
-      "title": "Retention Strategy — Berna",
+      "title": "Retention Strategy \u2014 Berna",
       "rows": [
         {
           "driver": "Returning Customers %",
@@ -176,8 +199,8 @@
           "y2029": "14%"
         },
         {
-          "driver": "LTV",
-          "current": "",
+          "driver": "Annual Customer Gross Profit",
+          "current": "Calculated pending",
           "y2026": "Calculated",
           "y2027": "Calculated",
           "y2028": "Calculated",
@@ -217,13 +240,21 @@
           "y2027": "$100M",
           "y2028": "$100M",
           "y2029": "$100M"
+        },
+        {
+          "driver": "Discounts & Returns %",
+          "current": "YTD avg pending",
+          "y2026": "16%",
+          "y2027": "16%",
+          "y2028": "16%",
+          "y2029": "16%"
         }
       ]
     }
   ],
   "growthEngines": [
     {
-      "title": "Ecommerce — Emma",
+      "title": "Ecommerce \u2014 Emma",
       "note": "Core acquisition engine.",
       "rows": [
         {
@@ -253,7 +284,7 @@
       ]
     },
     {
-      "title": "Concierge — Nicole",
+      "title": "Concierge \u2014 Nicole",
       "rows": [
         {
           "driver": "Active Clients",
@@ -290,36 +321,7 @@
       ]
     },
     {
-      "title": "Wellington — Nicole",
-      "rows": [
-        {
-          "driver": "Orders",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
-        },
-        {
-          "driver": "AOV",
-          "current": "",
-          "y2026": "$",
-          "y2027": "$",
-          "y2028": "$",
-          "y2029": "$"
-        },
-        {
-          "driver": "GM1 %",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
-        }
-      ]
-    },
-    {
-      "title": "Cavali — Angela",
+      "title": "Cavali \u2014 Angela",
       "note": "Subscription model.",
       "rows": [
         {
@@ -405,8 +407,7 @@
       ]
     },
     {
-      "title": "Embroidery — Tatum",
-      "status": "🔒 Locked below $1M funding",
+      "title": "Wellington \u2014 Nicole",
       "rows": [
         {
           "driver": "Orders",
@@ -435,8 +436,38 @@
       ]
     },
     {
-      "title": "Private Label — Tatum",
-      "status": "🔒 Locked below $3M funding",
+      "title": "Embroidery \u2014 Tatum",
+      "status": "\ud83d\udd12 Locked below $1M funding",
+      "rows": [
+        {
+          "driver": "Orders",
+          "current": "",
+          "y2026": "",
+          "y2027": "",
+          "y2028": "",
+          "y2029": ""
+        },
+        {
+          "driver": "AOV",
+          "current": "",
+          "y2026": "$",
+          "y2027": "$",
+          "y2028": "$",
+          "y2029": "$"
+        },
+        {
+          "driver": "GM1 %",
+          "current": "",
+          "y2026": "",
+          "y2027": "",
+          "y2028": "",
+          "y2029": ""
+        }
+      ]
+    },
+    {
+      "title": "Private Label \u2014 Tatum",
+      "status": "\ud83d\udd12 Locked below $3M funding",
       "rows": [
         {
           "driver": "Units Sold",
@@ -485,14 +516,6 @@
       },
       {
         "driver": "Booking Discount %",
-        "current": "",
-        "y2026": "",
-        "y2027": "",
-        "y2028": "",
-        "y2029": ""
-      },
-      {
-        "driver": "COGS Total",
         "current": "",
         "y2026": "",
         "y2027": "",
@@ -562,31 +585,31 @@
     {
       "initiative": "Cavali Paid Growth",
       "owner": "Angela / Marketing",
-      "trigger": "≥$1M",
-      "status": "Locked",
+      "trigger": "\u2265$1M",
+      "status": "Active",
       "launch": "Editable",
       "investment": "Editable"
     },
     {
       "initiative": "Embroidery",
       "owner": "Tatum",
-      "trigger": "≥$1M",
-      "status": "Locked",
+      "trigger": "\u2265$1M",
+      "status": "Active",
       "launch": "Editable",
       "investment": "$50K"
     },
     {
       "initiative": "Private Label",
       "owner": "Tatum",
-      "trigger": "≥$3M",
-      "status": "Locked",
+      "trigger": "\u2265$3M",
+      "status": "Active",
       "launch": "Editable",
       "investment": "Scenario"
     },
     {
       "initiative": "Market Expansion",
       "owner": "Leadership",
-      "trigger": "≥$5M",
+      "trigger": "\u2265$5M",
       "status": "Locked",
       "launch": "Editable",
       "investment": "Editable"
@@ -595,28 +618,28 @@
   "thesis": [
     {
       "label": "Gross Sales",
-      "target": "Company target",
-      "status": "gray"
+      "value": "$20M",
+      "sub": "2027 Target"
     },
     {
-      "label": "GM3 %",
-      "target": "Target > 35%",
-      "status": "green"
+      "label": "GM3",
+      "value": "40%",
+      "sub": "Target > 35%"
     },
     {
-      "label": "EBITDA %",
-      "target": "Target > 20%",
-      "status": "green"
+      "label": "EBITDA",
+      "value": "22%",
+      "sub": "Target > 20%"
     },
     {
-      "label": "Organic Growth %",
-      "target": "Scenario target",
-      "status": "green"
+      "label": "Organic Growth",
+      "value": "35%",
+      "sub": "Scenario target"
     },
     {
-      "label": "Dover Capture %",
-      "target": "Scenario target",
-      "status": "green"
+      "label": "Dover Capture",
+      "value": "20%",
+      "sub": "Scenario target"
     }
   ],
   "engineSheet": {
@@ -641,7 +664,7 @@
       },
       {
         "line": "Net Sales",
-        "source": "Gross Sales − Discounts & Returns",
+        "source": "Gross Sales \u2212 Discounts & Returns",
         "current": "",
         "y2026": "",
         "y2027": "",
@@ -659,7 +682,7 @@
       },
       {
         "line": "GM1",
-        "source": "Net Sales − COGS",
+        "source": "Net Sales \u2212 COGS",
         "current": "",
         "y2026": "",
         "y2027": "",
@@ -677,7 +700,7 @@
       },
       {
         "line": "GM2",
-        "source": "GM1 − Total Shipping Expenses",
+        "source": "GM1 \u2212 Total Shipping Expenses",
         "current": "",
         "y2026": "",
         "y2027": "",
@@ -695,7 +718,7 @@
       },
       {
         "line": "GM3",
-        "source": "GM2 − Ad Spend",
+        "source": "GM2 \u2212 Ad Spend",
         "current": "",
         "y2026": "",
         "y2027": "",
@@ -704,7 +727,7 @@
       },
       {
         "line": "EBITDA",
-        "source": "GM3 − Operating Costs",
+        "source": "GM3 \u2212 Operating Costs",
         "current": "",
         "y2026": "",
         "y2027": "",
@@ -736,6 +759,58 @@
         "basis": "Placeholder",
         "value": "$0",
         "notes": "No current charge; editable later."
+      }
+    ],
+    "wellingtonAds2026": {
+      "jan": 1242,
+      "feb": 810,
+      "mar": 0,
+      "apr": 81,
+      "may": 0,
+      "jun": 0,
+      "jul": 0,
+      "source": "Ceci input 2026-07-10; not yet connected to formula until Growth Engine uses Wellington paid media."
+    },
+    "formulaNotes": [
+      {
+        "item": "Tab 02 linked active scenario",
+        "status": "connected",
+        "needed": "None"
+      },
+      {
+        "item": "Growth engine gross sales formulas",
+        "status": "connected to Tab 01 inputs",
+        "needed": "Fill Orders / AOV / GM1 / member inputs in Tab 01"
+      },
+      {
+        "item": "GP1 by engine",
+        "status": "connected using Gross Sales \u00d7 GM1%",
+        "needed": "Approved GM1% per engine"
+      },
+      {
+        "item": "Margin Bridge through GP3",
+        "status": "connected where inputs exist",
+        "needed": "Discounts & Returns %, operations %, and Ad Spend assumptions"
+      },
+      {
+        "item": "Current / Baseline YTD automation",
+        "status": "pending external data",
+        "needed": "Financial dashboard JSON/CSV/API with monthly YTD metrics by brand/channel"
+      },
+      {
+        "item": "Markup weighted average",
+        "status": "pending external data",
+        "needed": "Product/SKU-level price and cost/COGS or purchase data with units or sales weights"
+      },
+      {
+        "item": "Klaviyo / Email Revenue % automation",
+        "status": "pending external data",
+        "needed": "Klaviyo monthly revenue export/API by month"
+      },
+      {
+        "item": "Cavali CAC / new members",
+        "status": "pending external data",
+        "needed": "Cavali member acquisition data or paid-spend-to-member mapping"
       }
     ]
   },
@@ -774,7 +849,7 @@
     },
     {
       "item": "Purchasing COGS Total",
-      "status": "done"
+      "status": "removed-from-magic-page-output-moved-to-tab-02"
     },
     {
       "item": "Section 2 ROAS and Ad Spend",
@@ -787,6 +862,38 @@
     {
       "item": "Remove waterfall / financial outputs from Magic Page",
       "status": "done"
+    },
+    {
+      "item": "Tab 02 active scenario cards linked to Tab 01",
+      "status": "done"
+    },
+    {
+      "item": "Tab 02 financial snapshot formulas",
+      "status": "done-local-formulas"
+    },
+    {
+      "item": "Tab 02 engine detail and executive summary",
+      "status": "done-local-formulas"
+    },
+    {
+      "item": "Tab 02 margin bridge through GP3",
+      "status": "done-local-formulas"
+    },
+    {
+      "item": "Wellington ad spend inputs stored",
+      "status": "done-reference-only"
     }
-  ]
+  ],
+  "dataSources": {
+    "corroDashboard": {
+      "label": "Corro Dashboard Data",
+      "spreadsheetId": "1nq8xkDzowAvhD3wpMBlVK2M3FZSNS2DrAiPxz-Y2tdU",
+      "gid": "459401991"
+    },
+    "cavaliDashboard": {
+      "label": "Cavali Dashboard Data",
+      "spreadsheetId": "1QUdJc2EIdElIX5nlLQxWxS98aAz-TgQnSg9glJpNtig",
+      "gid": "1684751027"
+    }
+  }
 }
