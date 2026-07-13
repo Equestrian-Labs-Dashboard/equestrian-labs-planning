@@ -138,8 +138,8 @@ function renderKpis() {
   const wrap = document.getElementById("kpiGrid");
   const row = selectedFundingRow();
   const cards = [
-    { label: "Funding", value: STATE.meta.fundingScenario, sub: "Selected scenario" },
-    { label: "Funding Date", value: STATE.meta.fundingDate || row.date, sub: "Scenario timing" },
+    { label: "Funding", value: STATE.meta.fundingScenario, sub: "" },
+    { label: "Funding Date", value: STATE.meta.fundingDate || row.date, sub: "" },
     { label: "Organic Growth", value: STATE.meta.organicGrowth, sub: "" },
     { label: "Dover Capture", value: STATE.meta.doverCapture, sub: "" },
     { label: "ROAS", value: STATE.meta.roas, sub: "" },
@@ -161,7 +161,7 @@ function renderFunding() {
   STATE.funding.forEach(row => {
     const tr = el("tr");
     cols.forEach(col => {
-      if (col === "scenario") tr.appendChild(el("td", { class: "label-cell gray-cell" }, row.scenario));
+      if (col === "scenario") tr.appendChild(el("td", { class: "label-cell scenario-cell" }, row.scenario));
       else if (col === "date") tr.appendChild(makeEditableCell(row, col, () => { renderFunding(); scheduleSave(); }));
       else tr.appendChild(makeEditableCell(row, col, () => { renderFunding(); scheduleSave(); }, { money: true }));
     });
@@ -179,7 +179,7 @@ function renderDriverTable(tableEl, rows) {
   tableEl.innerHTML = `<thead><tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr></thead>`;
   const tbody = el("tbody");
   rows.forEach(row => {
-    const tr = el("tr");
+    const tr = el("tr", { class: row.driver === "Discounts & Returns %" ? "economics-row" : "" });
     tr.appendChild(el("td", { class: "label-cell" }, row.driver));
     ["current", "y2026", "y2027", "y2028", "y2029"].forEach(k => {
       if (k === "current") tr.appendChild(makeCalcCell(row[k] || "", "gray-cell"));
@@ -239,9 +239,16 @@ function gateStatusForEngine(engine) {
 function renderBusinessUnits() {
   const wrap = document.getElementById("engineBlocks");
   wrap.innerHTML = "";
-  STATE.growthEngines.forEach(engine => {
+  const order = ["Ecommerce", "Concierge", "Wellington", "Embroidery", "Cavali", "Private Label"];
+  const engines = [...(STATE.growthEngines || [])].sort((a, b) => {
+    const ai = order.findIndex(x => String(a.title || "").startsWith(x));
+    const bi = order.findIndex(x => String(b.title || "").startsWith(x));
+    return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+  });
+  engines.forEach(engine => {
     const gate = gateStatusForEngine(engine);
-    const card = el("div", { class: "block-card" }, [
+    const full = String(engine.title || "").startsWith("Cavali") || String(engine.title || "").startsWith("Private Label");
+    const card = el("div", { class: "block-card" + (full ? " full-width" : "") }, [
       el("div", { class: "block-title" }, engine.title),
       engine.note ? el("div", { class: "block-note" }, engine.note) : null,
       el("table", { class: "grid" }),
@@ -256,9 +263,15 @@ function renderPurchasing() {
   renderDriverTable(document.getElementById("purchasingTable"), STATE.purchasing.commercialTerms);
   const vmTable = document.getElementById("vendorMixTable");
   vmTable.innerHTML = `<thead><tr><th>Prepaid %</th><th>&lt;15 Days %</th><th>30–45 Days %</th></tr></thead>`;
+  const tbody = el("tbody");
   const tr = el("tr");
-  ["prepaid", "under15", "d30to45"].forEach(k => tr.appendChild(makeEditableCell(STATE.purchasing.vendorMix, k, () => scheduleSave())));
-  vmTable.appendChild(el("tbody", {}, tr));
+  ["prepaid", "under15", "d30to45"].forEach(k => tr.appendChild(makeEditableCell(STATE.purchasing.vendorMix, k, () => { renderPurchasing(); scheduleSave(); })));
+  tbody.appendChild(tr);
+  const total = parsePercent(STATE.purchasing.vendorMix.prepaid) + parsePercent(STATE.purchasing.vendorMix.under15) + parsePercent(STATE.purchasing.vendorMix.d30to45);
+  const check = el("tr");
+  check.appendChild(el("td", { class: Math.abs(total - 1) < 0.001 ? "calc-cell" : "calc-cell warning-cell", colspan: "3" }, (Math.abs(total - 1) < 0.001 ? "✓ " : "⚠ ") + `Vendor mix total ${formatPercent(total)}`));
+  tbody.appendChild(check);
+  vmTable.appendChild(tbody);
   renderDriverTable(document.getElementById("capitalEfficiencyTable"), STATE.purchasing.capitalEfficiency);
 }
 
@@ -457,23 +470,23 @@ function renderMiniCards(id, cards) {
 
 function renderSheet2Scenario() {
   renderMiniCards("sheet2ScenarioGrid", [
-    { label: "Active Scenario", value: STATE.meta.fundingScenario, sub: "Tab 01 link" },
-    { label: "Funding", value: STATE.meta.fundingScenario, sub: "Tab 01 link" },
-    { label: "Funding Date", value: STATE.meta.fundingDate, sub: "Tab 01 link" },
-    { label: "Organic Growth", value: STATE.meta.organicGrowth, sub: "Tab 01 link" },
-    { label: "Dover Capture", value: STATE.meta.doverCapture, sub: "Tab 01 link" },
+    { label: "Funding", value: STATE.meta.fundingScenario, sub: "" },
+    { label: "Funding Date", value: STATE.meta.fundingDate, sub: "" },
+    { label: "Organic Growth", value: STATE.meta.organicGrowth, sub: "" },
+    { label: "Dover Capture", value: STATE.meta.doverCapture, sub: "" },
+    { label: "ROAS", value: STATE.meta.roas, sub: "" },
   ]);
 }
 
 function renderFinancialSnapshot(year = "y2026") {
   const m = marginBridge(year);
   renderMiniCards("financialSnapshotGrid", [
-    { label: "Gross Sales", value: formatCurrency(Math.round(m.grossSales)), sub: yearLabel(year) + " formula" },
-    { label: "Net Sales", value: formatCurrency(Math.round(m.netSales)), sub: "After Dis&Ret" },
-    { label: "Net-to-Gross", value: m.grossSales ? formatPercent(m.netSales / m.grossSales) : "—", sub: "Calculated" },
-    { label: "Gross Profit 1", value: formatCurrency(Math.round(m.gp1)), sub: m.netSales ? formatPercent(m.gp1 / m.netSales) : "GP1 margin" },
-    { label: "Gross Profit 2", value: formatCurrency(Math.round(m.gp2)), sub: m.netSales ? formatPercent(m.gp2 / m.netSales) : "GP2 margin" },
-    { label: "Gross Profit 3", value: formatCurrency(Math.round(m.gp3)), sub: m.netSales ? formatPercent(m.gp3 / m.netSales) : "GP3 margin" },
+    { label: "Gross Sales", value: formatCurrency(Math.round(m.grossSales)), sub: yearLabel(year) },
+    { label: "Net Sales", value: formatCurrency(Math.round(m.netSales)), sub: "After Discounts & Returns" },
+    { label: "Net-to-Gross", value: m.grossSales ? formatPercent(m.netSales / m.grossSales) : "—", sub: "Net Sales / Gross Sales" },
+    { label: "Gross Profit 1", value: formatCurrency(Math.round(m.gp1)), sub: m.netSales ? `${formatPercent(m.gp1 / m.netSales)} of Net Sales` : "GP1 / Net Sales" },
+    { label: "Gross Profit 2", value: formatCurrency(Math.round(m.gp2)), sub: m.netSales ? `${formatPercent(m.gp2 / m.netSales)} of Net Sales` : "GP2 / Net Sales" },
+    { label: "Gross Profit 3", value: formatCurrency(Math.round(m.gp3)), sub: m.netSales ? `${formatPercent(m.gp3 / m.netSales)} of Net Sales` : "GP3 / Net Sales" },
   ]);
 }
 
@@ -517,7 +530,7 @@ function renderSheet2ExecSummary(year = "y2026") {
   const outputs = engineOutputs(year);
   const totalSales = outputs.reduce((s, r) => s + r.gross, 0);
   const totalGp1 = outputs.reduce((s, r) => s + r.gp1, 0);
-  const heads = ["Growth Engine", "Owner", "Gross Sales", "% Total Sales", "GP1", "% Total GP1"];
+  const heads = ["Growth Engine", "Owner", "Gross Sales", "% Total Sales", "GM1 %", "GP1", "% Total GP1"];
   table.innerHTML = `<thead><tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr></thead>`;
   const tbody = el("tbody");
   outputs.forEach(row => {
@@ -526,6 +539,7 @@ function renderSheet2ExecSummary(year = "y2026") {
     tr.appendChild(makeCalcCell(row.owner || "—"));
     tr.appendChild(makeCalcCell(formatCurrency(Math.round(row.gross))));
     tr.appendChild(makeCalcCell(totalSales ? formatPercent(row.gross / totalSales) : "—"));
+    tr.appendChild(makeCalcCell(row.gm1 ? formatPercent(row.gm1) : "—"));
     tr.appendChild(makeCalcCell(formatCurrency(Math.round(row.gp1))));
     tr.appendChild(makeCalcCell(totalGp1 ? formatPercent(row.gp1 / totalGp1) : "—"));
     tbody.appendChild(tr);
@@ -533,28 +547,54 @@ function renderSheet2ExecSummary(year = "y2026") {
   table.appendChild(tbody);
 }
 
+function renderSheet2SupportingKpis(year = "y2026") {
+  const wrap = document.getElementById("sheet2SupportingKpis");
+  if (!wrap) return;
+  const acq = getBlock(STATE.commercial, "Acquisition");
+  const retention = getBlock(STATE.commercial, "Retention");
+  const adSpend = parseMoney(val(acq ? acq.rows : [], "Total Ad Spend", year));
+  const roas = parseMultiple(val(acq ? acq.rows : [], "ROAS", year));
+  const emailRev = val(retention ? retention.rows : [], "Email Revenue %", year) || "—";
+  const returning = val(retention ? retention.rows : [], "Returning Customers %", year) || "—";
+  const purchaseFrequency = val(retention ? retention.rows : [], "Purchase Frequency", year) || "—";
+  const cards = [
+    { label: "Paid Revenue Influenced", value: formatCurrency(Math.round(adSpend * roas)), note: "Disclosure KPI — included within Ecommerce" },
+    { label: "ROAS", value: formatMultiple(roas), note: "Paid efficiency assumption" },
+    { label: "Email Revenue %", value: emailRev, note: "Influence KPI, not added again" },
+    { label: "Purchase Frequency", value: purchaseFrequency, note: `Returning Customers ${returning}` },
+  ];
+  wrap.innerHTML = "";
+  cards.forEach(k => wrap.appendChild(el("div", { class: "supporting-card" }, [
+    el("div", { class: "supporting-label" }, k.label),
+    el("div", { class: "supporting-value" }, k.value),
+    el("div", { class: "supporting-note" }, k.note),
+  ])));
+}
+
 function renderSheet2MarginBridge(year = "y2026") {
   const table = document.getElementById("sheet2MarginBridgeTable");
   if (!table) return;
   const m = marginBridge(year);
+  const cogs = m.netSales - m.gp1;
   const rows = [
-    ["Gross Sales", "SUM(active Growth Engine Gross Sales)", m.grossSales],
-    ["Discounts & Returns", "Gross Sales × Dis&Ret % from Tab 01", -m.discountsReturns],
-    ["Net Sales", "Gross Sales − Discounts & Returns", m.netSales],
-    ["Gross Profit 1", "SUM(engine GP1)", m.gp1],
-    ["Outbound Shipping", "Net Sales × Outbound Shipping Cost %", -m.outboundShipping],
-    ["Packaging", "Net Sales × Packaging Cost %", -m.packaging],
-    ["Shipping Revenue", "Net Sales × Shipping Revenue %", m.shippingRevenue],
-    ["Gross Profit 2", "GP1 − Shipping − Packaging + Shipping Revenue", m.gp2],
-    ["Variable Marketing", "Total Ad Spend + Cavali Ad Spend", -m.variableMarketing],
-    ["Gross Profit 3", "GP2 − Variable Marketing", m.gp3],
+    ["Gross Sales", m.grossSales],
+    ["Discounts & Returns", -m.discountsReturns],
+    ["Net Sales", m.netSales],
+    ["COGS", -cogs],
+    ["Gross Profit 1", m.gp1],
+    ["Outbound Shipping", -m.outboundShipping],
+    ["Packaging", -m.packaging],
+    ["Shipping Revenue", m.shippingRevenue],
+    ["Gross Profit 2", m.gp2],
+    ["Variable Marketing", -m.variableMarketing],
+    ["Gross Profit 3", m.gp3],
   ];
-  table.innerHTML = `<thead><tr><th>Stage</th><th>Formula / source</th><th>${yearLabel(year)}</th></tr></thead>`;
+  table.innerHTML = `<thead><tr><th>Stage</th><th>${yearLabel(year)}</th></tr></thead>`;
   const tbody = el("tbody");
-  rows.forEach(([stage, source, value]) => {
+  rows.forEach(([stage, value]) => {
     const tr = el("tr");
-    tr.appendChild(el("td", { class: "label-cell" }, stage));
-    tr.appendChild(makeCalcCell(source));
+    const isTotal = ["Net Sales", "Gross Profit 1", "Gross Profit 2", "Gross Profit 3"].includes(stage);
+    tr.appendChild(el("td", { class: "label-cell" + (isTotal ? " total-row-label" : "") }, stage));
     tr.appendChild(makeCalcCell(formatCurrency(Math.round(value))));
     tbody.appendChild(tr);
   });
@@ -580,10 +620,9 @@ function renderSheet2FormulaNotes() {
 function renderSheet2Draft() {
   renderSheet2Scenario();
   renderFinancialSnapshot("y2026");
-  renderSheet2EngineDetail("y2026");
   renderSheet2ExecSummary("y2026");
+  renderSheet2SupportingKpis("y2026");
   renderSheet2MarginBridge("y2026");
-  renderSheet2FormulaNotes();
 }
 
 function parseTriggerAmount(trigger) {
@@ -953,13 +992,13 @@ function applyActualsToState(corroBundle, cavaliBundle) {
       setCurrentInRows(acq.rows, "New Customer %", formatPercent(corro.newCustomerPct));
       if (corroAds && corroAds.spend) {
         setCurrentInRows(acq.rows, "Total Ad Spend", formatCurrency(Math.round(corroAds.spend)));
-        setCurrentInRows(acq.rows, "Incremental Ad Spend", formatCurrency(Math.round(corroAds.spend)));
+        setCurrentInRows(acq.rows, "Incremental Ad Spend", "$0");
         setCurrentInRows(acq.rows, "ROAS", formatMultiple(corroAds.roas));
         setCurrentInRows(acq.rows, "Ad Spend % of Gross Sales", formatPercent(corroAds.cos));
         setCurrentInRows(acq.rows, "CAC", formatCurrency(Math.round(corroAds.cac)));
       } else {
         setCurrentInRows(acq.rows, "Total Ad Spend", "No ad_spend rows");
-        setCurrentInRows(acq.rows, "Incremental Ad Spend", "No ad_spend rows");
+        setCurrentInRows(acq.rows, "Incremental Ad Spend", "$0");
         setCurrentInRows(acq.rows, "ROAS", "No ad_spend rows");
       }
     }
