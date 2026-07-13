@@ -145,3 +145,9 @@ The Refresh Actuals button pulls those tabs through Google Sheets CSV export. Th
 - Reads Google Sheets tabs directly: kpis_daily, revenue_share, new_vs_returning, ad_spend, smartrr_product_volume, and products_q1_2026.
 - Uses products_q1_2026 when available to calculate Markup % weighted average from product price/cost/units columns.
 - No Shopify credentials are required in this planning app; it only reads published Google Sheets.
+
+
+## V11 review refinements
+
+- Page 1 final cleanup: unified Current Scenario card subtitles, scenario labels styled as labels, Incremental Ad Spend baseline set to $0, visual separation for Discounts & Returns, balanced Growth Engines layout, initiative launch/investment placeholders replaced with concrete values/TBD, target years clarified.
+- Page 2 simplified to the final leadership structure: Active Scenario, Financial Snapshot, Growth Engines — Revenue & Profit Contribution, Supporting KPIs, and Margin Bridge. Formula/Data Needed notes were removed from the visible Page 2.
