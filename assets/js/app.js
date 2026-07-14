@@ -32,8 +32,8 @@ function fundingTotal(row) {
   if (row.total !== undefined && row.total !== null) return parseMoney(row.total);
   const label = String(row.scenario || "").replace("$", "").trim();
   if (!label || label === "Base") return 0;
-  if (label.endsWith("K")) return parseFloat(label) * 1000;
-  if (label.endsWith("M")) return parseFloat(label) * 1000000;
+  if (label.toLowerCase().endsWith("k")) return parseFloat(label) * 1000;
+  if (label.toUpperCase().endsWith("M")) return parseFloat(label) * 1000000;
   return parseMoney(label);
 }
 
@@ -183,7 +183,7 @@ function renderDriverTable(tableEl, rows) {
     tr.appendChild(el("td", { class: "label-cell" }, row.driver));
     ["current", "y2026", "y2027", "y2028", "y2029"].forEach(k => {
       if (k === "current") tr.appendChild(makeCalcCell(row[k] || "", "gray-cell"));
-      else if (row.calculated && row.calculated.includes(k)) tr.appendChild(makeCalcCell(row[k] || "Calculated"));
+      else if (row.calculated && row.calculated.includes(k)) tr.appendChild(makeCalcCell(computedCommercialValue(row, k) || row[k] || "Calculated"));
       else tr.appendChild(makeEditableCell(row, k, () => scheduleSave()));
     });
     tbody.appendChild(tr);
@@ -231,7 +231,7 @@ function gateStatusForEngine(engine) {
     return funding >= 1000000 ? { text: "ACTIVE ✓", cls: "active" } : { text: "LOCKED 🔒 below $1M", cls: "locked" };
   }
   if (engine.title.startsWith("Private Label")) {
-    return funding >= 3000000 ? { text: "ACTIVE ✓", cls: "active" } : { text: "LOCKED 🔒 below $3M", cls: "locked" };
+    return funding >= 3000000 ? { text: "ACTIVE ✓ · revenue after ramp", cls: "active" } : { text: "LOCKED 🔒 below $3M", cls: "locked" };
   }
   return null;
 }
@@ -306,6 +306,105 @@ function formatMultiple(n) {
   return Number(n || 0).toFixed(1) + "x";
 }
 
+
+function monthIndexFromFundingDate(value) {
+  const s = String(value || "").trim();
+  const m = s.match(/^([A-Za-z]{3})-(\d{2})$/);
+  if (!m) return null;
+  const months = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+  const mon = months[m[1].toLowerCase()];
+  if (mon === undefined) return null;
+  return { year: 2000 + Number(m[2]), month: mon };
+}
+
+function addMonths(dateObj, monthsToAdd) {
+  const d = new Date(dateObj.year, dateObj.month + monthsToAdd, 1);
+  return { year: d.getFullYear(), month: d.getMonth() };
+}
+
+function monthsBetweenInclusive(start, end) {
+  if (!start || !end) return [];
+  const out = [];
+  let y = start.year, m = start.month;
+  while (y < end.year || (y === end.year && m <= end.month)) {
+    out.push({ year: y, month: m });
+    m += 1;
+    if (m > 11) { m = 0; y += 1; }
+  }
+  return out;
+}
+
+function adSpendCoverageEndForScenario(total, start) {
+  if (!start) return null;
+  if (total <= 500000) return addMonths(start, 5);
+  if (total <= 1000000) return { year: 2027, month: 11 };
+  if (total <= 3000000) return { year: 2028, month: 11 };
+  return { year: 2029, month: 11 };
+}
+
+function incrementalAdSpendByYear(yearKey) {
+  const year = Number(String(yearKey).replace("y", ""));
+  const funding = selectedFundingRow();
+  const total = fundingTotal(funding);
+  const marketingAllocation = parseMoney(funding.marketing);
+  if (!year || !marketingAllocation || total <= 0) return 0;
+  const fundingDate = monthIndexFromFundingDate(STATE.meta.fundingDate || funding.date);
+  if (!fundingDate) return 0;
+  const start = addMonths(fundingDate, 1);
+  const end = adSpendCoverageEndForScenario(total, start);
+  const months = monthsBetweenInclusive(start, end);
+  if (!months.length) return 0;
+  const monthly = marketingAllocation / months.length;
+  return months.filter(x => x.year === year).length * monthly;
+}
+
+function baseAdSpendByYear(yearKey) {
+  const year = Number(String(yearKey).replace("y", ""));
+  return year ? 20000 * 12 : 0;
+}
+
+function totalAdSpendByYear(yearKey) {
+  return baseAdSpendByYear(yearKey) + incrementalAdSpendByYear(yearKey);
+}
+
+function privateLabelLaunchStart() {
+  const fundingDate = monthIndexFromFundingDate(STATE.meta.fundingDate || (selectedFundingRow() || {}).date);
+  return fundingDate ? addMonths(fundingDate, 9) : null;
+}
+
+function privateLabelRevenueActiveForYear(yearKey) {
+  const year = Number(String(yearKey).replace("y", ""));
+  const launch = privateLabelLaunchStart();
+  if (!year || !launch) return false;
+  return year > launch.year || (year === launch.year && launch.month <= 11);
+}
+
+function computedCommercialValue(row, key) {
+  if (!row || !key || key === "current") return null;
+  if (row.driver === "Base Ad Spend") return formatCurrency(Math.round(baseAdSpendByYear(key)));
+  if (row.driver === "Incremental Ad Spend") return formatCurrency(Math.round(incrementalAdSpendByYear(key)));
+  if (row.driver === "Ad Spend % of Gross Sales") {
+    const gross = marginBridge(key).grossSales;
+    return gross ? formatPercent(totalAdSpendByYear(key) / gross) : "—";
+  }
+  if (row.driver === "CAC") {
+    const ecommerce = getBlock(STATE.growthEngines, "Ecommerce");
+    const orders = parseNumber(val(ecommerce ? ecommerce.rows : [], "Orders", key));
+    const newPct = parsePercent(val((getBlock(STATE.commercial, "Acquisition") || {}).rows, "New Customer %", key));
+    const newCustomers = orders * (newPct || 0);
+    return newCustomers ? formatCurrency(Math.round(totalAdSpendByYear(key) / newCustomers)) : "—";
+  }
+  if (row.driver === "Annual Customer Gross Profit") {
+    const ecommerce = getBlock(STATE.growthEngines, "Ecommerce");
+    const retention = getBlock(STATE.commercial, "Retention");
+    const aov = parseMoney(val(ecommerce ? ecommerce.rows : [], "AOV", key));
+    const pf = parseNumber(val(retention ? retention.rows : [], "Purchase Frequency", key));
+    const gm1 = parsePercent(val(ecommerce ? ecommerce.rows : [], "GM1 %", key));
+    return (aov && pf && gm1) ? formatCurrency(Math.round(aov * pf * gm1)) : "—";
+  }
+  return null;
+}
+
 function yearLabel(key) {
   return key === "current" ? "Current" : key.replace("y", "");
 }
@@ -363,6 +462,7 @@ function engineGrossAndGp(engine, year) {
 
   if (title.startsWith("Embroidery") && fundingAmountSelected() < 1000000) active = false;
   if (title.startsWith("Private Label") && fundingAmountSelected() < 3000000) active = false;
+  if (title.startsWith("Private Label") && active && !privateLabelRevenueActiveForYear(year)) return { gross: 0, gp1: 0, gm1: 0, active: true, note: "Active gate; revenue starts after funding + 9 months" };
 
   if (!active) return { gross: 0, gp1: 0, gm1: 0, active: false, note: "Locked by funding gate" };
 
@@ -434,9 +534,8 @@ function marginBridge(year = "y2026") {
   const outputs = engineOutputs(year);
   const grossSales = outputs.reduce((s, r) => s + r.gross, 0);
   const gp1 = outputs.reduce((s, r) => s + r.gp1, 0);
-  const market = getBlock(STATE.commercial, "Market Growth");
   const acq = getBlock(STATE.commercial, "Acquisition");
-  const dnrPct = parsePercent(val(market ? market.rows : [], "Discounts & Returns %", year));
+  const dnrPct = parsePercent(val((STATE.purchasing || {}).commercialTerms || [], "Discounts & Returns %", year));
   const discountsReturns = grossSales * dnrPct;
   const netSales = grossSales - discountsReturns;
 
@@ -448,13 +547,12 @@ function marginBridge(year = "y2026") {
   const shippingRevenue = netSales * shippingRevPct;
   const gp2 = gp1 - outboundShipping - packaging + shippingRevenue;
 
-  const totalAdSpend = parseMoney(val(acq ? acq.rows : [], "Total Ad Spend", year));
   const cavali = getBlock(STATE.growthEngines, "Cavali");
   const cavaliAdSpend = parseMoney(val(cavali ? cavali.rows : [], "Cavali Ad Spend", year));
-  const variableMarketing = totalAdSpend + cavaliAdSpend;
-  const gp3 = gp2 - variableMarketing;
+  const adSpend = totalAdSpendByYear(year) + cavaliAdSpend;
+  const gp3 = gp2 - adSpend;
 
-  return { grossSales, discountsReturns, netSales, dnrPct, gp1, outboundShipping, packaging, shippingRevenue, gp2, variableMarketing, gp3 };
+  return { grossSales, discountsReturns, netSales, dnrPct, gp1, outboundShipping, packaging, shippingRevenue, gp2, adSpend, variableMarketing: adSpend, gp3 };
 }
 
 function renderMiniCards(id, cards) {
@@ -509,7 +607,7 @@ function renderSheet2EngineDetail(year = "y2026") {
   });
 
   const acq = getBlock(STATE.commercial, "Acquisition");
-  const adSpend = parseMoney(val(acq ? acq.rows : [], "Total Ad Spend", year));
+  const adSpend = totalAdSpendByYear(year);
   const roas = parseMultiple(val(acq ? acq.rows : [], "ROAS", year));
   const support = el("tr");
   support.appendChild(el("td", { class: "label-cell" }, "Paid Revenue Influenced"));
@@ -552,7 +650,7 @@ function renderSheet2SupportingKpis(year = "y2026") {
   if (!wrap) return;
   const acq = getBlock(STATE.commercial, "Acquisition");
   const retention = getBlock(STATE.commercial, "Retention");
-  const adSpend = parseMoney(val(acq ? acq.rows : [], "Total Ad Spend", year));
+  const adSpend = totalAdSpendByYear(year);
   const roas = parseMultiple(val(acq ? acq.rows : [], "ROAS", year));
   const emailRev = val(retention ? retention.rows : [], "Email Revenue %", year) || "—";
   const returning = val(retention ? retention.rows : [], "Returning Customers %", year) || "—";
@@ -574,28 +672,28 @@ function renderSheet2SupportingKpis(year = "y2026") {
 function renderSheet2MarginBridge(year = "y2026") {
   const table = document.getElementById("sheet2MarginBridgeTable");
   if (!table) return;
-  const m = marginBridge(year);
-  const cogs = m.netSales - m.gp1;
-  const rows = [
-    ["Gross Sales", m.grossSales],
-    ["Discounts & Returns", -m.discountsReturns],
-    ["Net Sales", m.netSales],
-    ["COGS", -cogs],
-    ["Gross Profit 1", m.gp1],
-    ["Outbound Shipping", -m.outboundShipping],
-    ["Packaging", -m.packaging],
-    ["Shipping Revenue", m.shippingRevenue],
-    ["Gross Profit 2", m.gp2],
-    ["Variable Marketing", -m.variableMarketing],
-    ["Gross Profit 3", m.gp3],
+  const years = ["y2026", "y2027", "y2028", "y2029"];
+  const stages = [
+    ["Gross Sales", m => m.grossSales],
+    ["Discounts & Returns", m => -m.discountsReturns],
+    ["Net Sales", m => m.netSales],
+    ["COGS", m => -(m.netSales - m.gp1)],
+    ["Gross Profit 1", m => m.gp1],
+    ["Outbound Shipping", m => -m.outboundShipping],
+    ["Packaging", m => -m.packaging],
+    ["Shipping Revenue", m => m.shippingRevenue],
+    ["Gross Profit 2", m => m.gp2],
+    ["Ad Spend", m => -m.adSpend],
+    ["Gross Profit 3", m => m.gp3],
   ];
-  table.innerHTML = `<thead><tr><th>Stage</th><th>${yearLabel(year)}</th></tr></thead>`;
+  const bridges = Object.fromEntries(years.map(y => [y, marginBridge(y)]));
+  table.innerHTML = `<thead><tr><th>Stage</th>${years.map(y => `<th>${yearLabel(y)}</th>`).join("")}</tr></thead>`;
   const tbody = el("tbody");
-  rows.forEach(([stage, value]) => {
+  stages.forEach(([stage, fn]) => {
     const tr = el("tr");
     const isTotal = ["Net Sales", "Gross Profit 1", "Gross Profit 2", "Gross Profit 3"].includes(stage);
     tr.appendChild(el("td", { class: "label-cell" + (isTotal ? " total-row-label" : "") }, stage));
-    tr.appendChild(makeCalcCell(formatCurrency(Math.round(value))));
+    years.forEach(y => tr.appendChild(makeCalcCell(formatCurrency(Math.round(fn(bridges[y]))))));
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
@@ -991,13 +1089,13 @@ function applyActualsToState(corroBundle, cavaliBundle) {
     if (acq) {
       setCurrentInRows(acq.rows, "New Customer %", formatPercent(corro.newCustomerPct));
       if (corroAds && corroAds.spend) {
-        setCurrentInRows(acq.rows, "Total Ad Spend", formatCurrency(Math.round(corroAds.spend)));
+        setCurrentInRows(acq.rows, "Base Ad Spend", "$20k / month");
         setCurrentInRows(acq.rows, "Incremental Ad Spend", "$0");
         setCurrentInRows(acq.rows, "ROAS", formatMultiple(corroAds.roas));
         setCurrentInRows(acq.rows, "Ad Spend % of Gross Sales", formatPercent(corroAds.cos));
         setCurrentInRows(acq.rows, "CAC", formatCurrency(Math.round(corroAds.cac)));
       } else {
-        setCurrentInRows(acq.rows, "Total Ad Spend", "No ad_spend rows");
+        setCurrentInRows(acq.rows, "Base Ad Spend", "$20k / month");
         setCurrentInRows(acq.rows, "Incremental Ad Spend", "$0");
         setCurrentInRows(acq.rows, "ROAS", "No ad_spend rows");
       }
@@ -1010,7 +1108,9 @@ function applyActualsToState(corroBundle, cavaliBundle) {
     }
     if (market) {
       setCurrentInRows(market.rows, "Organic Growth %", formatPercent(corro.organicGrowth));
-      setCurrentInRows(market.rows, "Discounts & Returns %", formatPercent(corro.discountReturnsPct));
+    }
+    if (STATE.purchasing && STATE.purchasing.commercialTerms) {
+      setCurrentInRows(STATE.purchasing.commercialTerms, "Discounts & Returns %", formatPercent(corro.discountReturnsPct));
     }
     if (ecommerce) {
       setCurrentInRows(ecommerce.rows, "Orders", Math.round(corro.orders).toLocaleString("en-US"));

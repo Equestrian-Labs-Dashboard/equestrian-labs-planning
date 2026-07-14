@@ -3,7 +3,7 @@
     "modelStatus": "Board",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "1.7",
+    "version": "1.8",
     "lastUpdate": "2026-07-11",
     "organicGrowth": "35%",
     "doverCapture": "20%",
@@ -19,7 +19,7 @@
     ],
     "fundingScenario": [
       "Base $0",
-      "$500K",
+      "$500k",
       "$1M",
       "$3M",
       "$5M",
@@ -55,7 +55,7 @@
       "privateLabel": 0
     },
     {
-      "scenario": "$500K",
+      "scenario": "$500k",
       "total": 500000,
       "date": "Jul-26",
       "marketing": 100000,
@@ -110,20 +110,28 @@
       "title": "Acquisition Strategy \u2014 Emma",
       "rows": [
         {
-          "driver": "Total Ad Spend",
-          "current": "YTD avg pending",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "driver": "Base Ad Spend",
+          "current": "$20k / month",
+          "y2026": "$240,000",
+          "y2027": "$240,000",
+          "y2028": "$240,000",
+          "y2029": "$240,000",
+          "note": "$20k/month until 2027 budget is finalized"
         },
         {
           "driver": "Incremental Ad Spend",
           "current": "$0",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "y2026": "Calculated",
+          "y2027": "Calculated",
+          "y2028": "Calculated",
+          "y2029": "Calculated",
+          "calculated": [
+            "y2026",
+            "y2027",
+            "y2028",
+            "y2029"
+          ],
+          "note": "Funding marketing allocation spread by scenario timing"
         },
         {
           "driver": "ROAS",
@@ -240,15 +248,6 @@
           "y2027": "$100M",
           "y2028": "$100M",
           "y2029": "$100M"
-        },
-        {
-          "driver": "Discounts & Returns %",
-          "current": "YTD avg pending",
-          "y2026": "16%",
-          "y2027": "16%",
-          "y2028": "16%",
-          "y2029": "16%",
-          "group": "Commercial Economics"
         }
       ]
     }
@@ -522,6 +521,15 @@
         "y2027": "",
         "y2028": "",
         "y2029": ""
+      },
+      {
+        "driver": "Discounts & Returns %",
+        "current": "YTD avg pending",
+        "y2026": "16%",
+        "y2027": "16%",
+        "y2028": "16%",
+        "y2029": "16%",
+        "note": "Commercial Economics \u2014 authorized by Tatum"
       }
     ],
     "vendorMix": {
@@ -604,8 +612,8 @@
       "owner": "Tatum",
       "trigger": "\u2265$3M",
       "status": "Active",
-      "launch": "Oct-26",
-      "investment": "Scenario"
+      "launch": "Jul-27",
+      "investment": "Phased / TBD"
     },
     {
       "initiative": "Market Expansion",
@@ -948,6 +956,28 @@
       "item": "Cavali CAC / new members",
       "status": "partially connected",
       "needed": "Cavali ad_spend tab plus Smartrr product volume / membership rows; if ad_spend is empty, keep manual input"
+    },
+    {
+      "item": "Concierge / Wellington OPEX",
+      "status": "Assumption added for Tab 03",
+      "source": "Ceci 13-Jul chat",
+      "needed": "Replace with actual OPEX when Nicole/Micaela confirms"
     }
-  ]
+  ],
+  "engineOpex": {
+    "baseAnnualPool": 70000,
+    "concierge": {
+      "owner": "Nicole",
+      "basePoolPct": "60%",
+      "commissionOnNetSales": "10%",
+      "formula": "($70k \u00d7 60%) + (Concierge Net Sales \u00d7 10%)"
+    },
+    "wellington": {
+      "owner": "Nicole",
+      "basePoolPct": "40%",
+      "commissionOnNetSales": "1%",
+      "formula": "($70k \u00d7 40%) + (Wellington Net Sales \u00d7 1%)"
+    },
+    "note": "Stored for Tab 03 Summary P&L / OPEX. Not included in Tab 02 GP1\u2192GP3 margin bridge."
+  }
 }

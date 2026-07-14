@@ -151,3 +151,19 @@ The Refresh Actuals button pulls those tabs through Google Sheets CSV export. Th
 
 - Page 1 final cleanup: unified Current Scenario card subtitles, scenario labels styled as labels, Incremental Ad Spend baseline set to $0, visual separation for Discounts & Returns, balanced Growth Engines layout, initiative launch/investment placeholders replaced with concrete values/TBD, target years clarified.
 - Page 2 simplified to the final leadership structure: Active Scenario, Financial Snapshot, Growth Engines — Revenue & Profit Contribution, Supporting KPIs, and Margin Bridge. Formula/Data Needed notes were removed from the visible Page 2.
+
+## V12 — July 13 corrections
+
+- Standardized `$500k` with lowercase `k` everywhere while keeping `$1M`, `$3M`, `$5M`, `$10M` with uppercase `M`.
+- Acquisition now has two ad-spend drivers: Base Ad Spend at `$20k/month` and Incremental Ad Spend calculated from the selected funding scenario.
+- Incremental Ad Spend timing rules: funding starts impacting one month after Funding Date; `$500k` covers 6 months, `$1M` covers the remainder of 2026 plus FY2027, `$3M` covers through FY2028, and `$5M/$10M` covers through FY2029.
+- Discounts & Returns % moved out of Market Growth Strategy and into Purchasing Strategy / Commercial Terms under Booking Discount %.
+- Organic Growth current/baseline remains a YoY calculation from Google Sheet YTD actuals.
+- Annual Customer Gross Profit calculates as `AOV × Purchase Frequency × GM1 %`.
+- Private Label is active at the funding gate but revenue is delayed until funding date + 9 months; default launch for Oct-26 funding is Jul-27.
+- Tab 02 Margin Bridge now displays 2026–2029 and renames Variable Marketing to Ad Spend.
+- Concierge/Wellington OPEX assumptions were stored for Tab 03: `$70k annual pool`, split 60% Concierge / 40% Wellington, plus 10% of Concierge Net Sales and 1% of Wellington Net Sales.
+
+## Sharing with ChatGPT for review
+
+If ChatGPT cannot open the live GitHub Pages URL, share screenshots of the relevant section or paste `index.html`, `assets/js/app.js`, and `data/assumptions.json` snippets. The live app itself only needs the Google Sheets to be shared/published for the browser to load actuals.
