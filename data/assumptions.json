@@ -3,12 +3,13 @@
     "modelStatus": "Board",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "2.0",
+    "version": "2.1",
     "lastUpdate": "2026-07-11",
     "organicGrowth": "10%",
     "doverCapture": "20%",
     "roas": "4.0x",
-    "baseEcommerceMonthly": "$70k"
+    "baseEcommerceMonthly": "$70k",
+    "actualsThroughMonth": 6
   },
   "lists": {
     "modelStatus": [
@@ -177,7 +178,7 @@
           ]
         },
         {
-          "driver": "New Customer %",
+          "driver": "New Customer Mix %",
           "current": "YTD avg pending",
           "y2026": "",
           "y2027": "",
@@ -194,8 +195,17 @@
           "current": "YTD avg pending",
           "y2026": "45%",
           "y2027": "48%",
+          "y2028": "52%",
+          "y2029": "55%"
+        },
+        {
+          "driver": "Incremental Revenue Carryover %",
+          "current": "\u2014",
+          "y2026": "50%",
+          "y2027": "50%",
           "y2028": "50%",
-          "y2029": "52%"
+          "y2029": "\u2014",
+          "note": "% of prior-year Incremental Paid Growth + Net Dover Capture that becomes next-year base revenue"
         },
         {
           "driver": "Purchase Frequency",
@@ -214,7 +224,7 @@
           "y2029": "14%"
         },
         {
-          "driver": "Annual Customer Gross Profit",
+          "driver": "Annual GP per Customer",
           "current": "Calculated pending",
           "y2026": "Calculated",
           "y2027": "Calculated",
@@ -234,7 +244,7 @@
       "rows": [
         {
           "driver": "Organic Growth %",
-          "current": "Actual YoY Growth from Sheets",
+          "current": "Actual YoY Growth H1 from Sheets",
           "y2026": "10%",
           "y2027": "10%",
           "y2028": "10%",
@@ -278,7 +288,7 @@
   "growthEngines": [
     {
       "title": "Ecommerce \u2014 Emma",
-      "note": "Core acquisition engine.",
+      "note": "Revenue built from Base Ecommerce + Organic Growth + Paid Growth + Dover Capture.",
       "rows": [
         {
           "driver": "Orders",
@@ -563,7 +573,7 @@
     "capitalEfficiency": [
       {
         "driver": "Inventory Turns",
-        "current": "3.0x",
+        "current": "SKU actual pending",
         "y2026": "3.2x",
         "y2027": "4.0x",
         "y2028": "4.5x",

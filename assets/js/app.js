@@ -189,7 +189,7 @@ function renderKpis() {
 
 function renderFunding() {
   const cols = ["scenario", "date", "organicGrowthDefault", "payables", "inventory", "marketing", "embroidery", "privateLabel"];
-  const heads = ["Scenario", "Date", "Organic Growth Default", "Payables", "Inventory", "Marketing", "Embroidery", "Private Label", "Unallocated Capital"];
+  const heads = ["Scenario", "Date", "Organic Growth", "Payables", "Inventory", "Marketing", "Embroidery", "Private Label", "Unallocated Capital"];
   const table = document.getElementById("fundingTable");
   table.innerHTML = `<thead><tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr></thead>`;
   const tbody = el("tbody");
@@ -439,11 +439,11 @@ function computedCommercialValue(row, key) {
   if (row.driver === "CAC") {
     const ecommerce = getBlock(STATE.growthEngines, "Ecommerce");
     const orders = parseNumber(val(ecommerce ? ecommerce.rows : [], "Orders", key));
-    const newPct = parsePercent(val((getBlock(STATE.commercial, "Acquisition") || {}).rows, "New Customer %", key));
+    const newPct = parsePercent(val((getBlock(STATE.commercial, "Acquisition") || {}).rows, "New Customer Mix %", key));
     const newCustomers = orders * (newPct || 0);
     return newCustomers ? formatCurrency(Math.round(totalAdSpendByYear(key) / newCustomers)) : "—";
   }
-  if (row.driver === "Annual Customer Gross Profit") {
+  if (row.driver === "Annual GP per Customer") {
     const ecommerce = getBlock(STATE.growthEngines, "Ecommerce");
     const retention = getBlock(STATE.commercial, "Retention");
     const aov = parseMoney(val(ecommerce ? ecommerce.rows : [], "AOV", key));
@@ -616,7 +616,7 @@ function renderMiniCards(id, cards) {
 }
 
 
-/* ---------------- V13 Dover ramp + Ecommerce Revenue Build ---------------- */
+/* ---------------- V15 Dover ramp + Ecommerce Revenue Build + Carryover ---------------- */
 function yearKeys() { return ["y2026", "y2027", "y2028", "y2029"]; }
 
 function currentDoverTargetPct(year) {
@@ -648,15 +648,39 @@ function netDoverCapture(year) {
   return grossDoverOpportunity(year) * (1 - paidAdsOverlapPct(year));
 }
 
+function organicGrowthPct(year) {
+  const market = getBlock(STATE.commercial, "Market Growth");
+  return parsePercent(val(market ? market.rows : [], "Organic Growth %", year) || selectedOrganicGrowth());
+}
+
+function carryoverPctForYear(year) {
+  const retention = getBlock(STATE.commercial, "Retention");
+  return parsePercent(val(retention ? retention.rows : [], "Incremental Revenue Carryover %", year) || "0%");
+}
+
 function baseEcommerceRevenue(year) {
+  const years = yearKeys();
+  const idx = years.indexOf(year);
   const monthly = parseMoney(STATE.meta.baseEcommerceMonthly || "$70k");
-  return monthly * 12;
+  const initialBase = monthly * 12;
+  if (idx <= 0) return initialBase;
+
+  let base = initialBase;
+  for (let i = 1; i <= idx; i++) {
+    const priorYear = years[i - 1];
+    const priorOrganic = base * organicGrowthPct(priorYear);
+    const priorPaid = incrementalPaidGrowth(priorYear);
+    const priorDover = netDoverCapture(priorYear);
+    const carryover = carryoverPctForYear(priorYear);
+    // Organic growth capitalizes 100% into next year's base.
+    // Incremental paid + Dover only carry forward by the retention carryover assumption.
+    base = base + priorOrganic + carryover * (priorPaid + priorDover);
+  }
+  return base;
 }
 
 function organicGrowthRevenue(year) {
-  const market = getBlock(STATE.commercial, "Market Growth");
-  const pct = parsePercent(val(market ? market.rows : [], "Organic Growth %", year) || selectedOrganicGrowth());
-  return baseEcommerceRevenue(year) * pct;
+  return baseEcommerceRevenue(year) * organicGrowthPct(year);
 }
 
 function incrementalPaidGrowth(year) {
@@ -887,14 +911,18 @@ function renderSheet2SupportingKpis(year = "y2026") {
   const retention = getBlock(STATE.commercial, "Retention");
   const adSpend = totalAdSpendByYear(year);
   const roas = parseMultiple(val(acq ? acq.rows : [], "ROAS", year));
+  const paidInfluenced = adSpend * roas;
+  const ecommerceGross = ecommerceBuild(year).total;
+  const paidShare = ecommerceGross ? formatPercent(paidInfluenced / ecommerceGross) : "—";
   const emailRev = val(retention ? retention.rows : [], "Email Revenue %", year) || "—";
   const returning = val(retention ? retention.rows : [], "Returning Customers %", year) || "—";
+  const carryover = val(retention ? retention.rows : [], "Incremental Revenue Carryover %", year) || "—";
   const purchaseFrequency = val(retention ? retention.rows : [], "Purchase Frequency", year) || "—";
   const cards = [
-    { label: "Paid Revenue Influenced", value: formatCurrency(Math.round(adSpend * roas)), note: "Disclosure KPI — included within Ecommerce" },
+    { label: "Paid Revenue Influenced", value: formatCurrency(Math.round(paidInfluenced)), note: `${paidShare} of Ecommerce Gross Sales · Disclosure KPI — included within Ecommerce` },
     { label: "ROAS", value: formatMultiple(roas), note: "Paid efficiency assumption" },
     { label: "Email Revenue %", value: emailRev, note: "Influence KPI, not added again" },
-    { label: "Purchase Frequency", value: purchaseFrequency, note: `Returning Customers ${returning}` },
+    { label: "Purchase Frequency", value: purchaseFrequency, note: `Returning ${returning} · Carryover ${carryover}` },
   ];
   wrap.innerHTML = "";
   cards.forEach(k => wrap.appendChild(el("div", { class: "supporting-card" }, [
@@ -1134,8 +1162,9 @@ function weightedGm1(rows) {
 function dashboardActuals(rows) {
   const latest = latestYearAndMonth(rows);
   if (!latest) return null;
-  const ytd = rowsForYtd(rows, latest.year, latest.month);
-  const prevYtd = rowsForYtd(rows, latest.year - 1, latest.month);
+  const throughMonth = Math.min(latest.month, (STATE && STATE.meta && STATE.meta.actualsThroughMonth) || 6);
+  const ytd = rowsForYtd(rows, latest.year, throughMonth);
+  const prevYtd = rowsForYtd(rows, latest.year - 1, throughMonth);
   const gross = sumField(ytd, "gross_sales");
   const prevGross = sumField(prevYtd, "gross_sales");
   const orders = sumField(ytd, "nb_orders");
@@ -1144,7 +1173,7 @@ function dashboardActuals(rows) {
   const discountsReturns = sumField(ytd, "total_discounts") + sumField(ytd, "total_returns");
   return {
     latest,
-    periodLabel: `${latest.year} YTD through ${String(latest.month).padStart(2, "0")}`,
+    periodLabel: `${latest.year} YTD through ${String(throughMonth).padStart(2, "0")}`,
     grossSales: gross,
     netSales: sumField(ytd, "net_sales"),
     grossProfit: sumField(ytd, "gross_profit"),
@@ -1162,7 +1191,8 @@ function dashboardActuals(rows) {
 
 function adSpendActuals(rows, kpiActuals) {
   if (!rows || !rows.length || !kpiActuals || !kpiActuals.latest) return null;
-  const ytd = rowsForYtd(rows, kpiActuals.latest.year, kpiActuals.latest.month);
+  const throughMonth = Math.min(kpiActuals.latest.month, (STATE && STATE.meta && STATE.meta.actualsThroughMonth) || 6);
+  const ytd = rowsForYtd(rows, kpiActuals.latest.year, throughMonth);
   const spend = sumField(ytd, "ad_spend");
   const weightedRoasNumerator = (ytd || []).reduce((s, r) => s + parseNumber(r.ad_spend) * parseNumber(r.roas), 0);
   const roas = spend ? weightedRoasNumerator / spend : 0;
@@ -1173,7 +1203,8 @@ function adSpendActuals(rows, kpiActuals) {
 
 function channelRevenueYtd(rows, channel, latest) {
   if (!rows || !rows.length || !latest) return 0;
-  const ytd = rowsForYtd(rows, latest.year, latest.month);
+  const throughMonth = Math.min(latest.month, (STATE && STATE.meta && STATE.meta.actualsThroughMonth) || 6);
+  const ytd = rowsForYtd(rows, latest.year, throughMonth);
   return ytd
     .filter(r => String(r.channel || "").toLowerCase().includes(String(channel).toLowerCase()))
     .reduce((s, r) => s + parseNumber(r.amount), 0);
@@ -1258,6 +1289,19 @@ function weightedMarkupActuals(productRowsList) {
   return denominator ? numerator / denominator : null;
 }
 
+function weightedInventoryTurnsActuals(productRowsList) {
+  const rows = (productRowsList || []).flat().filter(Boolean);
+  let numerator = 0;
+  let denominator = 0;
+  rows.forEach(r => {
+    const explicit = parsePctOrDecimal(firstPresent(r, ["inventory_turns", "inventory turns", "turns", "inventory_turnover", "inventory turnover"]));
+    let weight = parseNumber(firstPresent(r, ["cogs", "cost_of_goods_sold", "gross_sales", "net_sales", "units_sold", "nb_units", "quantity", "qty"]));
+    if (!weight || weight < 0) weight = 1;
+    if (explicit !== null && Number.isFinite(explicit)) { numerator += explicit * weight; denominator += weight; }
+  });
+  return denominator ? numerator / denominator : null;
+}
+
 function setCurrentInRows(rows, driver, value) {
   const row = getRow(rows, driver);
   if (row && Object.keys(row).length) row.current = value;
@@ -1304,6 +1348,10 @@ function applyActualsToState(corroBundle, cavaliBundle) {
   if (markupActual !== null && STATE.purchasing && STATE.purchasing.commercialTerms) {
     setCurrentInRows(STATE.purchasing.commercialTerms, "Markup %", formatPercent(markupActual));
   }
+  const inventoryTurnsActual = weightedInventoryTurnsActuals([corroBundle.productsQ1, cavaliBundle.productsQ1]);
+  if (inventoryTurnsActual !== null && STATE.purchasing && STATE.purchasing.capitalEfficiency) {
+    setCurrentInRows(STATE.purchasing.capitalEfficiency, "Inventory Turns", inventoryTurnsActual.toFixed(1) + "x");
+  }
 
   const conciergeRevenue = corro ? channelRevenueYtd(corroBundle.revenueShare, "Concierge", corro.latest) : 0;
   const wellingtonRevenue = corro ? channelRevenueYtd(corroBundle.revenueShare, "Wellington", corro.latest) : 0;
@@ -1323,7 +1371,7 @@ function applyActualsToState(corroBundle, cavaliBundle) {
 
   if (corro) {
     if (acq) {
-      setCurrentInRows(acq.rows, "New Customer %", formatPercent(corro.newCustomerPct));
+      setCurrentInRows(acq.rows, "New Customer Mix %", formatPercent(corro.newCustomerPct));
       if (corroAds && corroAds.spend) {
         setCurrentInRows(acq.rows, "Base Ad Spend", "$20k / month");
         setCurrentInRows(acq.rows, "Incremental Ad Spend", "$0");
@@ -1340,7 +1388,7 @@ function applyActualsToState(corroBundle, cavaliBundle) {
       setCurrentInRows(retention.rows, "Returning Customers %", formatPercent(corro.returningCustomerPct));
       setCurrentInRows(retention.rows, "Purchase Frequency", corro.purchaseFrequency.toFixed(2));
       const annualGp = corro.aov * corro.purchaseFrequency * corro.gm1;
-      setCurrentInRows(retention.rows, "Annual Customer Gross Profit", formatCurrency(Math.round(annualGp)));
+      setCurrentInRows(retention.rows, "Annual GP per Customer", formatCurrency(Math.round(annualGp)));
     }
     if (market) {
       setCurrentInRows(market.rows, "Organic Growth %", formatPercent(corro.organicGrowth));

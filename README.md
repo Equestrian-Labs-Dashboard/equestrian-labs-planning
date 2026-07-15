@@ -184,3 +184,13 @@ Applied from latest Ceci feedback:
 - Cavali paid growth uses weighted average boxes/year and weighted average price.
 - Private Label revenue starts 12 months after Funding Date, even if the gate is active.
 - OPEX formulas for Concierge/Wellington remain out of Page 1 and Page 2; they belong to Financial / Summary P&L.
+
+
+## V15 changes
+- Organic Growth label simplified in Funding & Allocation.
+- New Customer % renamed to New Customer Mix %.
+- Annual Customer Gross Profit renamed to Annual GP per Customer.
+- Added Incremental Revenue Carryover % under Retention Strategy.
+- Ecommerce Revenue Build now compounds base annually: next-year base equals prior base + prior organic growth + carryover of prior incremental paid growth and net Dover capture.
+- Paid Revenue Influenced now shows % of Ecommerce Gross Sales.
+- Actual YoY Growth uses H1 / through June by default to avoid accidental July inclusion.
