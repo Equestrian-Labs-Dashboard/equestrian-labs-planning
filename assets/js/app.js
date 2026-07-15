@@ -184,7 +184,7 @@ function renderKpis() {
   const cards = [
     { label: "Funding", value: STATE.meta.fundingScenario, sub: "" },
     { label: "Funding Date", value: STATE.meta.fundingDate || row.date, sub: "" },
-    { label: "Base Ecommerce", value: STATE.meta.baseEcommerceMonthly || "$70k", sub: "Monthly run rate" },
+    { label: "Base Ecommerce", value: STATE.meta.baseEcommerceMonthly || "$70k", sub: "Normalized monthly run rate 2026" },
     { label: "Dover Capture", value: STATE.meta.doverCapture, sub: "" },
     { label: "ROAS", value: STATE.meta.roas, sub: "" },
   ];
@@ -219,6 +219,31 @@ function renderFunding() {
   table.appendChild(tbody);
 }
 
+function isMarketGrowthSharedAssumption(row) {
+  const driver = String((row && row.driver) || "");
+  return driver.startsWith("Dover Market Opportunity") || driver.startsWith("Dover Target Capture") || driver.startsWith("Paid Ads Overlap");
+}
+
+function syncSharedMarketGrowthAssumption(row, changedKey) {
+  if (!row || !isMarketGrowthSharedAssumption(row)) return;
+  const years = ["y2026", "y2027", "y2028", "y2029"];
+  const sourceKey = years.includes(changedKey) ? changedKey : "y2026";
+  const value = row[sourceKey] || row.current || row.y2026 || "";
+  if (!value) return;
+  years.forEach(y => { row[y] = value; });
+  if (String(row.driver || "").startsWith("Dover Market Opportunity")) {
+    row.current = value;
+  }
+}
+
+function displayCurrentForDriver(row) {
+  if (!row) return "";
+  if (String(row.driver || "").startsWith("Dover Market Opportunity")) {
+    return row.y2026 || row.current || "";
+  }
+  return row.current || "";
+}
+
 function renderDriverTable(tableEl, rows) {
   const heads = ["Driver", "Baseline / Current", "2026", "2027", "2028", "2029"];
   tableEl.innerHTML = `<thead><tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr></thead>`;
@@ -227,9 +252,14 @@ function renderDriverTable(tableEl, rows) {
     const tr = el("tr", { class: row.driver === "Discounts & Returns %" ? "economics-row" : "" });
     tr.appendChild(el("td", { class: "label-cell" }, row.driver));
     ["current", "y2026", "y2027", "y2028", "y2029"].forEach(k => {
-      if (k === "current") tr.appendChild(makeCalcCell(row[k] || "", "gray-cell"));
+      if (k === "current") tr.appendChild(makeCalcCell(displayCurrentForDriver(row), "gray-cell"));
       else if (row.calculated && row.calculated.includes(k)) tr.appendChild(makeCalcCell(computedCommercialValue(row, k) || row[k] || "Calculated"));
-      else tr.appendChild(makeEditableCell(row, k, () => scheduleSave()));
+      else tr.appendChild(makeEditableCell(row, k, () => {
+        syncSharedMarketGrowthAssumption(row, k);
+        renderCommercial();
+        renderSheet2Draft();
+        scheduleSave();
+      }));
     });
     tbody.appendChild(tr);
   });
@@ -746,8 +776,8 @@ function renderDoverRamp(block) {
   const targetPct = currentDoverTargetPct("y2026");
   const target = opp * targetPct;
   wrap.appendChild(el("div", { class: "dover-assumption-grid" }, [
-    el("div", { class: "dover-assumption" }, [el("span", {}, "Dover Market Opportunity"), el("strong", {}, formatCompactCurrency(opp))]),
-    el("div", { class: "dover-assumption" }, [el("span", {}, "Target Capture"), el("strong", {}, `${formatPercent(targetPct)} = ${formatCompactCurrency(target)} opportunity`)]),
+    el("div", { class: "dover-assumption" }, [el("span", {}, "Dover Market Opportunity (Gross)"), el("strong", {}, formatCompactCurrency(opp))]),
+    el("div", { class: "dover-assumption" }, [el("span", {}, "Target Capture % (Gross)"), el("strong", {}, `${formatPercent(targetPct)} = ${formatCompactCurrency(target)} opportunity`)]),
     el("div", { class: "dover-assumption" }, [el("span", {}, "Paid Ads Overlap"), el("strong", {}, formatPercent(paidAdsOverlapPct("y2026")))])
   ]));
   const table = el("table", { class: "grid dover-ramp-table" });
@@ -870,7 +900,7 @@ function renderSheet2Scenario() {
   renderMiniCards("sheet2ScenarioGrid", [
     { label: "Funding", value: STATE.meta.fundingScenario, sub: "" },
     { label: "Funding Date", value: STATE.meta.fundingDate, sub: "" },
-    { label: "Base Ecommerce", value: STATE.meta.baseEcommerceMonthly || "$70k", sub: "Monthly run rate" },
+    { label: "Base Ecommerce", value: STATE.meta.baseEcommerceMonthly || "$70k", sub: "Normalized monthly run rate 2026" },
     { label: "Dover Capture", value: STATE.meta.doverCapture, sub: "" },
     { label: "ROAS", value: STATE.meta.roas, sub: "" },
   ]);
@@ -1069,7 +1099,7 @@ function renderThesis() {
   const wrap = document.getElementById("thesisGrid");
   wrap.innerHTML = "";
   const dynamic = (STATE.thesis || []).map(t => {
-    if (t.label === "Base Ecommerce") return { ...t, value: STATE.meta.baseEcommerceMonthly || "$70k/mo" };
+    if (t.label === "Base Ecommerce") return { ...t, value: STATE.meta.baseEcommerceMonthly || "$70k" };
     if (t.label === "Dover Capture") return { ...t, value: STATE.meta.doverCapture };
     return t;
   });

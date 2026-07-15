@@ -3,7 +3,7 @@
     "modelStatus": "Board",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "2.4",
+    "version": "2.6",
     "lastUpdate": "2026-07-11",
     "organicGrowth": "10%",
     "doverCapture": "20%",
@@ -697,7 +697,7 @@
     {
       "label": "Base Ecommerce",
       "value": "$70k/mo",
-      "sub": "Normalized monthly run rate"
+      "sub": "Normalized monthly run rate 2026"
     },
     {
       "label": "Dover Capture",

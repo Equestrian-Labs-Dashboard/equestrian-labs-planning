@@ -8,14 +8,29 @@
  * sin tocar una sola línea de app.js.
  */
 const DataService = (() => {
-  const STORAGE_KEY = "som_assumptions_v19";
+  const STORAGE_KEY = "som_assumptions_v21";
+  const LEGACY_KEYS = [
+    "som_assumptions_v20",
+    "som_assumptions_v19",
+    "som_assumptions_v18",
+    "som_assumptions_v17",
+    "som_assumptions_v16",
+    "som_assumptions_v15"
+  ];
 
   async function load() {
-    const local = localStorage.getItem(STORAGE_KEY);
-    if (local) {
-      try { return JSON.parse(local); } catch (e) { /* fall through */ }
+    const keys = [STORAGE_KEY, ...LEGACY_KEYS];
+    for (const key of keys) {
+      const local = localStorage.getItem(key);
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          if (key !== STORAGE_KEY) localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+          return parsed;
+        } catch (e) { /* try next key */ }
+      }
     }
-    const res = await fetch("data/assumptions.json");
+    const res = await fetch("data/assumptions.json?v=21", { cache: "no-store" });
     if (!res.ok) throw new Error("No se pudo cargar data/assumptions.json");
     return res.json();
   }
@@ -25,7 +40,7 @@ const DataService = (() => {
   }
 
   function reset() {
-    localStorage.removeItem(STORAGE_KEY);
+    [STORAGE_KEY, ...LEGACY_KEYS].forEach(key => localStorage.removeItem(key));
   }
 
   return { load, save, reset };
