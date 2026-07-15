@@ -157,15 +157,18 @@ function applyFundingOrganicDefault() {
 }
 
 function syncHeaderToTables() {
+  const years = ["y2026", "y2027", "y2028", "y2029"];
   const market = STATE.commercial.find(b => b.title.includes("Market Growth"));
   if (market) {
-    const dover = market.rows.find(r => r.driver === "Dover Target Capture %") || market.rows.find(r => r.driver === "Dover Capture %");
-    if (dover) dover.y2026 = STATE.meta.doverCapture;
+    const dover = market.rows.find(r => String(r.driver || "").startsWith("Dover Target Capture")) || market.rows.find(r => r.driver === "Dover Capture %");
+    // Header Dover Capture is the scenario target; when it changes, apply it across all forecast years.
+    if (dover) years.forEach(y => { dover[y] = STATE.meta.doverCapture; });
   }
   const acq = STATE.commercial.find(b => b.title.includes("Acquisition"));
   if (acq) {
     const roas = acq.rows.find(r => r.driver === "ROAS");
-    if (roas) roas.y2026 = STATE.meta.roas;
+    // Header ROAS is also a scenario assumption; keep all forecast years aligned unless users edit later.
+    if (roas) years.forEach(y => { roas[y] = STATE.meta.roas; });
   }
 }
 
@@ -413,6 +416,13 @@ function baseAdSpendByYear(yearKey) {
 }
 
 function totalAdSpendByYear(yearKey) {
+  const acq = getBlock(STATE.commercial, "Acquisition");
+  const totalRowValue = val(acq ? acq.rows : [], "Total Ad Spend", yearKey);
+  // 2029 is intentionally editable. In the current $3M scenario, funding-driven
+  // incremental marketing ends in 2028, so management chooses reinvestment for 2029.
+  if (yearKey === "y2029" && totalRowValue && !isFormulaToken(totalRowValue)) {
+    return parseMoney(totalRowValue);
+  }
   return baseAdSpendByYear(yearKey) + incrementalAdSpendByYear(yearKey);
 }
 
@@ -431,7 +441,15 @@ function privateLabelRevenueActiveForYear(yearKey) {
 function computedCommercialValue(row, key) {
   if (!row || !key || key === "current") return null;
   if (row.driver === "Base Ad Spend") return formatCurrency(Math.round(baseAdSpendByYear(key)));
-  if (row.driver === "Incremental Ad Spend") return formatCurrency(Math.round(incrementalAdSpendByYear(key)));
+  if (row.driver === "Incremental Ad Spend") {
+    if (key === "y2029") return "—";
+    return formatCurrency(Math.round(incrementalAdSpendByYear(key)));
+  }
+  if (row.driver === "Total Ad Spend") {
+    // Calculated through 2028; 2029 is editable and therefore handled by the cell value.
+    if (key === "y2029") return null;
+    return formatCurrency(Math.round(baseAdSpendByYear(key) + incrementalAdSpendByYear(key)));
+  }
   if (row.driver === "Ad Spend % of Gross Sales") {
     const gross = marginBridge(key).grossSales;
     return gross ? formatPercent(totalAdSpendByYear(key) / gross) : "—";
@@ -616,12 +634,15 @@ function renderMiniCards(id, cards) {
 }
 
 
-/* ---------------- V15 Dover ramp + Ecommerce Revenue Build + Carryover ---------------- */
+/* ---------------- V16 Dover ramp + Ecommerce Revenue Build + Carryover ---------------- */
 function yearKeys() { return ["y2026", "y2027", "y2028", "y2029"]; }
 
 function currentDoverTargetPct(year) {
   const market = getBlock(STATE.commercial, "Market Growth");
-  return parsePercent(val(market ? market.rows : [], "Dover Target Capture %", year) || STATE.meta.doverCapture || "20%");
+  const rows = market ? market.rows : [];
+  const row = (rows || []).find(r => String(r.driver || "").startsWith("Dover Target Capture"));
+  const v = row ? (row[year] || row.current || "") : "";
+  return parsePercent(v || STATE.meta.doverCapture || "20%");
 }
 
 function doverRampPct(year) {
@@ -632,12 +653,18 @@ function doverRampPct(year) {
 
 function paidAdsOverlapPct(year) {
   const market = getBlock(STATE.commercial, "Market Growth");
-  return parsePercent(val(market ? market.rows : [], "Paid Ads Overlap %", year) || "30%");
+  const rows = market ? market.rows : [];
+  const row = (rows || []).find(r => String(r.driver || "").startsWith("Paid Ads Overlap"));
+  const v = row ? (row[year] || row.current || "") : "";
+  return parsePercent(v || "30%");
 }
 
 function doverMarketOpportunity(year) {
   const market = getBlock(STATE.commercial, "Market Growth");
-  return parseMoney(val(market ? market.rows : [], "Dover Market Opportunity", year) || "$100M");
+  const rows = market ? market.rows : [];
+  const row = (rows || []).find(r => String(r.driver || "").startsWith("Dover Market Opportunity"));
+  const v = row ? (row[year] || row.current || "") : "";
+  return parseMoney(v || "$100M");
 }
 
 function grossDoverOpportunity(year) {
@@ -686,7 +713,9 @@ function organicGrowthRevenue(year) {
 function incrementalPaidGrowth(year) {
   const acq = getBlock(STATE.commercial, "Acquisition");
   const roas = parseMultiple(val(acq ? acq.rows : [], "ROAS", year) || STATE.meta.roas || "0x");
-  return incrementalAdSpendByYear(year) * roas;
+  // Paid Growth Revenue uses TOTAL Ad Spend (base + incremental), because the $20k/month base spend also generates ecommerce revenue.
+  // Incremental Ad Spend still remains visible separately in Acquisition Strategy.
+  return totalAdSpendByYear(year) * roas;
 }
 
 function ecommerceBuild(year) {
@@ -713,18 +742,18 @@ function renderDoverRamp(block) {
   table.innerHTML = `<thead><tr><th>Dover Capture Ramp</th>${yearKeys().map(y => `<th>${yearLabel(y)}</th>`).join("")}<th>Total</th></tr></thead>`;
   const tbody = el("tbody");
   const pctRow = el("tr");
-  pctRow.appendChild(el("td", { class: "label-cell" }, `% of ${formatCompactCurrency(target)} opportunity`));
+  pctRow.appendChild(el("td", { class: "label-cell" }, `% of ${formatCompactCurrency(target)} gross opportunity`));
   yearKeys().forEach(y => pctRow.appendChild(makeEditableCell(market.doverRamp, y, () => { renderCommercial(); renderSheet2Draft(); scheduleSave(); })));
   const totalPct = yearKeys().reduce((s, y) => s + parsePercent(market.doverRamp[y]), 0);
   pctRow.appendChild(makeCalcCell(formatPercent(totalPct), Math.abs(totalPct - 1) < 0.001 ? "calc-cell" : "calc-cell warning-cell"));
   tbody.appendChild(pctRow);
   const grossRow = el("tr");
-  grossRow.appendChild(el("td", { class: "label-cell" }, "Gross Dover Capture"));
+  grossRow.appendChild(el("td", { class: "label-cell" }, "Gross Dover Capture (before paid overlap)"));
   yearKeys().forEach(y => grossRow.appendChild(makeCalcCell(formatCompactCurrency(grossDoverOpportunity(y)))));
   grossRow.appendChild(makeCalcCell(formatCompactCurrency(yearKeys().reduce((s,y)=>s+grossDoverOpportunity(y),0))));
   tbody.appendChild(grossRow);
   const netRow = el("tr");
-  netRow.appendChild(el("td", { class: "label-cell" }, "Net Dover Revenue after overlap"));
+  netRow.appendChild(el("td", { class: "label-cell" }, "Net Dover Capture after paid ads overlap"));
   yearKeys().forEach(y => netRow.appendChild(makeCalcCell(formatCompactCurrency(netDoverCapture(y)))));
   netRow.appendChild(makeCalcCell(formatCompactCurrency(yearKeys().reduce((s,y)=>s+netDoverCapture(y),0))));
   tbody.appendChild(netRow);
@@ -741,7 +770,7 @@ function renderEcommerceRevenueBuild() {
   const rows = [
     ["Base Ecommerce Revenue", y => ecommerceBuild(y).base],
     ["+ Organic Growth", y => ecommerceBuild(y).organic],
-    ["+ Incremental Paid Growth", y => ecommerceBuild(y).paid],
+    ["+ Paid Growth Revenue", y => ecommerceBuild(y).paid],
     ["+ Net Dover Capture", y => ecommerceBuild(y).dover],
     ["Total Ecommerce Gross Sales", y => ecommerceBuild(y).total, true]
   ];
@@ -776,7 +805,7 @@ function engineGrossAndGp(engine, year) {
   if (title.startsWith("Ecommerce")) {
     gross = ecommerceBuild(year).total;
     gm1 = parsePercent(val(rows, "GM1 %", year));
-    note = "Base + Organic + Incremental Paid + Net Dover";
+    note = "Base + Organic + Paid Growth + Net Dover";
   } else if (title.startsWith("Wellington") || title.startsWith("Embroidery")) {
     const orders = parseNumber(val(rows, "Orders", year));
     const aov = parseMoney(val(rows, "AOV", year));

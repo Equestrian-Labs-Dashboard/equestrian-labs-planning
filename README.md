@@ -194,3 +194,21 @@ Applied from latest Ceci feedback:
 - Ecommerce Revenue Build now compounds base annually: next-year base equals prior base + prior organic growth + carryover of prior incremental paid growth and net Dover capture.
 - Paid Revenue Influenced now shows % of Ecommerce Gross Sales.
 - Actual YoY Growth uses H1 / through June by default to avoid accidental July inclusion.
+
+
+## V16 corrections
+- Header Dover Capture and ROAS now sync across all forecast years, not only 2026.
+- Dover labels now distinguish gross market opportunity / gross capture from net Dover capture after paid ads overlap.
+- Ecommerce Revenue Build now uses Paid Growth Revenue = (Base Ad Spend + Incremental Ad Spend) × ROAS, so the $20k/month base spend also produces revenue and does not show as zero when funding-driven incremental spend ends.
+- Ecommerce row in Growth Engine Portfolio continues to use Total Ecommerce Gross Sales from Base Ecommerce + Organic Growth + Paid Growth Revenue + Net Dover Capture.
+
+## V17 Ad Spend rule
+
+For the current $3M scenario, Ad Spend is calculated through 2028 and editable for 2029:
+
+- 2026: Total Ad Spend = Base Ad Spend + Incremental Ad Spend.
+- 2027: Total Ad Spend = Base Ad Spend + Incremental Ad Spend.
+- 2028: Total Ad Spend = Base Ad Spend + Incremental Ad Spend.
+- 2029: Total Ad Spend is editable because the $3M funding-driven marketing allocation ends in 2028 and management must decide how much to reinvest to sustain the business.
+
+Page 2 uses Total Ad Spend for Paid Growth Revenue, Paid Revenue Influenced, and the Margin Bridge Ad Spend line.
