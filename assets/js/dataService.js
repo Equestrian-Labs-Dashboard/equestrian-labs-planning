@@ -8,8 +8,9 @@
  * sin tocar una sola línea de app.js.
  */
 const DataService = (() => {
-  const STORAGE_KEY = "som_assumptions_v21";
+  const STORAGE_KEY = "som_assumptions_v22";
   const LEGACY_KEYS = [
+    "som_assumptions_v21",
     "som_assumptions_v20",
     "som_assumptions_v19",
     "som_assumptions_v18",
@@ -30,7 +31,7 @@ const DataService = (() => {
         } catch (e) { /* try next key */ }
       }
     }
-    const res = await fetch("data/assumptions.json?v=21", { cache: "no-store" });
+    const res = await fetch("data/assumptions.json?v=22", { cache: "no-store" });
     if (!res.ok) throw new Error("No se pudo cargar data/assumptions.json");
     return res.json();
   }

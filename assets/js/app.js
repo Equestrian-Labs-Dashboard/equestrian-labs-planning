@@ -451,17 +451,33 @@ function baseAdSpendByYear(yearKey) {
   return year ? 20000 * 12 : 0;
 }
 
-function totalAdSpendByYear(yearKey) {
+function totalAdSpendManualOrEditable(yearKey) {
   const acq = getBlock(STATE.commercial, "Acquisition");
   const totalRow = getRow(acq ? acq.rows : [], "Total Ad Spend");
   const directCell = totalRow ? totalRow[yearKey] : "";
+  return !isFormulaToken(directCell) ? parseMoney(directCell) : 0;
+}
+
+function targetAdSpendPct(yearKey) {
+  const acq = getBlock(STATE.commercial, "Acquisition");
+  const rows = acq ? acq.rows : [];
+  const targetRow = getRow(rows, "Target Ad Spend % of Ecommerce Gross Sales");
+  const legacyRow = getRow(rows, "Ad Spend % of Gross Sales");
+  const cell = (targetRow && targetRow[yearKey]) || (legacyRow && legacyRow[yearKey]) || (targetRow && targetRow.current) || "20%";
+  return parsePercent(cell || "20%");
+}
+
+function roasForYear(yearKey) {
+  const acq = getBlock(STATE.commercial, "Acquisition");
+  return parseMultiple(val(acq ? acq.rows : [], "ROAS", yearKey) || STATE.meta.roas || "0x");
+}
+
+function totalAdSpendByYear(yearKey) {
   // 2029 is intentionally editable. In the current $3M scenario, funding-driven
   // incremental marketing ends in 2028, so management chooses reinvestment for 2029.
-  // Do not fall back to Current/Baseline for this editable forecast cell.
-  if (yearKey === "y2029") {
-    return !isFormulaToken(directCell) ? parseMoney(directCell) : 0;
-  }
-  return baseAdSpendByYear(yearKey) + incrementalAdSpendByYear(yearKey);
+  // 2026–2028 are calculated from Target Ad Spend % of Ecommerce Gross Sales.
+  if (yearKey === "y2029") return totalAdSpendManualOrEditable(yearKey);
+  return ecommerceBuild(yearKey).adSpend;
 }
 
 function privateLabelLaunchStart() {
@@ -484,12 +500,20 @@ function computedCommercialValue(row, key) {
     return formatCurrency(Math.round(incrementalAdSpendByYear(key)));
   }
   if (row.driver === "Total Ad Spend") {
-    // Calculated through 2028; 2029 is editable and therefore handled by the cell value.
+    // Calculated through 2028 from Target Ad Spend % of Ecommerce Gross Sales;
+    // 2029 is editable and therefore handled by the cell value.
     if (key === "y2029") return null;
-    return formatCurrency(Math.round(baseAdSpendByYear(key) + incrementalAdSpendByYear(key)));
+    return formatCurrency(Math.round(totalAdSpendByYear(key)));
   }
-  if (row.driver === "Ad Spend % of Gross Sales") {
-    const gross = marginBridge(key).grossSales;
+  if (row.driver === "Target Ad Spend % of Ecommerce Gross Sales") {
+    if (key === "y2029") {
+      const gross = ecommerceBuild(key).total;
+      return gross ? formatPercent(totalAdSpendByYear(key) / gross) : "—";
+    }
+    return null;
+  }
+  if (row.driver === "Ad Spend % of Ecommerce Gross Sales" || row.driver === "Ad Spend % of Gross Sales") {
+    const gross = ecommerceBuild(key).total;
     return gross ? formatPercent(totalAdSpendByYear(key) / gross) : "—";
   }
   if (row.driver === "CAC") {
@@ -753,19 +777,51 @@ function organicGrowthRevenue(year) {
 }
 
 function incrementalPaidGrowth(year) {
-  const acq = getBlock(STATE.commercial, "Acquisition");
-  const roas = parseMultiple(val(acq ? acq.rows : [], "ROAS", year) || STATE.meta.roas || "0x");
-  // Paid Growth Revenue uses TOTAL Ad Spend (base + incremental), because the $20k/month base spend also generates ecommerce revenue.
-  // Incremental Ad Spend still remains visible separately in Acquisition Strategy.
-  return totalAdSpendByYear(year) * roas;
+  return ecommerceBuild(year).paid;
 }
 
 function ecommerceBuild(year) {
   const base = baseEcommerceRevenue(year);
   const organic = organicGrowthRevenue(year);
-  const paid = incrementalPaidGrowth(year);
   const dover = netDoverCapture(year);
-  return { base, organic, paid, dover, total: base + organic + paid + dover };
+  const roas = roasForYear(year);
+  const prePaidRevenue = base + organic + dover;
+
+  let adSpend = 0;
+  let paid = 0;
+  let total = prePaidRevenue;
+  let warning = "";
+
+  if (year === "y2029") {
+    // 2029 is management reinvestment: direct editable spend, then ROAS creates paid growth revenue.
+    adSpend = totalAdSpendManualOrEditable(year);
+    paid = adSpend * roas;
+    total = prePaidRevenue + paid;
+  } else {
+    // 2026–2028: solve the circular relationship exactly.
+    // Total Ecommerce Gross Sales = prePaidRevenue + (Total Ecommerce Gross Sales × Ad Spend % × ROAS)
+    // => Total Ecommerce Gross Sales = prePaidRevenue / (1 - Ad Spend % × ROAS)
+    const pct = targetAdSpendPct(year);
+    const multiplier = pct * roas;
+    if (pct > 0 && multiplier < 1) {
+      total = prePaidRevenue / (1 - multiplier);
+      adSpend = total * pct;
+      paid = adSpend * roas;
+    } else if (pct > 0 && multiplier >= 1) {
+      warning = "Ad Spend % × ROAS must be below 100%";
+      // Conservative fallback so the page never breaks.
+      adSpend = baseAdSpendByYear(year) + incrementalAdSpendByYear(year);
+      paid = adSpend * roas;
+      total = prePaidRevenue + paid;
+    } else {
+      // If target percentage is blank/zero, use the funding/base spend fallback.
+      adSpend = baseAdSpendByYear(year) + incrementalAdSpendByYear(year);
+      paid = adSpend * roas;
+      total = prePaidRevenue + paid;
+    }
+  }
+
+  return { base, organic, paid, dover, total, adSpend, roas, warning };
 }
 
 function renderDoverRamp(block) {
