@@ -417,11 +417,13 @@ function baseAdSpendByYear(yearKey) {
 
 function totalAdSpendByYear(yearKey) {
   const acq = getBlock(STATE.commercial, "Acquisition");
-  const totalRowValue = val(acq ? acq.rows : [], "Total Ad Spend", yearKey);
+  const totalRow = getRow(acq ? acq.rows : [], "Total Ad Spend");
+  const directCell = totalRow ? totalRow[yearKey] : "";
   // 2029 is intentionally editable. In the current $3M scenario, funding-driven
   // incremental marketing ends in 2028, so management chooses reinvestment for 2029.
-  if (yearKey === "y2029" && totalRowValue && !isFormulaToken(totalRowValue)) {
-    return parseMoney(totalRowValue);
+  // Do not fall back to Current/Baseline for this editable forecast cell.
+  if (yearKey === "y2029") {
+    return !isFormulaToken(directCell) ? parseMoney(directCell) : 0;
   }
   return baseAdSpendByYear(yearKey) + incrementalAdSpendByYear(yearKey);
 }
@@ -488,6 +490,16 @@ function isBlankLike(v) {
   const s = String(v ?? "").trim();
   if (!s || s === "$" || s === "-" || s === "—") return true;
   if (/^calculated$/i.test(s) || /^kpi \/ calculated$/i.test(s)) return true;
+  if (/^no ad_spend/i.test(s) || /^needs /i.test(s) || /^revenue share/i.test(s)) return true;
+  return false;
+}
+
+function isFormulaToken(v) {
+  const s = String(v ?? "").trim();
+  if (!s) return true;
+  if (s === "—" || s === "-" || s.toUpperCase() === "N/A") return true;
+  if (/^calculated$/i.test(s) || /^kpi \/ calculated$/i.test(s)) return true;
+  if (/^formula$/i.test(s) || /^linked$/i.test(s) || /^source/i.test(s)) return true;
   if (/^no ad_spend/i.test(s) || /^needs /i.test(s) || /^revenue share/i.test(s)) return true;
   return false;
 }

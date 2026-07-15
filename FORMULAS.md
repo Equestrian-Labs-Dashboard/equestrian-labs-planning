@@ -1,4 +1,4 @@
-# Strategic Operating Model v18 — Formula Map
+# Strategic Operating Model v19 — Formula Map
 
 ## Gross vs Net rule
 - Financial Snapshot shows Gross Sales, Net Sales, Net-to-Gross, GP1, GP2 and GP3.
