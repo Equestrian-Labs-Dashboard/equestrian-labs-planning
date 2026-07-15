@@ -21,11 +21,29 @@ function optionList(values, selected) {
 function parseMoney(v) {
   if (typeof v === "number") return v;
   if (!v) return 0;
-  return Number(String(v).replace(/[$,]/g, "")) || 0;
+  const raw = String(v).trim();
+  const cleaned = raw.replace(/[$,]/g, "").replace(/\/\s*month/i, "").trim();
+  const m = cleaned.match(/^(-?\d+(?:\.\d+)?)\s*([kKmM])?$/);
+  if (m) {
+    const n = Number(m[1]);
+    const suffix = (m[2] || "").toLowerCase();
+    if (suffix === "k") return n * 1000;
+    if (suffix === "m") return n * 1000000;
+    return n;
+  }
+  return Number(cleaned) || 0;
 }
 
 function formatCurrency(n) {
   return "$" + Number(n || 0).toLocaleString("en-US");
+}
+
+function formatCompactCurrency(n) {
+  const value = Number(n || 0);
+  const abs = Math.abs(value);
+  if (abs >= 1000000) return "$" + (value / 1000000).toFixed(1).replace(".0", "") + "M";
+  if (abs >= 1000) return "$" + (value / 1000).toFixed(0) + "k";
+  return formatCurrency(Math.round(value));
 }
 
 function fundingTotal(row) {
@@ -104,27 +122,44 @@ function renderHeader() {
   document.getElementById("modelStatus").innerHTML = optionList(lists.modelStatus, meta.modelStatus);
   document.getElementById("fundingScenario").innerHTML = optionList(lists.fundingScenario, meta.fundingScenario);
   document.getElementById("fundingDate").innerHTML = optionList(lists.fundingDate, meta.fundingDate);
-  document.getElementById("organicGrowth").value = meta.organicGrowth;
+  document.getElementById("baseEcommerce").value = meta.baseEcommerceMonthly || "$70k";
   document.getElementById("doverCapture").innerHTML = optionList(lists.doverCapture || ["5%", "10%", "15%", "20%", "30%"], meta.doverCapture);
   document.getElementById("roas").innerHTML = optionList(lists.roas || ["3.0x", "3.5x", "4.0x"], meta.roas);
   document.getElementById("lastUpdate").value = meta.lastUpdate;
   document.getElementById("versionBadge").textContent = `v${meta.version}`;
 
   document.getElementById("modelStatus").onchange = e => { meta.modelStatus = e.target.value; scheduleSave(); };
-  document.getElementById("fundingScenario").onchange = e => { meta.fundingScenario = e.target.value; renderKpis(); renderGrowth(); renderBusinessUnits(); scheduleSave(); };
-  document.getElementById("fundingDate").onchange = e => { meta.fundingDate = e.target.value; renderKpis(); scheduleSave(); };
-  document.getElementById("organicGrowth").onchange = e => { meta.organicGrowth = e.target.value; syncHeaderToTables(); renderKpis(); renderCommercial(); renderThesis(); scheduleSave(); };
-  document.getElementById("doverCapture").onchange = e => { meta.doverCapture = e.target.value; syncHeaderToTables(); renderKpis(); renderCommercial(); renderThesis(); scheduleSave(); };
-  document.getElementById("roas").onchange = e => { meta.roas = e.target.value; syncHeaderToTables(); renderKpis(); renderCommercial(); renderThesis(); scheduleSave(); };
+  document.getElementById("fundingScenario").onchange = e => { meta.fundingScenario = e.target.value; applyFundingOrganicDefault(); renderKpis(); renderFunding(); renderCommercial(); renderGrowth(); renderBusinessUnits(); renderSheet2Draft(); renderThesis(); scheduleSave(); };
+  document.getElementById("fundingDate").onchange = e => { meta.fundingDate = e.target.value; renderKpis(); renderGrowth(); renderSheet2Draft(); scheduleSave(); };
+  document.getElementById("baseEcommerce").onchange = e => { meta.baseEcommerceMonthly = e.target.value; renderKpis(); renderSheet2Draft(); renderThesis(); scheduleSave(); };
+  document.getElementById("doverCapture").onchange = e => { meta.doverCapture = e.target.value; syncHeaderToTables(); renderKpis(); renderCommercial(); renderSheet2Draft(); renderThesis(); scheduleSave(); };
+  document.getElementById("roas").onchange = e => { meta.roas = e.target.value; syncHeaderToTables(); renderKpis(); renderCommercial(); renderSheet2Draft(); renderThesis(); scheduleSave(); };
   document.getElementById("lastUpdate").oninput = e => { meta.lastUpdate = e.target.value; scheduleSave(); };
+}
+
+
+function selectedOrganicGrowth() {
+  const market = getBlock(STATE.commercial, "Market Growth");
+  const row = market ? getRow(market.rows, "Organic Growth %") : {};
+  return row.y2026 || (selectedFundingRow() || {}).organicGrowthDefault || STATE.meta.organicGrowth || "10%";
+}
+
+function applyFundingOrganicDefault() {
+  const row = selectedFundingRow();
+  const market = getBlock(STATE.commercial, "Market Growth");
+  if (market && row && row.organicGrowthDefault) {
+    const org = getRow(market.rows, "Organic Growth %");
+    if (org) {
+      org.y2026 = row.organicGrowthDefault;
+      STATE.meta.organicGrowth = row.organicGrowthDefault;
+    }
+  }
 }
 
 function syncHeaderToTables() {
   const market = STATE.commercial.find(b => b.title.includes("Market Growth"));
   if (market) {
-    const org = market.rows.find(r => r.driver === "Organic Growth %");
-    const dover = market.rows.find(r => r.driver === "Dover Capture %");
-    if (org) org.y2026 = STATE.meta.organicGrowth;
+    const dover = market.rows.find(r => r.driver === "Dover Target Capture %") || market.rows.find(r => r.driver === "Dover Capture %");
     if (dover) dover.y2026 = STATE.meta.doverCapture;
   }
   const acq = STATE.commercial.find(b => b.title.includes("Acquisition"));
@@ -140,7 +175,7 @@ function renderKpis() {
   const cards = [
     { label: "Funding", value: STATE.meta.fundingScenario, sub: "" },
     { label: "Funding Date", value: STATE.meta.fundingDate || row.date, sub: "" },
-    { label: "Organic Growth", value: STATE.meta.organicGrowth, sub: "" },
+    { label: "Base Ecommerce", value: STATE.meta.baseEcommerceMonthly || "$70k", sub: "Monthly run rate" },
     { label: "Dover Capture", value: STATE.meta.doverCapture, sub: "" },
     { label: "ROAS", value: STATE.meta.roas, sub: "" },
   ];
@@ -153,8 +188,8 @@ function renderKpis() {
 }
 
 function renderFunding() {
-  const cols = ["scenario", "date", "payables", "inventory", "marketing", "embroidery", "privateLabel"];
-  const heads = ["Scenario", "Date", "Payables", "Inventory", "Marketing", "Embroidery", "Private Label", "Unallocated Capital"];
+  const cols = ["scenario", "date", "organicGrowthDefault", "payables", "inventory", "marketing", "embroidery", "privateLabel"];
+  const heads = ["Scenario", "Date", "Organic Growth Default", "Payables", "Inventory", "Marketing", "Embroidery", "Private Label", "Unallocated Capital"];
   const table = document.getElementById("fundingTable");
   table.innerHTML = `<thead><tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr></thead>`;
   const tbody = el("tbody");
@@ -163,6 +198,7 @@ function renderFunding() {
     cols.forEach(col => {
       if (col === "scenario") tr.appendChild(el("td", { class: "label-cell scenario-cell" }, row.scenario));
       else if (col === "date") tr.appendChild(makeEditableCell(row, col, () => { renderFunding(); scheduleSave(); }));
+      else if (col === "organicGrowthDefault") tr.appendChild(makeEditableCell(row, col, () => { applyFundingOrganicDefault(); renderCommercial(); renderSheet2Draft(); renderThesis(); scheduleSave(); }));
       else tr.appendChild(makeEditableCell(row, col, () => { renderFunding(); scheduleSave(); }, { money: true }));
     });
     const allocated = ["marketing", "inventory", "payables", "embroidery", "privateLabel"].reduce((sum, k) => sum + parseMoney(row[k]), 0);
@@ -201,6 +237,9 @@ function renderCommercial() {
       el("table", { class: "grid" })
     ]);
     renderDriverTable(card.querySelector("table"), block.rows);
+    if (block.title && block.title.includes("Market Growth")) {
+      card.appendChild(renderDoverRamp(block));
+    }
     wrap.appendChild(card);
   });
 }
@@ -293,7 +332,17 @@ function parseMultiple(v) {
 
 function parseNumber(v) {
   if (typeof v === "number") return v;
-  const cleaned = String(v || "").replace(/[$,%x,]/g, "").trim();
+  if (!v) return 0;
+  const raw = String(v).trim();
+  const cleaned = raw.replace(/[$,%x,]/g, "").replace(/\/\s*month/i, "").trim();
+  const m = cleaned.match(/^(-?\d+(?:\.\d+)?)\s*([kKmM])?$/);
+  if (m) {
+    const n = Number(m[1]);
+    const suffix = (m[2] || "").toLowerCase();
+    if (suffix === "k") return n * 1000;
+    if (suffix === "m") return n * 1000000;
+    return n;
+  }
   const n = Number(cleaned);
   return isNaN(n) ? 0 : n;
 }
@@ -369,7 +418,7 @@ function totalAdSpendByYear(yearKey) {
 
 function privateLabelLaunchStart() {
   const fundingDate = monthIndexFromFundingDate(STATE.meta.fundingDate || (selectedFundingRow() || {}).date);
-  return fundingDate ? addMonths(fundingDate, 9) : null;
+  return fundingDate ? addMonths(fundingDate, 12) : null;
 }
 
 function privateLabelRevenueActiveForYear(yearKey) {
@@ -462,7 +511,7 @@ function engineGrossAndGp(engine, year) {
 
   if (title.startsWith("Embroidery") && fundingAmountSelected() < 1000000) active = false;
   if (title.startsWith("Private Label") && fundingAmountSelected() < 3000000) active = false;
-  if (title.startsWith("Private Label") && active && !privateLabelRevenueActiveForYear(year)) return { gross: 0, gp1: 0, gm1: 0, active: true, note: "Active gate; revenue starts after funding + 9 months" };
+  if (title.startsWith("Private Label") && active && !privateLabelRevenueActiveForYear(year)) return { gross: 0, gp1: 0, gm1: 0, active: true, note: "Active gate; revenue starts after funding + 12 months" };
 
   if (!active) return { gross: 0, gp1: 0, gm1: 0, active: false, note: "Locked by funding gate" };
 
@@ -566,11 +615,197 @@ function renderMiniCards(id, cards) {
   ])));
 }
 
+
+/* ---------------- V13 Dover ramp + Ecommerce Revenue Build ---------------- */
+function yearKeys() { return ["y2026", "y2027", "y2028", "y2029"]; }
+
+function currentDoverTargetPct(year) {
+  const market = getBlock(STATE.commercial, "Market Growth");
+  return parsePercent(val(market ? market.rows : [], "Dover Target Capture %", year) || STATE.meta.doverCapture || "20%");
+}
+
+function doverRampPct(year) {
+  const market = getBlock(STATE.commercial, "Market Growth");
+  const ramp = market && market.doverRamp ? market.doverRamp[year] : "0%";
+  return parsePercent(ramp);
+}
+
+function paidAdsOverlapPct(year) {
+  const market = getBlock(STATE.commercial, "Market Growth");
+  return parsePercent(val(market ? market.rows : [], "Paid Ads Overlap %", year) || "30%");
+}
+
+function doverMarketOpportunity(year) {
+  const market = getBlock(STATE.commercial, "Market Growth");
+  return parseMoney(val(market ? market.rows : [], "Dover Market Opportunity", year) || "$100M");
+}
+
+function grossDoverOpportunity(year) {
+  return doverMarketOpportunity(year) * currentDoverTargetPct(year) * doverRampPct(year);
+}
+
+function netDoverCapture(year) {
+  return grossDoverOpportunity(year) * (1 - paidAdsOverlapPct(year));
+}
+
+function baseEcommerceRevenue(year) {
+  const monthly = parseMoney(STATE.meta.baseEcommerceMonthly || "$70k");
+  return monthly * 12;
+}
+
+function organicGrowthRevenue(year) {
+  const market = getBlock(STATE.commercial, "Market Growth");
+  const pct = parsePercent(val(market ? market.rows : [], "Organic Growth %", year) || selectedOrganicGrowth());
+  return baseEcommerceRevenue(year) * pct;
+}
+
+function incrementalPaidGrowth(year) {
+  const acq = getBlock(STATE.commercial, "Acquisition");
+  const roas = parseMultiple(val(acq ? acq.rows : [], "ROAS", year) || STATE.meta.roas || "0x");
+  return incrementalAdSpendByYear(year) * roas;
+}
+
+function ecommerceBuild(year) {
+  const base = baseEcommerceRevenue(year);
+  const organic = organicGrowthRevenue(year);
+  const paid = incrementalPaidGrowth(year);
+  const dover = netDoverCapture(year);
+  return { base, organic, paid, dover, total: base + organic + paid + dover };
+}
+
+function renderDoverRamp(block) {
+  const market = block || getBlock(STATE.commercial, "Market Growth");
+  if (!market.doverRamp) market.doverRamp = { y2026: "5%", y2027: "55%", y2028: "25%", y2029: "15%" };
+  const wrap = el("div", { class: "dover-ramp-wrap" });
+  const opp = doverMarketOpportunity("y2026");
+  const targetPct = currentDoverTargetPct("y2026");
+  const target = opp * targetPct;
+  wrap.appendChild(el("div", { class: "dover-assumption-grid" }, [
+    el("div", { class: "dover-assumption" }, [el("span", {}, "Dover Market Opportunity"), el("strong", {}, formatCompactCurrency(opp))]),
+    el("div", { class: "dover-assumption" }, [el("span", {}, "Target Capture"), el("strong", {}, `${formatPercent(targetPct)} = ${formatCompactCurrency(target)} opportunity`)]),
+    el("div", { class: "dover-assumption" }, [el("span", {}, "Paid Ads Overlap"), el("strong", {}, formatPercent(paidAdsOverlapPct("y2026")))])
+  ]));
+  const table = el("table", { class: "grid dover-ramp-table" });
+  table.innerHTML = `<thead><tr><th>Dover Capture Ramp</th>${yearKeys().map(y => `<th>${yearLabel(y)}</th>`).join("")}<th>Total</th></tr></thead>`;
+  const tbody = el("tbody");
+  const pctRow = el("tr");
+  pctRow.appendChild(el("td", { class: "label-cell" }, `% of ${formatCompactCurrency(target)} opportunity`));
+  yearKeys().forEach(y => pctRow.appendChild(makeEditableCell(market.doverRamp, y, () => { renderCommercial(); renderSheet2Draft(); scheduleSave(); })));
+  const totalPct = yearKeys().reduce((s, y) => s + parsePercent(market.doverRamp[y]), 0);
+  pctRow.appendChild(makeCalcCell(formatPercent(totalPct), Math.abs(totalPct - 1) < 0.001 ? "calc-cell" : "calc-cell warning-cell"));
+  tbody.appendChild(pctRow);
+  const grossRow = el("tr");
+  grossRow.appendChild(el("td", { class: "label-cell" }, "Gross Dover Capture"));
+  yearKeys().forEach(y => grossRow.appendChild(makeCalcCell(formatCompactCurrency(grossDoverOpportunity(y)))));
+  grossRow.appendChild(makeCalcCell(formatCompactCurrency(yearKeys().reduce((s,y)=>s+grossDoverOpportunity(y),0))));
+  tbody.appendChild(grossRow);
+  const netRow = el("tr");
+  netRow.appendChild(el("td", { class: "label-cell" }, "Net Dover Revenue after overlap"));
+  yearKeys().forEach(y => netRow.appendChild(makeCalcCell(formatCompactCurrency(netDoverCapture(y)))));
+  netRow.appendChild(makeCalcCell(formatCompactCurrency(yearKeys().reduce((s,y)=>s+netDoverCapture(y),0))));
+  tbody.appendChild(netRow);
+  table.appendChild(tbody);
+  wrap.appendChild(el("p", { class: "section-sub" }, "Dover Capture Ramp"));
+  wrap.appendChild(table);
+  return wrap;
+}
+
+function renderEcommerceRevenueBuild() {
+  const table = document.getElementById("ecommerceBuildTable");
+  if (!table) return;
+  const years = yearKeys();
+  const rows = [
+    ["Base Ecommerce Revenue", y => ecommerceBuild(y).base],
+    ["+ Organic Growth", y => ecommerceBuild(y).organic],
+    ["+ Incremental Paid Growth", y => ecommerceBuild(y).paid],
+    ["+ Net Dover Capture", y => ecommerceBuild(y).dover],
+    ["Total Ecommerce Gross Sales", y => ecommerceBuild(y).total, true]
+  ];
+  table.innerHTML = `<thead><tr><th>Revenue Driver</th>${years.map(y => `<th>${yearLabel(y)}</th>`).join("")}</tr></thead>`;
+  const tbody = el("tbody");
+  rows.forEach(([label, fn, total]) => {
+    const tr = el("tr");
+    tr.appendChild(el("td", { class: "label-cell" + (total ? " total-row-label" : "") }, label));
+    years.forEach(y => tr.appendChild(makeCalcCell(formatCompactCurrency(fn(y)))));
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+}
+
+function selectedDnrPct(year) {
+  return parsePercent(val((STATE.purchasing || {}).commercialTerms || [], "Discounts & Returns %", year));
+}
+
+function engineGrossAndGp(engine, year) {
+  const title = engine.title || "";
+  const rows = engine.rows || [];
+  let gross = 0;
+  let gm1 = 0;
+  let note = "";
+  let active = true;
+
+  if (title.startsWith("Embroidery") && fundingAmountSelected() < 1000000) active = false;
+  if (title.startsWith("Private Label") && fundingAmountSelected() < 3000000) active = false;
+  if (title.startsWith("Private Label") && active && !privateLabelRevenueActiveForYear(year)) return { gross: 0, gp1: 0, gm1: 0, active: true, note: "Active gate; revenue starts after funding + 12 months" };
+  if (!active) return { gross: 0, gp1: 0, gm1: 0, active: false, note: "Locked by funding gate" };
+
+  if (title.startsWith("Ecommerce")) {
+    gross = ecommerceBuild(year).total;
+    gm1 = parsePercent(val(rows, "GM1 %", year));
+    note = "Base + Organic + Incremental Paid + Net Dover";
+  } else if (title.startsWith("Wellington") || title.startsWith("Embroidery")) {
+    const orders = parseNumber(val(rows, "Orders", year));
+    const aov = parseMoney(val(rows, "AOV", year));
+    gm1 = parsePercent(val(rows, "GM1 %", year));
+    gross = orders * aov;
+    note = "Orders × AOV";
+  } else if (title.startsWith("Concierge")) {
+    const clients = parseNumber(val(rows, "Active Clients", year));
+    const ordersPerClient = parseNumber(val(rows, "Orders per Client", year));
+    const aov = parseMoney(val(rows, "AOV", year));
+    gm1 = parsePercent(val(rows, "GM1 %", year));
+    gross = clients * ordersPerClient * aov;
+    note = "Clients × Orders/Client × AOV";
+  } else if (title.startsWith("Cavali")) {
+    const sigMembers = parseNumber(val(rows, "Signature Active Members", year));
+    const sigBoxes = parseNumber(val(rows, "Signature Boxes per Year", year));
+    const sigPrice = parseMoney(val(rows, "Signature Price", year));
+    const premMembers = parseNumber(val(rows, "Premium Active Members", year));
+    const premBoxes = parseNumber(val(rows, "Premium Boxes per Year", year));
+    const premPrice = parseMoney(val(rows, "Premium Price", year));
+    gm1 = parsePercent(val(rows, "GM1 %", year));
+    const base = sigMembers * sigBoxes * sigPrice + premMembers * premBoxes * premPrice;
+    const adSpend = parseMoney(val(rows, "Cavali Ad Spend", year));
+    const cac = parseMoney(val(rows, "Cavali CAC", year));
+    const newMembers = cac ? adSpend / cac : 0;
+    const memberCount = sigMembers + premMembers;
+    const weightedBoxes = memberCount ? ((sigMembers * sigBoxes) + (premMembers * premBoxes)) / memberCount : 0;
+    const weightedPrice = memberCount ? ((sigMembers * sigPrice) + (premMembers * premPrice)) / memberCount : 0;
+    const paidGrowth = newMembers * weightedBoxes * weightedPrice;
+    gross = base + paidGrowth;
+    note = "$99 + $199 memberships + paid growth WA";
+  } else if (title.startsWith("Private Label")) {
+    const units = parseNumber(val(rows, "Units Sold", year));
+    const asp = parseMoney(val(rows, "Average Selling Price", year));
+    gm1 = parsePercent(val(rows, "GM1 %", year));
+    gross = units * asp;
+    note = "Units × ASP";
+  }
+
+  if (!gross) {
+    const fallback = actualEngineFallback(title, active);
+    if (fallback) { gross = fallback.gross; gm1 = fallback.gm1; note = fallback.note; }
+  }
+  const engineNetSales = gross * (1 - selectedDnrPct(year));
+  const gp1 = engineNetSales * gm1;
+  return { gross, gp1, gm1, active, note };
+}
+
 function renderSheet2Scenario() {
   renderMiniCards("sheet2ScenarioGrid", [
     { label: "Funding", value: STATE.meta.fundingScenario, sub: "" },
     { label: "Funding Date", value: STATE.meta.fundingDate, sub: "" },
-    { label: "Organic Growth", value: STATE.meta.organicGrowth, sub: "" },
+    { label: "Base Ecommerce", value: STATE.meta.baseEcommerceMonthly || "$70k", sub: "Monthly run rate" },
     { label: "Dover Capture", value: STATE.meta.doverCapture, sub: "" },
     { label: "ROAS", value: STATE.meta.roas, sub: "" },
   ]);
@@ -718,6 +953,7 @@ function renderSheet2FormulaNotes() {
 function renderSheet2Draft() {
   renderSheet2Scenario();
   renderFinancialSnapshot("y2026");
+  renderEcommerceRevenueBuild();
   renderSheet2ExecSummary("y2026");
   renderSheet2SupportingKpis("y2026");
   renderSheet2MarginBridge("y2026");
@@ -764,7 +1000,7 @@ function renderThesis() {
   const wrap = document.getElementById("thesisGrid");
   wrap.innerHTML = "";
   const dynamic = (STATE.thesis || []).map(t => {
-    if (t.label === "Organic Growth") return { ...t, value: STATE.meta.organicGrowth };
+    if (t.label === "Base Ecommerce") return { ...t, value: STATE.meta.baseEcommerceMonthly || "$70k/mo" };
     if (t.label === "Dover Capture") return { ...t, value: STATE.meta.doverCapture };
     return t;
   });

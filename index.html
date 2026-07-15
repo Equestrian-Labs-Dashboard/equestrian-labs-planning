@@ -14,7 +14,7 @@
   <div class="header-inner">
     <div>
       <p class="brand-eyebrow">Equestrian Labs</p>
-      <h1 class="brand-title">Strategic Operating Model <span id="versionBadge" class="version-badge">v1.1</span></h1>
+      <h1 class="brand-title">Strategic Operating Model <span id="versionBadge" class="version-badge">v2.0</span></h1>
       <p class="brand-sub">2026 – 2029</p>
       <div class="legend" style="margin-top:10px;">
         <span class="legend-chip"><span class="legend-swatch" style="background:#FFF4CC"></span>Editable</span>
@@ -27,7 +27,7 @@
       <div class="control-field"><label>Model Status</label><select id="modelStatus"></select></div>
       <div class="control-field"><label>Funding Scenario</label><select id="fundingScenario"></select></div>
       <div class="control-field"><label>Funding Date</label><select id="fundingDate"></select></div>
-      <div class="control-field"><label>Organic Growth</label><input id="organicGrowth" /></div>
+      <div class="control-field"><label>Base Ecommerce / Month</label><input id="baseEcommerce" /></div>
       <div class="control-field"><label>Dover Capture</label><select id="doverCapture"></select></div>
       <div class="control-field"><label>ROAS</label><select id="roas"></select></div>
       <div class="control-field"><label>Last Updated</label><input id="lastUpdate" /></div>
@@ -131,7 +131,10 @@
 
     <section class="section" data-accent="bu">
       <div class="section-header">Growth Engines — Revenue &amp; Profit Contribution</div>
-      <p class="section-note">This is the portfolio view: which engine generates sales and which engine generates GP1. Influenced revenue is kept as a supporting KPI to avoid double counting.</p>
+      <p class="section-note">This is the portfolio view: which engine generates sales and which engine generates GP1. Ecommerce is built from base revenue, organic growth, incremental paid growth and net Dover capture.</p>
+      <p class="section-sub">Ecommerce Revenue Build</p>
+      <table class="grid" id="ecommerceBuildTable" style="margin-top:10px;"></table>
+      <p class="section-sub">Growth Engine Portfolio</p>
       <table class="grid" id="sheet2ExecSummaryTable" style="margin-top:10px;"></table>
       <div class="supporting-kpis" id="sheet2SupportingKpis"></div>
     </section>
@@ -148,7 +151,7 @@
       <div class="placeholder-tag">03</div>
       <h2>Summary P&amp;L + Cashflow</h2>
       <p>Coming next — summary P&amp;L, cashflow and funding need.</p>
-      <p style="margin-top:12px; font-size:12px;">Preloaded for formulas: Concierge/Wellington OPEX = $70k annual pool split 60% / 40%, plus 10% of Concierge Net Sales and 1% of Wellington Net Sales.</p>
+      <p style="margin-top:12px; font-size:12px;">OPEX detail belongs in the separate Financial / Summary P&amp;L model. Pages 1–2 stay focused on strategic assumptions, revenue and margin through GP3.</p>
     </div>
   </section>
 

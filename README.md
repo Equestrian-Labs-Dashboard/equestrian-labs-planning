@@ -167,3 +167,20 @@ The Refresh Actuals button pulls those tabs through Google Sheets CSV export. Th
 ## Sharing with ChatGPT for review
 
 If ChatGPT cannot open the live GitHub Pages URL, share screenshots of the relevant section or paste `index.html`, `assets/js/app.js`, and `data/assumptions.json` snippets. The live app itself only needs the Google Sheets to be shared/published for the browser to load actuals.
+
+
+## V14 — Strategic Model Page 1 / Page 2 Final Logic
+
+Applied from latest Ceci feedback:
+
+- Header now uses five scenario controls/cards: Funding, Funding Date, Base Ecommerce, Dover Capture, ROAS. Organic Growth is no longer in the header to avoid triple representation.
+- Base Ecommerce defaults to `$70k/month`; Base Ad Spend remains `$20k/month`.
+- Funding & Allocation includes editable Organic Growth Default by scenario: Base/$500k = 5%, $1M/$3M = 10%, $5M/$10M = 15%.
+- Dover Capture includes Market Opportunity, Target Capture, Paid Ads Overlap, and editable annual ramp. Calculated revenue uses: `Net Dover Capture = Dover Market Opportunity × Target Capture % × Annual Ramp % × (1 - Paid Ads Overlap %)`.
+- Page 2 includes Ecommerce Revenue Build before the consolidated Growth Engines table. Formula: `Total Ecommerce Gross Sales = Base Ecommerce Revenue + Organic Growth Revenue + Incremental Paid Growth + Net Dover Capture`.
+- Organic Growth Revenue applies only to Base Ecommerce Revenue in V1, not to Dover or paid growth.
+- Incremental Paid Growth uses `Incremental Ad Spend × ROAS`, and the spend is distributed monthly by scenario without exceeding the Marketing Allocation.
+- Engine GP1 uses Engine Net Sales, not Engine Gross Sales: `Engine Net Sales = Engine Gross Sales × (1 - Discounts & Returns %)`, then `Engine GP1 = Engine Net Sales × GM1%`.
+- Cavali paid growth uses weighted average boxes/year and weighted average price.
+- Private Label revenue starts 12 months after Funding Date, even if the gate is active.
+- OPEX formulas for Concierge/Wellington remain out of Page 1 and Page 2; they belong to Financial / Summary P&L.

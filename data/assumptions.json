@@ -3,11 +3,12 @@
     "modelStatus": "Board",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "1.8",
+    "version": "2.0",
     "lastUpdate": "2026-07-11",
-    "organicGrowth": "35%",
+    "organicGrowth": "10%",
     "doverCapture": "20%",
-    "roas": "4.0x"
+    "roas": "4.0x",
+    "baseEcommerceMonthly": "$70k"
   },
   "lists": {
     "modelStatus": [
@@ -52,7 +53,8 @@
       "inventory": 0,
       "payables": 0,
       "embroidery": 0,
-      "privateLabel": 0
+      "privateLabel": 0,
+      "organicGrowthDefault": "5%"
     },
     {
       "scenario": "$500k",
@@ -62,7 +64,8 @@
       "inventory": 150000,
       "payables": 250000,
       "embroidery": 0,
-      "privateLabel": 0
+      "privateLabel": 0,
+      "organicGrowthDefault": "5%"
     },
     {
       "scenario": "$1M",
@@ -72,7 +75,8 @@
       "inventory": 300000,
       "payables": 300000,
       "embroidery": 50000,
-      "privateLabel": 0
+      "privateLabel": 0,
+      "organicGrowthDefault": "10%"
     },
     {
       "scenario": "$3M",
@@ -82,7 +86,8 @@
       "inventory": 900000,
       "payables": 750000,
       "embroidery": 50000,
-      "privateLabel": 400000
+      "privateLabel": 400000,
+      "organicGrowthDefault": "10%"
     },
     {
       "scenario": "$5M",
@@ -92,7 +97,8 @@
       "inventory": 1900000,
       "payables": 600000,
       "embroidery": 50000,
-      "privateLabel": 700000
+      "privateLabel": 700000,
+      "organicGrowthDefault": "15%"
     },
     {
       "scenario": "$10M",
@@ -102,7 +108,8 @@
       "inventory": 4000000,
       "marketing": 3500000,
       "embroidery": 500000,
-      "privateLabel": 1000000
+      "privateLabel": 1000000,
+      "organicGrowthDefault": "15%"
     }
   ],
   "commercial": [
@@ -116,7 +123,7 @@
           "y2027": "$240,000",
           "y2028": "$240,000",
           "y2029": "$240,000",
-          "note": "$20k/month until 2027 budget is finalized"
+          "note": "Use $20k/month baseline until 2027 budget is finalized"
         },
         {
           "driver": "Incremental Ad Spend",
@@ -227,19 +234,12 @@
       "rows": [
         {
           "driver": "Organic Growth %",
-          "current": "YTD avg pending",
-          "y2026": "35%",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
-        },
-        {
-          "driver": "Dover Capture %",
-          "current": "N/A",
-          "y2026": "20%",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "Actual YoY Growth from Sheets",
+          "y2026": "10%",
+          "y2027": "10%",
+          "y2028": "10%",
+          "y2029": "10%",
+          "note": "Baseline/current is Actual YoY Growth; forecast years are editable Organic Growth Assumptions by funding scenario."
         },
         {
           "driver": "Dover Market Opportunity",
@@ -248,8 +248,31 @@
           "y2027": "$100M",
           "y2028": "$100M",
           "y2029": "$100M"
+        },
+        {
+          "driver": "Dover Target Capture %",
+          "current": "N/A",
+          "y2026": "20%",
+          "y2027": "20%",
+          "y2028": "20%",
+          "y2029": "20%"
+        },
+        {
+          "driver": "Paid Ads Overlap %",
+          "current": "N/A",
+          "y2026": "30%",
+          "y2027": "30%",
+          "y2028": "30%",
+          "y2029": "30%",
+          "note": "Prevents double counting Dover revenue that is already influenced by paid ads."
         }
-      ]
+      ],
+      "doverRamp": {
+        "y2026": "5%",
+        "y2027": "55%",
+        "y2028": "25%",
+        "y2029": "15%"
+      }
     }
   ],
   "growthEngines": [
@@ -612,7 +635,7 @@
       "owner": "Tatum",
       "trigger": "\u2265$3M",
       "status": "Active",
-      "launch": "Jul-27",
+      "launch": "Oct-27",
       "investment": "Phased / TBD"
     },
     {
@@ -641,9 +664,9 @@
       "sub": "2029 Target >20%"
     },
     {
-      "label": "Organic Growth",
-      "value": "35%",
-      "sub": "Scenario target"
+      "label": "Base Ecommerce",
+      "value": "$70k/mo",
+      "sub": "Normalized monthly run rate"
     },
     {
       "label": "Dover Capture",
@@ -744,32 +767,6 @@
         "y2029": ""
       }
     ],
-    "opexDefaults": [
-      {
-        "driver": "Payroll",
-        "basis": "Fixed monthly",
-        "value": "$40,000 / month",
-        "notes": "Future formula: annualize by month count."
-      },
-      {
-        "driver": "G&A Opex",
-        "basis": "Fixed monthly",
-        "value": "$45,000 / month",
-        "notes": "Separate from Payroll."
-      },
-      {
-        "driver": "Sales & Marketing",
-        "basis": "% of Gross Revenue",
-        "value": "6.62%",
-        "notes": "Variable assumption; later connect to QB / Financial."
-      },
-      {
-        "driver": "Technology",
-        "basis": "Placeholder",
-        "value": "$0",
-        "notes": "No current charge; editable later."
-      }
-    ],
     "wellingtonAds2026": {
       "jan": 1242,
       "feb": 810,
@@ -793,8 +790,8 @@
       },
       {
         "item": "GP1 by engine",
-        "status": "connected using Gross Sales \u00d7 GM1%",
-        "needed": "Approved GM1% per engine"
+        "status": "connected using Engine Net Sales \u00d7 GM1%",
+        "needed": "Discounts & Returns % applied before GM1; later can vary by engine if needed"
       },
       {
         "item": "Margin Bridge through GP3",
@@ -865,10 +862,6 @@
       "status": "done"
     },
     {
-      "item": "Opex defaults for Sheet 2",
-      "status": "done-in-tab-02-draft"
-    },
-    {
       "item": "Remove waterfall / financial outputs from Magic Page",
       "status": "done"
     },
@@ -891,6 +884,26 @@
     {
       "item": "Wellington ad spend inputs stored",
       "status": "done-reference-only"
+    },
+    {
+      "item": "Header uses Funding, Funding Date, Base Ecommerce, Dover Capture, ROAS",
+      "status": "done-v14"
+    },
+    {
+      "item": "Dover Capture Ramp by year with Paid Ads Overlap",
+      "status": "done-v14"
+    },
+    {
+      "item": "Ecommerce Revenue Build feeds Ecommerce engine row",
+      "status": "done-v14"
+    },
+    {
+      "item": "Organic Growth removed from header and tied to funding scenario default",
+      "status": "done-v14"
+    },
+    {
+      "item": "Organic Growth applies only to Base Ecommerce Revenue in V1",
+      "status": "done-v14"
     }
   ],
   "dataSources": {
@@ -901,7 +914,8 @@
         "kpis": "kpis_daily",
         "revenueShare": "revenue_share",
         "newVsReturning": "new_vs_returning",
-        "adSpend": "ad_spend"
+        "adSpend": "ad_spend",
+        "products": "products_q1_2026"
       }
     },
     "cavaliDashboard": {
@@ -912,7 +926,8 @@
         "revenueShare": "revenue_share",
         "newVsReturning": "new_vs_returning",
         "adSpend": "ad_spend",
-        "smartrrProductVolume": "smartrr_product_volume"
+        "smartrrProductVolume": "smartrr_product_volume",
+        "products": "products_q1_2026"
       }
     }
   },
@@ -956,28 +971,10 @@
       "item": "Cavali CAC / new members",
       "status": "partially connected",
       "needed": "Cavali ad_spend tab plus Smartrr product volume / membership rows; if ad_spend is empty, keep manual input"
-    },
-    {
-      "item": "Concierge / Wellington OPEX",
-      "status": "Assumption added for Tab 03",
-      "source": "Ceci 13-Jul chat",
-      "needed": "Replace with actual OPEX when Nicole/Micaela confirms"
     }
   ],
-  "engineOpex": {
-    "baseAnnualPool": 70000,
-    "concierge": {
-      "owner": "Nicole",
-      "basePoolPct": "60%",
-      "commissionOnNetSales": "10%",
-      "formula": "($70k \u00d7 60%) + (Concierge Net Sales \u00d7 10%)"
-    },
-    "wellington": {
-      "owner": "Nicole",
-      "basePoolPct": "40%",
-      "commissionOnNetSales": "1%",
-      "formula": "($70k \u00d7 40%) + (Wellington Net Sales \u00d7 1%)"
-    },
-    "note": "Stored for Tab 03 Summary P&L / OPEX. Not included in Tab 02 GP1\u2192GP3 margin bridge."
+  "ecommerceBuild": {
+    "normalizedMonthlyRunRate": "$70k",
+    "note": "Base Ecommerce Revenue = Normalized Monthly Ecommerce Run Rate \u00d7 12 months. Organic Growth applies only to Base Ecommerce Revenue in V1."
   }
 }
