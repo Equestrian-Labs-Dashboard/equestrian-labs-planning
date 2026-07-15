@@ -1,6 +1,12 @@
 let STATE = null;
 let saveTimer = null;
 
+function isFormulaToken(v) {
+  const text = String(v ?? "").trim().toLowerCase();
+  return text === "calculated" || text === "kpi / calculated" || text === "source" || text === "n/a" || text === "na" || text === "—" || text === "-" || text === "";
+}
+
+
 function el(tag, attrs = {}, children = []) {
   const node = document.createElement(tag);
   Object.entries(attrs).forEach(([k, v]) => {
@@ -493,15 +499,9 @@ function isBlankLike(v) {
   if (/^no ad_spend/i.test(s) || /^needs /i.test(s) || /^revenue share/i.test(s)) return true;
   return false;
 }
-
 function isFormulaToken(v) {
-  const s = String(v ?? "").trim();
-  if (!s) return true;
-  if (s === "—" || s === "-" || s.toUpperCase() === "N/A") return true;
-  if (/^calculated$/i.test(s) || /^kpi \/ calculated$/i.test(s)) return true;
-  if (/^formula$/i.test(s) || /^linked$/i.test(s) || /^source/i.test(s)) return true;
-  if (/^no ad_spend/i.test(s) || /^needs /i.test(s) || /^revenue share/i.test(s)) return true;
-  return false;
+  const text = String(v ?? "").trim().toLowerCase();
+  return text === "calculated" || text === "kpi / calculated" || text === "source" || text === "n/a" || text === "na" || text === "—" || text === "-" || text === "";
 }
 
 function val(rows, driver, year) {

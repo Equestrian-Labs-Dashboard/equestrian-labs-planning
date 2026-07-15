@@ -1,3 +1,7 @@
+# Strategic Operating Model v2.5 / V20
+
+Fixed cache-busting + formula helper issue. This version adds `?v=20` to CSS/JS assets so GitHub Pages cannot keep serving the old app.js that caused `isFormulaToken is not defined`.
+
 # Equestrian Labs — Strategic Operating Model (Web)
 
 Dashboard ejecutivo del **Strategic Operating Model** (hoja `01_Strategic_Assumptions`),
