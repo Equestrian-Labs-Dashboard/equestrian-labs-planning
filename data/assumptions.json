@@ -3,7 +3,7 @@
     "modelStatus": "Board",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "2.6",
+    "version": "2.7",
     "lastUpdate": "2026-07-11",
     "organicGrowth": "10%",
     "doverCapture": "20%",
@@ -15,9 +15,8 @@
     "modelStatus": [
       "Draft",
       "Budget",
-      "Board",
-      "Investor",
-      "Forecast"
+      "Forecast",
+      "Board"
     ],
     "fundingScenario": [
       "Base $0",
@@ -233,7 +232,7 @@
         {
           "driver": "Incremental Revenue Carryover %",
           "current": "\u2014",
-          "y2026": "50%",
+          "y2026": "0%",
           "y2027": "50%",
           "y2028": "50%",
           "y2029": "\u2014",
@@ -322,7 +321,7 @@
   "growthEngines": [
     {
       "title": "Ecommerce \u2014 Emma",
-      "note": "Revenue built from Base Ecommerce + Organic Growth + Paid Growth + Dover Capture.",
+      "note": "Revenue = Base + Organic + Paid + Dover",
       "rows": [
         {
           "driver": "Orders",
@@ -389,7 +388,7 @@
     },
     {
       "title": "Cavali \u2014 Angela",
-      "note": "Subscription model.",
+      "note": "",
       "rows": [
         {
           "driver": "Signature Active Members",
@@ -607,7 +606,7 @@
     "capitalEfficiency": [
       {
         "driver": "Inventory Turns",
-        "current": "SKU actual pending",
+        "current": "0.17x",
         "y2026": "3.2x",
         "y2027": "4.0x",
         "y2028": "4.5x",
@@ -710,7 +709,7 @@
     {
       "label": "Base Ecommerce",
       "value": "$70k/mo",
-      "sub": "Normalized monthly run rate 2026"
+      "sub": "Monthly Run Rate"
     },
     {
       "label": "Dover Capture",

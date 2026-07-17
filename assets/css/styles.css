@@ -360,3 +360,9 @@ td.total-row-label { font-weight: 800; color: var(--navy); }
 .dover-assumption strong { color: var(--navy); font-family: var(--font-mono); font-size: 15px; }
 .dover-ramp-table td.calc-cell { font-style: normal; color: var(--navy); }
 @media (max-width: 760px) { .dover-assumption-grid { grid-template-columns: 1fr; } }
+
+
+/* v2.7 polish */
+.owner-tag { font-size: 9px; padding: 2px 7px; opacity: 0.85; }
+.calc-cell, .gray-cell, .editable input { font-variant-numeric: tabular-nums; }
+.supporting-note { line-height: 1.35; }

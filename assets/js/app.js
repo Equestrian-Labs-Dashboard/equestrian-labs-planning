@@ -41,15 +41,24 @@ function parseMoney(v) {
 }
 
 function formatCurrency(n) {
-  return "$" + Number(n || 0).toLocaleString("en-US");
+  const value = Number(n || 0);
+  const sign = value < 0 ? "-" : "";
+  const abs = Math.abs(value);
+  return sign + "$" + Math.round(abs).toLocaleString("en-US");
 }
 
 function formatCompactCurrency(n) {
   const value = Number(n || 0);
+  const sign = value < 0 ? "-" : "";
   const abs = Math.abs(value);
-  if (abs >= 1000000) return "$" + (value / 1000000).toFixed(1).replace(".0", "") + "M";
-  if (abs >= 1000) return "$" + (value / 1000).toFixed(0) + "k";
-  return formatCurrency(Math.round(value));
+  if (abs >= 1000000) return sign + "$" + (abs / 1000000).toFixed(1).replace(".0", "") + "M";
+  if (abs >= 1000) return sign + "$" + (abs / 1000).toFixed(0) + "k";
+  return sign + "$" + Math.round(abs).toLocaleString("en-US");
+}
+
+function formatMoney(n) {
+  // Software-style display: < $1M as k, >= $1M as M with one decimal.
+  return formatCompactCurrency(n);
 }
 
 function fundingTotal(row) {
@@ -104,12 +113,12 @@ function makeEditableCell(rowObj, key, onChange, opts = {}) {
   const td = el("td", { class: "editable" });
   const input = el("input", { type: "text" });
   input.value = rowObj[key] ?? "";
-  if (opts.money && typeof rowObj[key] === "number") input.value = formatCurrency(rowObj[key]);
+  if (opts.money && typeof rowObj[key] === "number") input.value = formatMoney(rowObj[key]);
   input.addEventListener("change", e => {
     let v = e.target.value;
     if (opts.money) {
       rowObj[key] = parseMoney(v);
-      input.value = rowObj[key] ? formatCurrency(rowObj[key]) : "$0";
+      input.value = rowObj[key] ? formatMoney(rowObj[key]) : "$0";
     } else {
       rowObj[key] = v;
     }
@@ -123,6 +132,62 @@ function makeCalcCell(value, className = "calc-cell") {
   return el("td", { class: className }, value);
 }
 
+
+function deepClone(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function scenarioSnapshot() {
+  const snap = deepClone(STATE);
+  delete snap.scenarioVersions;
+  return snap;
+}
+
+function ensureScenarioStore() {
+  if (!STATE.scenarioVersions) STATE.scenarioVersions = {};
+}
+
+function saveScenarioInputs(status) {
+  ensureScenarioStore();
+  const key = status || (STATE.meta && STATE.meta.modelStatus) || "Draft";
+  STATE.scenarioVersions[key] = scenarioSnapshot();
+}
+
+function renderAll() {
+  renderAll();
+}
+
+function switchModelStatus(nextStatus) {
+  if (!STATE || !STATE.meta) return;
+  const currentStatus = STATE.meta.modelStatus || "Draft";
+  if (nextStatus === currentStatus) return;
+  saveScenarioInputs(currentStatus);
+  const store = STATE.scenarioVersions || {};
+  if (store[nextStatus]) {
+    const nextState = deepClone(store[nextStatus]);
+    nextState.scenarioVersions = store;
+    STATE = nextState;
+  }
+  STATE.meta.modelStatus = nextStatus;
+  renderAll();
+  saveNow();
+}
+
+function publishScenario() {
+  ensureScenarioStore();
+  const source = STATE.meta.modelStatus || "Draft";
+  const choices = ["Budget", "Forecast", "Board"].filter(x => x !== source);
+  const target = prompt(`Publish ${source} inputs to which scenario?\n${choices.join(" / ")}`, choices[0] || "Budget");
+  if (!target || !choices.includes(target)) return;
+  if (!confirm(`This will overwrite ${target} with the current ${source} inputs. Continue?`)) return;
+  saveScenarioInputs(source);
+  const snap = scenarioSnapshot();
+  snap.meta.modelStatus = target;
+  STATE.scenarioVersions[target] = snap;
+  saveNow();
+  alert(`${source} published to ${target}.`);
+}
+
 function renderHeader() {
   const { meta, lists } = STATE;
   document.getElementById("modelStatus").innerHTML = optionList(lists.modelStatus, meta.modelStatus);
@@ -134,7 +199,7 @@ function renderHeader() {
   document.getElementById("lastUpdate").value = meta.lastUpdate;
   document.getElementById("versionBadge").textContent = `v${meta.version}`;
 
-  document.getElementById("modelStatus").onchange = e => { meta.modelStatus = e.target.value; scheduleSave(); };
+  document.getElementById("modelStatus").onchange = e => switchModelStatus(e.target.value);
   document.getElementById("fundingScenario").onchange = e => { meta.fundingScenario = e.target.value; applyFundingOrganicDefault(); renderKpis(); renderFunding(); renderCommercial(); renderGrowth(); renderBusinessUnits(); renderSheet2Draft(); renderThesis(); scheduleSave(); };
   document.getElementById("fundingDate").onchange = e => { meta.fundingDate = e.target.value; renderKpis(); renderGrowth(); renderSheet2Draft(); scheduleSave(); };
   document.getElementById("baseEcommerce").onchange = e => { meta.baseEcommerceMonthly = e.target.value; renderKpis(); renderSheet2Draft(); renderThesis(); scheduleSave(); };
@@ -184,7 +249,7 @@ function renderKpis() {
   const cards = [
     { label: "Funding", value: STATE.meta.fundingScenario, sub: "" },
     { label: "Funding Date", value: STATE.meta.fundingDate || row.date, sub: "" },
-    { label: "Base Ecommerce", value: STATE.meta.baseEcommerceMonthly || "$70k", sub: "Normalized monthly run rate 2026" },
+    { label: "Base Ecommerce", value: STATE.meta.baseEcommerceMonthly || "$70k", sub: "Normalized Monthly Run Rate" },
     { label: "Dover Capture", value: STATE.meta.doverCapture, sub: "" },
     { label: "ROAS", value: STATE.meta.roas, sub: "" },
   ];
@@ -213,7 +278,7 @@ function renderFunding() {
     const allocated = ["marketing", "inventory", "payables", "embroidery", "privateLabel"].reduce((sum, k) => sum + parseMoney(row[k]), 0);
     const unallocated = fundingTotal(row) - allocated;
     const cls = unallocated === 0 ? "calc-cell" : "calc-cell warning-cell";
-    tr.appendChild(makeCalcCell((unallocated === 0 ? "✓ " : "⚠ ") + formatCurrency(unallocated), cls));
+    tr.appendChild(makeCalcCell((unallocated === 0 ? "✓ " : "⚠ ") + formatMoney(unallocated), cls));
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
@@ -309,7 +374,7 @@ function gateStatusForEngine(engine) {
     return funding >= 1000000 ? { text: "ACTIVE ✓", cls: "active" } : { text: "LOCKED 🔒 below $1M", cls: "locked" };
   }
   if (engine.title.startsWith("Private Label")) {
-    return funding >= 3000000 ? { text: "ACTIVE ✓ · revenue after ramp", cls: "active" } : { text: "LOCKED 🔒 below $3M", cls: "locked" };
+    return funding >= 3000000 ? { text: "ACTIVE ✓", cls: "active" } : { text: "LOCKED 🔒 below $3M", cls: "locked" };
   }
   return null;
 }
@@ -494,16 +559,16 @@ function privateLabelRevenueActiveForYear(yearKey) {
 
 function computedCommercialValue(row, key) {
   if (!row || !key || key === "current") return null;
-  if (row.driver === "Base Ad Spend") return formatCurrency(Math.round(baseAdSpendByYear(key)));
+  if (row.driver === "Base Ad Spend") return formatMoney(baseAdSpendByYear(key));
   if (row.driver === "Incremental Ad Spend") {
     if (key === "y2029") return "—";
-    return formatCurrency(Math.round(incrementalAdSpendByYear(key)));
+    return formatMoney(incrementalAdSpendByYear(key));
   }
   if (row.driver === "Total Ad Spend") {
     // Calculated through 2028 from Target Ad Spend % of Ecommerce Gross Sales;
     // 2029 is editable and therefore handled by the cell value.
     if (key === "y2029") return null;
-    return formatCurrency(Math.round(totalAdSpendByYear(key)));
+    return formatMoney(totalAdSpendByYear(key));
   }
   if (row.driver === "Target Ad Spend % of Ecommerce Gross Sales") {
     if (key === "y2029") {
@@ -521,7 +586,7 @@ function computedCommercialValue(row, key) {
     const orders = parseNumber(val(ecommerce ? ecommerce.rows : [], "Orders", key));
     const newPct = parsePercent(val((getBlock(STATE.commercial, "Acquisition") || {}).rows, "New Customer Mix %", key));
     const newCustomers = orders * (newPct || 0);
-    return newCustomers ? formatCurrency(Math.round(totalAdSpendByYear(key) / newCustomers)) : "—";
+    return newCustomers ? formatMoney(totalAdSpendByYear(key) / newCustomers) : "—";
   }
   if (row.driver === "Annual GP per Customer") {
     const ecommerce = getBlock(STATE.growthEngines, "Ecommerce");
@@ -529,7 +594,7 @@ function computedCommercialValue(row, key) {
     const aov = parseMoney(val(ecommerce ? ecommerce.rows : [], "AOV", key));
     const pf = parseNumber(val(retention ? retention.rows : [], "Purchase Frequency", key));
     const gm1 = parsePercent(val(ecommerce ? ecommerce.rows : [], "GM1 %", key));
-    return (aov && pf && gm1) ? formatCurrency(Math.round(aov * pf * gm1)) : "—";
+    return (aov && pf && gm1) ? formatMoney(aov * pf * gm1) : "—";
   }
   return null;
 }
@@ -595,7 +660,7 @@ function engineGrossAndGp(engine, year) {
 
   if (title.startsWith("Embroidery") && fundingAmountSelected() < 1000000) active = false;
   if (title.startsWith("Private Label") && fundingAmountSelected() < 3000000) active = false;
-  if (title.startsWith("Private Label") && active && !privateLabelRevenueActiveForYear(year)) return { gross: 0, gp1: 0, gm1: 0, active: true, note: "Active gate; revenue starts after funding + 12 months" };
+  if (title.startsWith("Private Label") && active && !privateLabelRevenueActiveForYear(year)) return { gross: 0, gp1: 0, gm1: 0, active: true, note: "Active gate; pending launch" };
 
   if (!active) return { gross: 0, gp1: 0, gm1: 0, active: false, note: "Locked by funding gate" };
 
@@ -765,9 +830,10 @@ function baseEcommerceRevenue(year) {
     const priorPaid = incrementalPaidGrowth(priorYear);
     const priorDover = netDoverCapture(priorYear);
     const carryover = carryoverPctForYear(priorYear);
-    // Organic growth capitalizes 100% into next year's base.
-    // Incremental paid + Dover only carry forward by the retention carryover assumption.
-    base = base + priorOrganic + carryover * (priorPaid + priorDover);
+    // Latest Easy Numbers Test logic: the editable carryover rate applies to
+    // Organic Growth + Paid Growth Revenue + Net Dover Capture. This keeps the
+    // formula map and implemented model aligned before actuals are loaded.
+    base = base + carryover * (priorOrganic + priorPaid + priorDover);
   }
   return base;
 }
@@ -833,14 +899,14 @@ function renderDoverRamp(block) {
   const target = opp * targetPct;
   wrap.appendChild(el("div", { class: "dover-assumption-grid" }, [
     el("div", { class: "dover-assumption" }, [el("span", {}, "Dover Market Opportunity (Gross)"), el("strong", {}, formatCompactCurrency(opp))]),
-    el("div", { class: "dover-assumption" }, [el("span", {}, "Target Capture % (Gross)"), el("strong", {}, `${formatPercent(targetPct)} = ${formatCompactCurrency(target)} opportunity`)]),
+    el("div", { class: "dover-assumption" }, [el("span", {}, "Gross Addressable Opportunity"), el("strong", {}, `${formatPercent(targetPct)} Target = ${formatCompactCurrency(target)}`)]),
     el("div", { class: "dover-assumption" }, [el("span", {}, "Paid Ads Overlap"), el("strong", {}, formatPercent(paidAdsOverlapPct("y2026")))])
   ]));
   const table = el("table", { class: "grid dover-ramp-table" });
   table.innerHTML = `<thead><tr><th>Dover Capture Ramp</th>${yearKeys().map(y => `<th>${yearLabel(y)}</th>`).join("")}<th>Total</th></tr></thead>`;
   const tbody = el("tbody");
   const pctRow = el("tr");
-  pctRow.appendChild(el("td", { class: "label-cell" }, `% of ${formatCompactCurrency(target)} gross opportunity`));
+  pctRow.appendChild(el("td", { class: "label-cell" }, "% of Target Capture"));
   yearKeys().forEach(y => pctRow.appendChild(makeEditableCell(market.doverRamp, y, () => { renderCommercial(); renderSheet2Draft(); scheduleSave(); })));
   const totalPct = yearKeys().reduce((s, y) => s + parsePercent(market.doverRamp[y]), 0);
   pctRow.appendChild(makeCalcCell(formatPercent(totalPct), Math.abs(totalPct - 1) < 0.001 ? "calc-cell" : "calc-cell warning-cell"));
@@ -872,7 +938,7 @@ function renderEcommerceRevenueBuild() {
     ["+ Net Dover Capture", y => ecommerceBuild(y).dover],
     ["Total Ecommerce Gross Sales", y => ecommerceBuild(y).total, true]
   ];
-  table.innerHTML = `<thead><tr><th>Revenue Driver</th>${years.map(y => `<th>${yearLabel(y)}</th>`).join("")}</tr></thead>`;
+  table.innerHTML = `<thead><tr><th>Revenue Components</th>${years.map(y => `<th>${yearLabel(y)}</th>`).join("")}</tr></thead>`;
   const tbody = el("tbody");
   rows.forEach(([label, fn, total]) => {
     const tr = el("tr");
@@ -897,7 +963,7 @@ function engineGrossAndGp(engine, year) {
 
   if (title.startsWith("Embroidery") && fundingAmountSelected() < 1000000) active = false;
   if (title.startsWith("Private Label") && fundingAmountSelected() < 3000000) active = false;
-  if (title.startsWith("Private Label") && active && !privateLabelRevenueActiveForYear(year)) return { gross: 0, gp1: 0, gm1: 0, active: true, note: "Active gate; revenue starts after funding + 12 months" };
+  if (title.startsWith("Private Label") && active && !privateLabelRevenueActiveForYear(year)) return { gross: 0, gp1: 0, gm1: 0, active: true, note: "Active gate; pending launch" };
   if (!active) return { gross: 0, gp1: 0, gm1: 0, active: false, note: "Locked by funding gate" };
 
   if (title.startsWith("Ecommerce")) {
@@ -956,7 +1022,7 @@ function renderSheet2Scenario() {
   renderMiniCards("sheet2ScenarioGrid", [
     { label: "Funding", value: STATE.meta.fundingScenario, sub: "" },
     { label: "Funding Date", value: STATE.meta.fundingDate, sub: "" },
-    { label: "Base Ecommerce", value: STATE.meta.baseEcommerceMonthly || "$70k", sub: "Normalized monthly run rate 2026" },
+    { label: "Base Ecommerce", value: STATE.meta.baseEcommerceMonthly || "$70k", sub: "Normalized Monthly Run Rate" },
     { label: "Dover Capture", value: STATE.meta.doverCapture, sub: "" },
     { label: "ROAS", value: STATE.meta.roas, sub: "" },
   ]);
@@ -965,12 +1031,12 @@ function renderSheet2Scenario() {
 function renderFinancialSnapshot(year = "y2026") {
   const m = marginBridge(year);
   renderMiniCards("financialSnapshotGrid", [
-    { label: "Gross Sales", value: formatCurrency(Math.round(m.grossSales)), sub: yearLabel(year) },
-    { label: "Net Sales", value: formatCurrency(Math.round(m.netSales)), sub: "After Discounts & Returns" },
+    { label: "Gross Sales", value: formatMoney(m.grossSales), sub: yearLabel(year) },
+    { label: "Net Sales", value: formatMoney(m.netSales), sub: "After Discounts & Returns" },
     { label: "Net-to-Gross", value: m.grossSales ? formatPercent(m.netSales / m.grossSales) : "—", sub: "Net Sales / Gross Sales" },
-    { label: "Gross Profit 1", value: formatCurrency(Math.round(m.gp1)), sub: m.netSales ? `${formatPercent(m.gp1 / m.netSales)} of Net Sales` : "GP1 / Net Sales" },
-    { label: "Gross Profit 2", value: formatCurrency(Math.round(m.gp2)), sub: m.netSales ? `${formatPercent(m.gp2 / m.netSales)} of Net Sales` : "GP2 / Net Sales" },
-    { label: "Gross Profit 3", value: formatCurrency(Math.round(m.gp3)), sub: m.netSales ? `${formatPercent(m.gp3 / m.netSales)} of Net Sales` : "GP3 / Net Sales" },
+    { label: "Gross Profit 1", value: formatMoney(m.gp1), sub: m.netSales ? `${formatPercent(m.gp1 / m.netSales)} of Net Sales` : "GP1 / Net Sales" },
+    { label: "Gross Profit 2", value: formatMoney(m.gp2), sub: m.netSales ? `${formatPercent(m.gp2 / m.netSales)} of Net Sales` : "GP2 / Net Sales" },
+    { label: "Gross Profit 3", value: formatMoney(m.gp3), sub: m.netSales ? `${formatPercent(m.gp3 / m.netSales)} of Net Sales` : "GP3 / Net Sales" },
   ]);
 }
 
@@ -986,9 +1052,9 @@ function renderSheet2EngineDetail(year = "y2026") {
     tr.appendChild(makeCalcCell(row.owner || "—"));
     tr.appendChild(makeCalcCell(row.note || "Formula pending"));
     tr.appendChild(el("td", { class: "calc-cell" }, el("span", { class: `status-pill ${row.active ? "active" : "locked"} inline` }, row.active ? "ACTIVE ✓" : "LOCKED 🔒")));
-    tr.appendChild(makeCalcCell(formatCurrency(Math.round(row.gross))));
+    tr.appendChild(makeCalcCell(formatMoney(row.gross)));
     tr.appendChild(makeCalcCell(row.gm1 ? formatPercent(row.gm1) : "—"));
-    tr.appendChild(makeCalcCell(formatCurrency(Math.round(row.gp1))));
+    tr.appendChild(makeCalcCell(formatMoney(row.gp1)));
     tbody.appendChild(tr);
   });
 
@@ -998,9 +1064,9 @@ function renderSheet2EngineDetail(year = "y2026") {
   const support = el("tr");
   support.appendChild(el("td", { class: "label-cell" }, "Paid Revenue Influenced"));
   support.appendChild(makeCalcCell("Emma"));
-  support.appendChild(makeCalcCell("Ad Spend × ROAS — disclosure only"));
+  support.appendChild(makeCalcCell("Ad Spend × ROAS — informational only"));
   support.appendChild(makeCalcCell("Do not add to sales"));
-  support.appendChild(makeCalcCell(formatCurrency(Math.round(adSpend * roas))));
+  support.appendChild(makeCalcCell(formatMoney(adSpend * roas)));
   support.appendChild(makeCalcCell(formatMultiple(roas)));
   support.appendChild(makeCalcCell("Validation KPI"));
   tbody.appendChild(support);
@@ -1021,10 +1087,10 @@ function renderSheet2ExecSummary(year = "y2026") {
     const tr = el("tr");
     tr.appendChild(el("td", { class: "label-cell" }, row.engine));
     tr.appendChild(makeCalcCell(row.owner || "—"));
-    tr.appendChild(makeCalcCell(formatCurrency(Math.round(row.gross))));
+    tr.appendChild(makeCalcCell(formatMoney(row.gross)));
     tr.appendChild(makeCalcCell(totalSales ? formatPercent(row.gross / totalSales) : "—"));
     tr.appendChild(makeCalcCell(row.gm1 ? formatPercent(row.gm1) : "—"));
-    tr.appendChild(makeCalcCell(formatCurrency(Math.round(row.gp1))));
+    tr.appendChild(makeCalcCell(formatMoney(row.gp1)));
     tr.appendChild(makeCalcCell(totalGp1 ? formatPercent(row.gp1 / totalGp1) : "—"));
     tbody.appendChild(tr);
   });
@@ -1046,10 +1112,10 @@ function renderSheet2SupportingKpis(year = "y2026") {
   const carryover = val(retention ? retention.rows : [], "Incremental Revenue Carryover %", year) || "—";
   const purchaseFrequency = val(retention ? retention.rows : [], "Purchase Frequency", year) || "—";
   const cards = [
-    { label: "Paid Revenue Influenced", value: formatCurrency(Math.round(paidInfluenced)), note: `${paidShare} of Ecommerce Gross Sales · Disclosure KPI — included within Ecommerce` },
+    { label: "Paid Revenue Influenced", value: formatCurrency(Math.round(paidInfluenced)), note: `${paidShare} of Ecommerce Gross Sales · Informational KPI — included within Ecommerce` },
     { label: "ROAS", value: formatMultiple(roas), note: "Paid efficiency assumption" },
     { label: "Email Revenue %", value: emailRev, note: "Influence KPI, not added again" },
-    { label: "Purchase Frequency", value: purchaseFrequency, note: `Returning ${returning} · Carryover ${carryover}` },
+    { label: "Purchase Frequency", value: purchaseFrequency, note: `Returning Customers: ${returning} · Carryover: ${carryover}` },
   ];
   wrap.innerHTML = "";
   cards.forEach(k => wrap.appendChild(el("div", { class: "supporting-card" }, [
@@ -1083,7 +1149,7 @@ function renderSheet2MarginBridge(year = "y2026") {
     const tr = el("tr");
     const isTotal = ["Net Sales", "Gross Profit 1", "Gross Profit 2", "Gross Profit 3"].includes(stage);
     tr.appendChild(el("td", { class: "label-cell" + (isTotal ? " total-row-label" : "") }, stage));
-    years.forEach(y => tr.appendChild(makeCalcCell(formatCurrency(Math.round(fn(bridges[y]))))));
+    years.forEach(y => tr.appendChild(makeCalcCell(formatMoney(fn(bridges[y])))));
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
@@ -1504,7 +1570,7 @@ function applyActualsToState(corroBundle, cavaliBundle) {
         setCurrentInRows(acq.rows, "Incremental Ad Spend", "$0");
         setCurrentInRows(acq.rows, "ROAS", formatMultiple(corroAds.roas));
         setCurrentInRows(acq.rows, "Ad Spend % of Gross Sales", formatPercent(corroAds.cos));
-        setCurrentInRows(acq.rows, "CAC", formatCurrency(Math.round(corroAds.cac)));
+        setCurrentInRows(acq.rows, "CAC", formatMoney(corroAds.cac));
       } else {
         setCurrentInRows(acq.rows, "Base Ad Spend", "$20k / month");
         setCurrentInRows(acq.rows, "Incremental Ad Spend", "$0");
@@ -1525,7 +1591,7 @@ function applyActualsToState(corroBundle, cavaliBundle) {
     }
     if (ecommerce) {
       setCurrentInRows(ecommerce.rows, "Orders", Math.round(corro.orders).toLocaleString("en-US"));
-      setCurrentInRows(ecommerce.rows, "AOV", formatCurrency(Math.round(corro.aov)));
+      setCurrentInRows(ecommerce.rows, "AOV", formatMoney(corro.aov));
       setCurrentInRows(ecommerce.rows, "GM1 %", formatPercent(corro.gm1));
     }
     // Concierge and Wellington revenue comes from revenue_share. It is used in Tab 02
@@ -1537,8 +1603,8 @@ function applyActualsToState(corroBundle, cavaliBundle) {
     setCurrentInRows(cavaliEngine.rows, "GM1 %", formatPercent(cavali.gm1));
     setCurrentInRows(cavaliEngine.rows, "Organic Member Growth", formatPercent(cavali.organicGrowth));
     if (cavaliAds && cavaliAds.spend) {
-      setCurrentInRows(cavaliEngine.rows, "Cavali Ad Spend", formatCurrency(Math.round(cavaliAds.spend)));
-      setCurrentInRows(cavaliEngine.rows, "Cavali CAC", formatCurrency(Math.round(cavaliAds.cac)));
+      setCurrentInRows(cavaliEngine.rows, "Cavali Ad Spend", formatMoney(cavaliAds.spend));
+      setCurrentInRows(cavaliEngine.rows, "Cavali CAC", formatMoney(cavaliAds.cac));
     } else {
       setCurrentInRows(cavaliEngine.rows, "Cavali Ad Spend", "No ad_spend rows");
       setCurrentInRows(cavaliEngine.rows, "Cavali CAC", "Needs members/ad source");
@@ -1578,23 +1644,14 @@ async function refreshActualsFromSheets({ silent = false } = {}) {
 
 async function boot() {
   STATE = await DataService.load();
-  syncHeaderToTables();
-  renderHeader();
-  renderKpis();
-  renderFunding();
-  renderCommercial();
-  renderBusinessUnits();
-  renderPurchasing();
-  renderOperations();
-  renderSheet2Draft();
-  renderGrowth();
-  renderThesis();
+  renderAll();
   refreshActualsFromSheets({ silent: true });
   initTabs();
   document.getElementById("addGrowthRow").addEventListener("click", addGrowthRow);
   document.getElementById("saveData").addEventListener("click", saveNow);
   document.getElementById("refreshActuals").addEventListener("click", () => refreshActualsFromSheets());
   document.getElementById("downloadData").addEventListener("click", downloadState);
+  document.getElementById("publishScenario").addEventListener("click", publishScenario);
   document.getElementById("resetData").addEventListener("click", () => {
     if (confirm("Reset the model to its base values? Your local edits will be lost.")) {
       DataService.reset();

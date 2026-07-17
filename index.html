@@ -6,7 +6,7 @@
 <title>Equestrian Labs · Strategic Operating Model</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/styles.css?v=22" />
+<link rel="stylesheet" href="assets/css/styles.css?v=23" />
 </head>
 <body>
 
@@ -14,7 +14,7 @@
   <div class="header-inner">
     <div>
       <p class="brand-eyebrow">Equestrian Labs</p>
-      <h1 class="brand-title">Strategic Operating Model <span id="versionBadge" class="version-badge">v2.6</span></h1>
+      <h1 class="brand-title">Strategic Operating Model <span id="versionBadge" class="version-badge">v2.7</span></h1>
       <p class="brand-sub">2026 – 2029</p>
       <div class="legend" style="margin-top:10px;">
         <span class="legend-chip"><span class="legend-swatch" style="background:#FFF4CC"></span>Editable</span>
@@ -35,6 +35,7 @@
         <button class="action-btn primary" id="saveData">Save</button>
         <button class="action-btn" id="refreshActuals">Refresh Actuals</button>
         <button class="action-btn" id="downloadData">Download</button>
+        <button class="action-btn" id="publishScenario">Publish To…</button>
       </div>
     </div>
   </div>
@@ -63,7 +64,7 @@
 
     <section class="section" data-accent="commercial">
       <div class="section-header">Section 2 — Commercial Strategy</div>
-      <p class="section-note">Growth Engines — strategic inputs only. Current/Baseline is reserved for YTD averages from the dashboard where available. Financial outputs move to Sheet 2.</p>
+      <p class="section-note">Growth Engines — strategic inputs only. Baseline/Current values are automatically refreshed from actuals where available.</p>
       <div class="strategy-grid" id="commercialBlocks"></div>
     </section>
 
@@ -117,7 +118,7 @@
 
   <section class="tab-panel" id="tab-02">
     <div class="scenario-banner">GROWTH &amp; MARGIN ENGINE</div>
-    <p class="section-note" style="text-align:center; margin-top:8px;">What the Magic Page assumptions generate: sales, net sales and GP1 → GP3.</p>
+    <p class="section-note" style="text-align:center; margin-top:8px;">Financial outputs generated from the Magic Page assumptions.</p>
 
     <section class="section" data-accent="funding">
       <div class="section-header">Active Scenario</div>
@@ -180,7 +181,7 @@
   </section>
 </main>
 
-<script src="assets/js/dataService.js?v=22"></script>
-<script src="assets/js/app.js?v=22"></script>
+<script src="assets/js/dataService.js?v=23"></script>
+<script src="assets/js/app.js?v=23"></script>
 </body>
 </html>
