@@ -1,4 +1,4 @@
-# Strategic Operating Model v2.7
+# Strategic Operating Model v2.8
 
 Includes Page 1 Magic Page + Page 2 Growth & Margin Engine with Easy Numbers Test formula alignment.
 

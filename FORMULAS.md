@@ -1,4 +1,4 @@
-# Strategic Operating Model v2.7 Formula Map
+# Strategic Operating Model v2.8 Formula Map
 
 ## Ecommerce Revenue Build
 Annual Base Ecommerce Revenue = Base Ecommerce Monthly Run Rate × 12

@@ -154,7 +154,17 @@ function saveScenarioInputs(status) {
 }
 
 function renderAll() {
-  renderAll();
+  syncHeaderToTables();
+  renderHeader();
+  renderKpis();
+  renderFunding();
+  renderCommercial();
+  renderBusinessUnits();
+  renderPurchasing();
+  renderOperations();
+  renderSheet2Draft();
+  renderGrowth();
+  renderThesis();
 }
 
 function switchModelStatus(nextStatus) {
