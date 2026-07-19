@@ -3,7 +3,7 @@
     "modelStatus": "Board",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "2.7",
+    "version": "2.9",
     "lastUpdate": "2026-07-11",
     "organicGrowth": "10%",
     "doverCapture": "20%",
@@ -658,6 +658,14 @@
       "investment": "TBD"
     },
     {
+      "initiative": "HITS Marketing Subscription",
+      "owner": "Emma / Marketing",
+      "trigger": "Base",
+      "status": "Active",
+      "launch": "2026",
+      "investment": "$306"
+    },
+    {
       "initiative": "Cavali Paid Growth",
       "owner": "Angela / Marketing",
       "trigger": "\u2265$1M",
@@ -1019,6 +1027,14 @@
       "item": "Cavali CAC / new members",
       "status": "partially connected",
       "needed": "Cavali ad_spend tab plus Smartrr product volume / membership rows; if ad_spend is empty, keep manual input"
+    },
+    {
+      "item": "HITS Marketing Subscription",
+      "status": "Manual input",
+      "source": "Invoice / subscription receipt",
+      "needed": "Keep as Sales & Marketing OPEX reference; not CapEx; visible in Strategic Growth Initiatives, financial impact belongs in Tab 03 / Financial P&L.",
+      "lastRefresh": "manual",
+      "owner": "Emma / Marketing"
     }
   ],
   "ecommerceBuild": {

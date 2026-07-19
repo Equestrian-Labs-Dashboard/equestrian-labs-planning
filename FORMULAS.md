@@ -1,4 +1,4 @@
-# Strategic Operating Model v2.8 Formula Map
+# Strategic Operating Model v2.9 Formula Map
 
 ## Ecommerce Revenue Build
 Annual Base Ecommerce Revenue = Base Ecommerce Monthly Run Rate × 12
@@ -68,3 +68,13 @@ Total Portfolio GP1 = Financial Snapshot GP1
 % Total Sales = 100%
 
 % Total GP1 = 100%
+
+
+## HITS Marketing Subscription treatment
+
+- Amount: **$305.64**, displayed as **$306** in the Strategic Model for clean software-style formatting.
+- Classification decision: **OPEX / Sales & Marketing**, not CapEx.
+- Strategic Model treatment: visible in Section 6 — Growth Initiatives as **HITS Marketing Subscription**.
+- Financial treatment: should flow to Financial / Summary P&L OPEX mapping, not to Page 2 GP1–GP3 calculations.
+
+Formula impact on Pages 1–2: none. Pages 1–2 remain strategic assumptions and margin through GP3; fixed/operating expense items stay in Tab 03 / Financial P&L.

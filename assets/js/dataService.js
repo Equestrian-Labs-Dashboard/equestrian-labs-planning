@@ -8,16 +8,16 @@
  * sin tocar una sola línea de app.js.
  */
 const DataService = (() => {
-  const STORAGE_KEY = "som_assumptions_v24";
+  const STORAGE_KEY = "som_assumptions_v25";
   const LEGACY_KEYS = [
-    "som_assumptions_v22",
-    "som_assumptions_v21",
-    "som_assumptions_v20",
-    "som_assumptions_v19",
-    "som_assumptions_v18",
-    "som_assumptions_v17",
-    "som_assumptions_v16",
-    "som_assumptions_v15"
+    "som_assumptions_v25",
+    "som_assumptions_v25",
+    "som_assumptions_v25",
+    "som_assumptions_v25",
+    "som_assumptions_v25",
+    "som_assumptions_v25",
+    "som_assumptions_v25",
+    "som_assumptions_v25"
   ];
 
   async function load() {
