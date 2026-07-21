@@ -3,7 +3,7 @@
     "modelStatus": "Board",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "2.9",
+    "version": "3.2",
     "lastUpdate": "2026-07-11",
     "organicGrowth": "10%",
     "doverCapture": "20%",
@@ -679,7 +679,7 @@
       "trigger": "\u2265$1M",
       "status": "Active",
       "launch": "Oct-26",
-      "investment": "$50K"
+      "investment": "$50k"
     },
     {
       "initiative": "Private Label",
@@ -1039,6 +1039,10 @@
   ],
   "ecommerceBuild": {
     "normalizedMonthlyRunRate": "$70k",
-    "note": "Base Ecommerce Revenue = Normalized Monthly Ecommerce Run Rate \u00d7 12 months. Organic Growth applies only to Base Ecommerce Revenue in V1."
+    "note": "Base Ecommerce Revenue = Monthly Ecommerce Run Rate \u00d7 12 months. Organic Growth applies only to Base Ecommerce Revenue in V1."
+  },
+  "cashFlow": {
+    "openingCash": "$0",
+    "minimumCashBuffer": "$250k"
   }
 }

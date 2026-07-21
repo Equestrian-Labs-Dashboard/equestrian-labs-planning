@@ -6,7 +6,7 @@
 <title>Equestrian Labs · Strategic Operating Model</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/styles.css?v=25" />
+<link rel="stylesheet" href="assets/css/styles.css?v=28" />
 </head>
 <body>
 
@@ -14,7 +14,7 @@
   <div class="header-inner">
     <div>
       <p class="brand-eyebrow">Equestrian Labs</p>
-      <h1 class="brand-title">Strategic Operating Model <span id="versionBadge" class="version-badge">v2.9</span></h1>
+      <h1 class="brand-title">Strategic Operating Model <span id="versionBadge" class="version-badge">v3.2</span></h1>
       <p class="brand-sub">2026 – 2029</p>
       <div class="legend" style="margin-top:10px;">
         <span class="legend-chip"><span class="legend-swatch" style="background:#FFF4CC"></span>Editable</span>
@@ -43,10 +43,10 @@
   <nav class="tabbar" id="tabbar">
     <button class="tab-btn active" data-tab="tab-01">01 · Magic Page</button>
     <button class="tab-btn" data-tab="tab-02">02 · Growth &amp; Margin Engine</button>
-    <button class="tab-btn" data-tab="tab-03">03 · Summary P&amp;L + Cashflow</button>
-    <button class="tab-btn" data-tab="tab-04">04 · Funding Scenarios</button>
+    <button class="tab-btn" data-tab="tab-03">03 · Financial Summary</button>
+    <button class="tab-btn" data-tab="tab-04">04 · Commercial Cash Flow</button>
     <button class="tab-btn" data-tab="tab-05">05 · Board Dashboard</button>
-    <button class="tab-btn" data-tab="tab-06">06 · Operating Review</button>
+    <button class="tab-btn" data-tab="tab-06">06 · Formula QA</button>
   </nav>
 </header>
 
@@ -148,20 +148,42 @@
   </section>
 
   <section class="tab-panel" id="tab-03">
-    <div class="placeholder-card" data-accent="commercial">
-      <div class="placeholder-tag">03</div>
-      <h2>Summary P&amp;L + Cashflow</h2>
-      <p>Coming next — summary P&amp;L, cashflow and funding need.</p>
-      <p style="margin-top:12px; font-size:12px;">OPEX detail belongs in the separate Financial / Summary P&amp;L model. Pages 1–2 stay focused on strategic assumptions, revenue and margin through GP3.</p>
-    </div>
+    <div class="scenario-banner">FINANCIAL SUMMARY</div>
+    <p class="section-note" style="text-align:center; margin-top:8px;">Executive profitability view generated from the Strategic Model. No editable inputs.</p>
+    <section class="section" data-accent="commercial">
+      <div class="section-header">KPI Cards</div>
+      <div class="kpi-grid snapshot-grid" id="tab3KpiGrid"></div>
+    </section>
+    <section class="section" data-accent="margin">
+      <div class="section-header">Commercial P&amp;L</div>
+      <table class="grid" id="tab3PnlTable" style="margin-top:10px;"></table>
+    </section>
+    <section class="section" data-accent="bu">
+      <div class="section-header">Operating KPIs</div>
+      <div class="kpi-grid snapshot-grid" id="tab3OperatingKpis"></div>
+    </section>
   </section>
 
   <section class="tab-panel" id="tab-04">
-    <div class="placeholder-card" data-accent="bu">
-      <div class="placeholder-tag">04</div>
-      <h2>Funding Scenarios</h2>
-      <p>Coming next — side-by-side comparison across all funding scenarios.</p>
-    </div>
+    <div class="scenario-banner">COMMERCIAL CASH FLOW</div>
+    <p class="section-note" style="text-align:center; margin-top:8px;">Cash position and execution capacity generated from the model and funding plan. No editable inputs.</p>
+    <section class="section" data-accent="funding">
+      <div class="section-header">KPI Cards</div>
+      <div class="kpi-grid snapshot-grid" id="tab4CashKpis"></div>
+    </section>
+    <section class="section" data-accent="commercial">
+      <div class="section-header">Cash In</div>
+      <table class="grid" id="tab4CashInTable" style="margin-top:10px;"></table>
+    </section>
+    <section class="section" data-accent="margin">
+      <div class="section-header">Cash Out</div>
+      <table class="grid" id="tab4CashOutTable" style="margin-top:10px;"></table>
+    </section>
+    <section class="section" data-accent="growth">
+      <div class="section-header">Net Cash Flow</div>
+      <table class="grid" id="tab4NetCashTable" style="margin-top:10px;"></table>
+      <div class="waterfall" id="tab4Waterfall" style="margin-top:14px;"></div>
+    </section>
   </section>
 
   <section class="tab-panel" id="tab-05">
@@ -173,15 +195,19 @@
   </section>
 
   <section class="tab-panel" id="tab-06">
-    <div class="placeholder-card" data-accent="thesis">
-      <div class="placeholder-tag">06</div>
-      <h2>Operating Review</h2>
-      <p>Coming next — monthly operating review against plan.</p>
-    </div>
+    <section class="section" data-accent="thesis">
+      <div class="section-header">Formula QA — Easy Numbers Test</div>
+      <p class="section-note">Use this checklist before loading real actuals. It validates Page 1 and Page 2 formulas with simple numbers.</p>
+      <div class="qa-actions">
+        <button class="action-btn primary" id="loadEasyNumbers">Load Easy Test Values</button>
+        <button class="action-btn" id="restoreScenarioValues">Restore Scenario Values</button>
+      </div>
+      <div id="formulaQaBlocks" style="margin-top:14px;"></div>
+    </section>
   </section>
 </main>
 
-<script src="assets/js/dataService.js?v=25"></script>
-<script src="assets/js/app.js?v=25"></script>
+<script src="assets/js/dataService.js?v=28"></script>
+<script src="assets/js/app.js?v=28"></script>
 </body>
 </html>

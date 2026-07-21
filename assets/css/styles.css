@@ -366,3 +366,8 @@ td.total-row-label { font-weight: 800; color: var(--navy); }
 .owner-tag { font-size: 9px; padding: 2px 7px; opacity: 0.85; }
 .calc-cell, .gray-cell, .editable input { font-variant-numeric: tabular-nums; }
 .supporting-note { line-height: 1.35; }
+
+.qa-actions{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 12px;}
+.qa-card{margin:14px 0;padding:12px;background:#fff;border:1px solid #d8e4f0;border-radius:12px;box-shadow:0 3px 12px rgba(0,0,0,.04);}
+.qa-card h3{margin:0 0 10px;color:var(--navy);font-size:14px;}
+.qa-table td:nth-child(4){white-space:nowrap;color:#173F6B;font-weight:700;}

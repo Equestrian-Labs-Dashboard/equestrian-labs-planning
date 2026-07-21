@@ -1,4 +1,4 @@
-# Strategic Operating Model v2.9 Formula Map
+# Strategic Operating Model v3.1 Formula Map
 
 ## Ecommerce Revenue Build
 Annual Base Ecommerce Revenue = Base Ecommerce Monthly Run Rate × 12
@@ -78,3 +78,11 @@ Total Portfolio GP1 = Financial Snapshot GP1
 - Financial treatment: should flow to Financial / Summary P&L OPEX mapping, not to Page 2 GP1–GP3 calculations.
 
 Formula impact on Pages 1–2: none. Pages 1–2 remain strategic assumptions and margin through GP3; fixed/operating expense items stay in Tab 03 / Financial P&L.
+
+
+## V26 final notes
+- HITS subscription = Sales & Marketing OPEX reference, investment $305.64; display as $306 in Strategic Growth Initiatives. It is not CapEx and does not affect Page 2 GP1–GP3.
+- Tab 03 Financial Summary is read-only and extends Page 2 GP3 to EBITDA using Financial assumptions: Payroll $40k/month, G&A $45k/month, S&M 6.62% of Gross Sales, Technology $0.
+- Tab 04 Commercial Cash Flow is read-only and shows Opening Cash → Cash In → Funding → Cash Out → CapEx → Ending Cash.
+- Inventory Turns current remains a data-source validation item until SKU/Savy vs Shopify is reconciled.
+- Carryover formula follows the latest Easy Numbers Test note: Next-Year Base = Prior Base + Carryover % × (Organic Growth Revenue + Paid Growth Revenue + Net Dover Capture). Ensure carryover is not double-counted in later years.

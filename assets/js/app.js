@@ -163,6 +163,9 @@ function renderAll() {
   renderPurchasing();
   renderOperations();
   renderSheet2Draft();
+  renderFinancialSummary();
+  renderCommercialCashFlow();
+  renderFormulaQA();
   renderGrowth();
   renderThesis();
 }
@@ -259,7 +262,7 @@ function renderKpis() {
   const cards = [
     { label: "Funding", value: STATE.meta.fundingScenario, sub: "" },
     { label: "Funding Date", value: STATE.meta.fundingDate || row.date, sub: "" },
-    { label: "Base Ecommerce", value: STATE.meta.baseEcommerceMonthly || "$70k", sub: "Normalized Monthly Run Rate" },
+    { label: "Base Ecommerce", value: STATE.meta.baseEcommerceMonthly || "$70k", sub: "Monthly Run Rate" },
     { label: "Dover Capture", value: STATE.meta.doverCapture, sub: "" },
     { label: "ROAS", value: STATE.meta.roas, sub: "" },
   ];
@@ -1032,7 +1035,7 @@ function renderSheet2Scenario() {
   renderMiniCards("sheet2ScenarioGrid", [
     { label: "Funding", value: STATE.meta.fundingScenario, sub: "" },
     { label: "Funding Date", value: STATE.meta.fundingDate, sub: "" },
-    { label: "Base Ecommerce", value: STATE.meta.baseEcommerceMonthly || "$70k", sub: "Normalized Monthly Run Rate" },
+    { label: "Base Ecommerce", value: STATE.meta.baseEcommerceMonthly || "$70k", sub: "Monthly Run Rate" },
     { label: "Dover Capture", value: STATE.meta.doverCapture, sub: "" },
     { label: "ROAS", value: STATE.meta.roas, sub: "" },
   ]);
@@ -1190,6 +1193,133 @@ function renderSheet2Draft() {
   renderSheet2MarginBridge("y2026");
 }
 
+
+function renderFormulaQA() {
+  const root = document.getElementById("formulaQaBlocks");
+  if (!root) return;
+  root.innerHTML = "";
+  const sections = [
+    {title:"1. Core Ecommerce Revenue Build", rows:[
+      ["Annual Base Ecommerce Revenue", "$100/month × 12", "$1.2k"],
+      ["Organic Growth Revenue", "$1.2k base × 10%", "$120"],
+      ["Paid Growth Revenue", "$100 Total Ad Spend × 3.0x ROAS", "$300"],
+      ["Gross Dover Opportunity", "$1k market × 10% capture × 100% ramp", "$100"],
+      ["Net Dover Capture", "$100 gross Dover × (1 − 20% overlap)", "$80"],
+      ["Total Ecommerce Gross Sales", "$1.2k + $120 + $300 + $80", "$1.7k"]
+    ]},
+    {title:"2. Dover Capture & Paid Ads Overlap", rows:[
+      ["Gross Dover Opportunity", "$10k market × 20% capture × 50% ramp", "$1k"],
+      ["Net Dover Capture", "$1k × (1 − 30% overlap)", "$700"],
+      ["Ramp validation", "5% + 55% + 25% + 15%", "100%"]
+    ]},
+    {title:"3. Carryover & Next-Year Ecommerce Base", rows:[
+      ["Next-Year Base — 0% carryover", "Prior Base $1k + Organic $100 + 0% × (Paid $200 + Dover $300)", "$1.1k"],
+      ["Next-Year Base — 50% carryover", "Prior Base $1k + 50% × (Organic $100 + Paid $200 + Dover $300)", "$1.3k"],
+      ["Carryover scope check", "Organic $100 + Paid $200 + Dover $300", "$600 incremental pool"]
+    ]},
+    {title:"4. Funding, Ad Spend & ROAS", rows:[
+      ["Base Ad Spend", "$20k × 12 months", "$240k"],
+      ["Incremental Ad Spend", "$600 marketing allocation ÷ 6 covered months", "$100/month"],
+      ["Paid Growth Revenue", "$100 Total Ad Spend × 3.0x ROAS", "$300"],
+      ["Paid Revenue Influenced %", "$300 influenced ÷ $1.5k Ecommerce Gross Sales", "20%"]
+    ]},
+    {title:"5. 2029 Reinvestment Logic", rows:[
+      ["2029 Ad Spend", "Prior-year Gross Sales $1k × editable reinvestment 20%", "$200"],
+      ["2029 Paid Growth Revenue", "$200 Ad Spend × 3.0x ROAS", "$600"],
+      ["Direction check", "Change reinvestment from 20% to 10%", "Ad Spend falls from $200 to $100"]
+    ]},
+    {title:"6. Growth Engine Formula Tests", rows:[
+      ["Ecommerce Gross Sales", "Use Ecommerce Revenue Build total", "Must tie exactly to Ecommerce portfolio row"],
+      ["Concierge Gross Sales", "10 active clients × 2 orders/client × $100 AOV", "$2k"],
+      ["Wellington Gross Sales", "10 orders × $100 AOV", "$1k"],
+      ["Cavali Signature Revenue", "10 members × 2 boxes/year × $99", "$2.0k"],
+      ["Cavali Premium Revenue", "10 members × 2 boxes/year × $199", "$4.0k"],
+      ["Cavali Paid Growth Members", "$1k Cavali Ad Spend ÷ $100 CAC", "10 new members"]
+    ]},
+    {title:"7. Gross-to-Net & Margin Bridge", rows:[
+      ["Discounts & Returns", "$1.7k Gross Sales × 10%", "$170"],
+      ["Net Sales", "$1.7k − $170", "$1.5k"],
+      ["COGS", "$1.5k × (1 − 50% GM1)", "$765"],
+      ["GP1", "$1.5k − $765", "$765"],
+      ["Outbound Shipping", "$1.5k × 10%", "$153"],
+      ["Packaging", "$1.5k × 5%", "$77"],
+      ["Shipping Revenue", "$1.5k × 2%", "$31"],
+      ["GP2", "$765 − $153 − $77 + $31", "$566"],
+      ["GP3", "$566 − $100 Ad Spend", "$466"]
+    ]},
+    {title:"8. GP1 by Growth Engine", rows:[
+      ["Engine Net Sales", "$1k Gross × (1 − 10% Discounts & Returns)", "$900"],
+      ["Engine GP1", "$900 Net Sales × 50% GM1", "$450"]
+    ]},
+    {title:"9. Portfolio Reconciliation Checks", rows:[
+      ["Total Portfolio Gross Sales", "Sum all Growth Engine Gross Sales", "Must equal Financial Snapshot Gross Sales"],
+      ["Total Portfolio GP1", "Sum all Growth Engine GP1", "Must equal Financial Snapshot GP1"],
+      ["% Total Sales", "Sum all engine revenue shares", "100%"],
+      ["% Total GP1", "Sum all engine GP1 shares", "100%"],
+      ["Ecommerce tie-out", "Ecommerce Revenue Build total", "Must equal Ecommerce row in Portfolio"]
+    ]},
+    {title:"10. Scenario & Gate Checks", rows:[
+      ["Organic Growth defaults", "$0/$500k; $1M/$3M; $5M/$10M", "5%; 10%; 15%"],
+      ["Unallocated Capital", "$1k funding − $200 payables − $300 inventory − $100 marketing", "$400"],
+      ["Private Label gate", "Funding below required threshold", "Private Label remains inactive"],
+      ["Private Label launch timing", "Funding Date + 12 months", "Launch date exactly 12 months later"]
+    ]}
+  ];
+  sections.forEach(sec => {
+    const wrap = el("section", {class:"mini-card qa-card"});
+    wrap.appendChild(el("h3", {}, sec.title));
+    const table = el("table", {class:"grid qa-table"});
+    const thead = el("thead", {}, el("tr", {}, ["Test / Formula", "Simple Test Input", "Expected Result", "PASS / FAIL", "Notes"].map(h => el("th", {}, h))));
+    const tbody = el("tbody");
+    sec.rows.forEach(r => {
+      const tr = el("tr");
+      tr.appendChild(el("td", {class:"label-cell"}, r[0]));
+      tr.appendChild(el("td", {}, r[1]));
+      tr.appendChild(el("td", {class:"calc-cell"}, r[2]));
+      tr.appendChild(el("td", {}, "☐ PASS   ☐ FAIL"));
+      tr.appendChild(el("td", {}, ""));
+      tbody.appendChild(tr);
+    });
+    table.appendChild(thead); table.appendChild(tbody);
+    wrap.appendChild(table); root.appendChild(wrap);
+  });
+  const load = document.getElementById("loadEasyNumbers");
+  if (load) load.onclick = loadEasyNumberInputs;
+  const restore = document.getElementById("restoreScenarioValues");
+  if (restore) restore.onclick = () => { alert("Scenario values remain saved by Model Status. Use Save/Publish To… after reviewing QA results."); };
+}
+
+function loadEasyNumberInputs() {
+  if (!confirm("Load simple Easy Numbers Test inputs into Draft? Save your current scenario first if needed.")) return;
+  if (!STATE || !STATE.meta) return;
+  saveScenarioInputs(STATE.meta.modelStatus || "Draft");
+  STATE.meta.modelStatus = "Draft";
+  STATE.meta.baseEcommerceMonthly = "$100";
+  STATE.meta.fundingScenario = "Base";
+  STATE.meta.fundingDate = "Jul-26";
+  STATE.meta.doverCapture = "10%";
+  STATE.meta.roas = "3.0x";
+  const market = getBlock(STATE.commercial, "Market Growth");
+  if (market) {
+    const og = getRow(market.rows, "Organic Growth %"); if (og) yearKeys().forEach(y => og[y] = "10%");
+    const opp = getRow(market.rows, "Dover Market Opportunity (Gross)"); if (opp) { opp.current = "$1k"; yearKeys().forEach(y => opp[y] = "$1k"); }
+    const cap = getRow(market.rows, "Dover Target Capture %"); if (cap) yearKeys().forEach(y => cap[y] = "10%");
+    const over = getRow(market.rows, "Paid Ads Overlap %"); if (over) yearKeys().forEach(y => over[y] = "20%");
+    market.doverRamp = { y2026:"100%", y2027:"0%", y2028:"0%", y2029:"0%" };
+  }
+  const ret = getBlock(STATE.commercial, "Retention");
+  if (ret) {
+    const c = getRow(ret.rows, "Incremental Revenue Carryover %"); if (c) { c.y2026="0%"; c.y2027="50%"; c.y2028="50%"; c.y2029="—"; }
+  }
+  const acq = getBlock(STATE.commercial, "Acquisition");
+  if (acq) {
+    const target = getRow(acq.rows, "Target Ad Spend % of Ecommerce Gross Sales"); if (target) { target.y2026="—"; target.y2027="—"; target.y2028="—"; target.y2029="20%"; }
+    const total = getRow(acq.rows, "Total Ad Spend"); if (total) { total.y2026="$100"; total.y2027="$100"; total.y2028="$100"; total.y2029="$200"; }
+  }
+  renderAll();
+  saveNow();
+}
+
 function parseTriggerAmount(trigger) {
   const t = String(trigger || "").toLowerCase();
   if (t.includes("base")) return 0;
@@ -1240,6 +1370,196 @@ function renderThesis() {
     el("div", { class: "thesis-value" }, t.value || "—"),
     el("div", { class: "thesis-target" }, t.sub || t.target || ""),
   ])));
+}
+
+
+
+/* ---------------- Tab 03 Financial Summary + Tab 04 Commercial Cash Flow ---------------- */
+function pnlOpexForYear(yearKey, bridge) {
+  const months = yearKey === "y2026" ? 12 : 12;
+  const payroll = 40000 * months;
+  const ga = 45000 * months;
+  const sm = (bridge.grossSales || 0) * 0.0662;
+  const tech = 0;
+  return { payroll, ga, sm, tech, total: payroll + ga + sm + tech };
+}
+
+function ordersForYear(yearKey) {
+  const ecommerce = getBlock(STATE.growthEngines, "Ecommerce");
+  return parseNumber(val(ecommerce ? ecommerce.rows : [], "Orders", yearKey));
+}
+
+function newCustomersForYear(yearKey) {
+  const acq = getBlock(STATE.commercial, "Acquisition");
+  const mix = parsePercent(val(acq ? acq.rows : [], "New Customer Mix %", yearKey));
+  return ordersForYear(yearKey) * (mix || 0);
+}
+
+function renderFinancialSummary() {
+  const kpiWrap = document.getElementById("tab3KpiGrid");
+  const table = document.getElementById("tab3PnlTable");
+  const opsWrap = document.getElementById("tab3OperatingKpis");
+  if (!kpiWrap || !table || !opsWrap) return;
+  const years = yearKeys();
+  const bridges = Object.fromEntries(years.map(y => [y, marginBridge(y)]));
+  const b = bridges.y2026;
+  const o = pnlOpexForYear("y2026", b);
+  const ebitda = b.gp3 - o.total;
+  kpiWrap.innerHTML = "";
+  [
+    { label: "Gross Sales", value: formatMoney(b.grossSales), sub: "2026" },
+    { label: "Net Sales", value: formatMoney(b.netSales), sub: "After Discounts & Returns" },
+    { label: "GP1", value: formatMoney(b.gp1), sub: `${formatPercent(b.netSales ? b.gp1 / b.netSales : 0)} of Net Sales` },
+    { label: "GP2", value: formatMoney(b.gp2), sub: `${formatPercent(b.netSales ? b.gp2 / b.netSales : 0)} of Net Sales` },
+    { label: "GP3", value: formatMoney(b.gp3), sub: `${formatPercent(b.netSales ? b.gp3 / b.netSales : 0)} of Net Sales` },
+    { label: "EBITDA", value: formatMoney(ebitda), sub: `${formatPercent(b.netSales ? ebitda / b.netSales : 0)} of Net Sales` }
+  ].forEach(card => kpiWrap.appendChild(el("div", { class: "kpi-card" }, [
+    el("div", { class: "kpi-label" }, card.label), el("div", { class: "kpi-value" }, card.value), el("div", { class: "kpi-sub" }, card.sub)
+  ])));
+
+  table.innerHTML = `<thead><tr><th>Commercial P&L</th>${years.map(y => `<th>${yearLabel(y)}</th>`).join("")}</tr></thead>`;
+  const tbody = el("tbody");
+  const rows = [
+    ["Gross Sales", y => bridges[y].grossSales],
+    ["Discounts & Returns", y => -bridges[y].discountsReturns],
+    ["Net Sales", y => bridges[y].netSales, true],
+    ["COGS", y => -(bridges[y].netSales - bridges[y].gp1)],
+    ["GP1", y => bridges[y].gp1, true],
+    ["Outbound Shipping", y => -bridges[y].outboundShipping],
+    ["Packaging", y => -bridges[y].packaging],
+    ["Shipping Revenue", y => bridges[y].shippingRevenue],
+    ["GP2", y => bridges[y].gp2, true],
+    ["Advertising", y => -bridges[y].adSpend],
+    ["GP3", y => bridges[y].gp3, true],
+    ["Sales & Marketing (S&M)", y => -pnlOpexForYear(y, bridges[y]).sm],
+    ["General & Administrative (G&A)", y => -(pnlOpexForYear(y, bridges[y]).payroll + pnlOpexForYear(y, bridges[y]).ga)],
+    ["Technology", y => -pnlOpexForYear(y, bridges[y]).tech],
+    ["EBITDA", y => bridges[y].gp3 - pnlOpexForYear(y, bridges[y]).total, true],
+    ["EBITDA %", y => { const e = bridges[y].gp3 - pnlOpexForYear(y, bridges[y]).total; return bridges[y].netSales ? e / bridges[y].netSales : 0; }, true, "pct"]
+  ];
+  rows.forEach(([label, fn, bold, type]) => {
+    const tr = el("tr");
+    tr.appendChild(el("td", { class: "label-cell" + (bold ? " total-row-label" : "") }, label));
+    years.forEach(y => tr.appendChild(makeCalcCell(type === "pct" ? formatPercent(fn(y)) : formatMoney(fn(y)))));
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+
+  opsWrap.innerHTML = "";
+  const paid = ecommerceBuild("y2026").paid;
+  [
+    { label: "Orders", value: Math.round(ordersForYear("y2026") || 0).toLocaleString("en-US"), sub: "Ecommerce" },
+    { label: "New Customers", value: Math.round(newCustomersForYear("y2026") || 0).toLocaleString("en-US"), sub: "Unique new customers" },
+    { label: "ROAS", value: `${roasForYear("y2026").toFixed(1)}x`, sub: "Scenario assumption" },
+    { label: "Ad Spend", value: formatMoney(totalAdSpendByYear("y2026")), sub: "Advertising" },
+    { label: "Net / Gross Ratio", value: formatPercent(b.grossSales ? b.netSales / b.grossSales : 0), sub: "Net Sales / Gross Sales" },
+    { label: "Paid Revenue", value: formatMoney(paid), sub: "Informational KPI" }
+  ].forEach(card => opsWrap.appendChild(el("div", { class: "kpi-card" }, [
+    el("div", { class: "kpi-label" }, card.label), el("div", { class: "kpi-value" }, card.value), el("div", { class: "kpi-sub" }, card.sub)
+  ])));
+}
+
+function cashFlowRows(yearKey) {
+  const outputs = engineOutputs(yearKey);
+  const fundingRow = selectedFundingRow();
+  const fundingDate = String(fundingRow.date || STATE.meta.fundingDate || "");
+  const fundingYear = fundingDate.includes("27") ? "y2027" : "y2026";
+  const funding = yearKey === fundingYear ? fundingAmountSelected() : 0;
+  const cashIn = {
+    "Corro Ecommerce": (outputs.find(x => x.engine === "Ecommerce") || {}).gross || 0,
+    "Concierge": (outputs.find(x => x.engine === "Concierge") || {}).gross || 0,
+    "Wellington": (outputs.find(x => x.engine === "Wellington") || {}).gross || 0,
+    "Cavali": (outputs.find(x => x.engine === "Cavali") || {}).gross || 0,
+    "Private Label": (outputs.find(x => x.engine === "Private Label") || {}).gross || 0,
+    "Funding Injection": funding,
+    "Other Cash In": 0
+  };
+  const b = marginBridge(yearKey);
+  const o = pnlOpexForYear(yearKey, b);
+  const cashOut = {
+    "Inventory": yearKey === fundingYear ? parseMoney(fundingRow.inventory) : 0,
+    "Marketing": b.adSpend,
+    "Payroll / OPEX": o.payroll,
+    "Technology": o.tech,
+    "Shipping & Fulfillment": b.outboundShipping + b.packaging,
+    "General & Administrative": o.ga,
+    "CapEx": 0,
+    "Private Label Investment": yearKey === fundingYear ? parseMoney(fundingRow.privateLabel) : 0,
+    "Other Cash Out": 0
+  };
+  return { cashIn, cashOut };
+}
+
+function renderCashTable(id, title, rowsByYear, sign = 1) {
+  const table = document.getElementById(id);
+  if (!table) return;
+  const years = yearKeys();
+  table.innerHTML = `<thead><tr><th>${title}</th>${years.map(y => `<th>${yearLabel(y)}</th>`).join("")}</tr></thead>`;
+  const tbody = el("tbody");
+  const rowNames = Object.keys(rowsByYear.y2026 || {});
+  rowNames.forEach(name => {
+    const tr = el("tr");
+    tr.appendChild(el("td", { class: "label-cell" }, name));
+    years.forEach(y => tr.appendChild(makeCalcCell(formatMoney((rowsByYear[y][name] || 0) * sign))));
+    tbody.appendChild(tr);
+  });
+  const total = el("tr");
+  total.appendChild(el("td", { class: "label-cell total-row-label" }, title.startsWith("Cash In") ? "TOTAL CASH IN" : "TOTAL CASH OUT"));
+  years.forEach(y => total.appendChild(makeCalcCell(formatMoney(Object.values(rowsByYear[y]).reduce((s, v) => s + Number(v || 0), 0) * sign))));
+  tbody.appendChild(total);
+  table.appendChild(tbody);
+}
+
+function renderCommercialCashFlow() {
+  const kpis = document.getElementById("tab4CashKpis");
+  const netTable = document.getElementById("tab4NetCashTable");
+  const waterfall = document.getElementById("tab4Waterfall");
+  if (!kpis || !netTable || !waterfall) return;
+  const years = yearKeys();
+  const flow = Object.fromEntries(years.map(y => [y, cashFlowRows(y)]));
+  const cashInRows = Object.fromEntries(years.map(y => [y, flow[y].cashIn]));
+  const cashOutRows = Object.fromEntries(years.map(y => [y, flow[y].cashOut]));
+  renderCashTable("tab4CashInTable", "Cash In", cashInRows, 1);
+  renderCashTable("tab4CashOutTable", "Cash Out", cashOutRows, -1);
+  const opening = parseMoney((STATE.cashFlow && STATE.cashFlow.openingCash) || "$0");
+  let running = opening;
+  const totals = {};
+  years.forEach(y => {
+    const cashIn = Object.values(cashInRows[y]).reduce((s, v) => s + Number(v || 0), 0);
+    const cashOut = Object.values(cashOutRows[y]).reduce((s, v) => s + Number(v || 0), 0);
+    const net = cashIn - cashOut;
+    running += net;
+    totals[y] = { cashIn, cashOut, net, ending: running };
+  });
+  kpis.innerHTML = "";
+  [
+    { label: "Opening Cash", value: formatMoney(opening), sub: "Scenario input" },
+    { label: "Ending Cash", value: formatMoney(totals.y2026.ending), sub: "2026" },
+    { label: "Net Cash Flow", value: formatMoney(totals.y2026.net), sub: "2026" },
+    { label: "Runway", value: totals.y2026.cashOut ? `${Math.max(0, (totals.y2026.ending / (totals.y2026.cashOut / 12))).toFixed(1)} mo` : "—", sub: "Ending cash / monthly outflow" },
+    { label: "Minimum Cash Buffer", value: formatMoney((STATE.cashFlow && STATE.cashFlow.minimumCashBuffer) || 0), sub: "Reference" }
+  ].forEach(card => kpis.appendChild(el("div", { class: "kpi-card" }, [
+    el("div", { class: "kpi-label" }, card.label), el("div", { class: "kpi-value" }, card.value), el("div", { class: "kpi-sub" }, card.sub)
+  ])));
+  netTable.innerHTML = `<thead><tr><th>Net Cash Flow</th>${years.map(y => `<th>${yearLabel(y)}</th>`).join("")}</tr></thead>`;
+  const tbody = el("tbody");
+  [
+    ["TOTAL CASH IN", y => totals[y].cashIn],
+    ["TOTAL CASH OUT", y => -totals[y].cashOut],
+    ["NET CASH FLOW", y => totals[y].net],
+    ["ENDING CASH", y => totals[y].ending]
+  ].forEach(([label, fn]) => {
+    const tr = el("tr");
+    tr.appendChild(el("td", { class: "label-cell total-row-label" }, label));
+    years.forEach(y => tr.appendChild(makeCalcCell(formatMoney(fn(y)))));
+    tbody.appendChild(tr);
+  });
+  netTable.appendChild(tbody);
+  const y = totals.y2026;
+  waterfall.innerHTML = "";
+  [
+    ["Opening Cash", opening], ["Cash In", y.cashIn], ["Funding", flow.y2026.cashIn["Funding Injection"] || 0], ["Cash Out", -y.cashOut], ["CapEx", -(flow.y2026.cashOut["CapEx"] || 0)], ["Ending Cash", y.ending]
+  ].forEach(([label, value]) => waterfall.appendChild(el("div", { class: "waterfall-item" }, [el("span", {}, label), el("strong", {}, formatMoney(value))])));
 }
 
 function initTabs() {
