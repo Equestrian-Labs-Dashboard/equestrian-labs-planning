@@ -1376,7 +1376,7 @@ function renderFormulaQA() {
   });
   const sourceCard = el("div", { class: "source-status-card" }, [
     el("h3", {}, "Data Source Status"),
-    el("p", {}, "Actuals currently refresh from Google Sheets/dashboard exports. Direct Shopify API remains a backend/pipeline task; do not expose Shopify tokens in GitHub Pages. Needed for full automation: ecommerce-only orders, AOV, Gross Sales, Net Sales, GM1, customer mix, plus SKU/Savy inventory turns and QuickBooks/ShipStation operating costs.")
+    el("p", {}, "Actuals currently refresh from Google Sheets/dashboard exports. Shopify repository secrets can power the next backend step, but GitHub Pages still cannot read those secrets directly in the browser. To complete automation, add a GitHub Action/API proxy that writes refreshed Shopify actuals for Corro and Cavali into a safe JSON/Sheets layer. Still needed for full automation: ecommerce-only orders, AOV, Gross Sales, Net Sales, GM1, customer mix, plus SKU/Savy inventory turns and QuickBooks/ShipStation operating costs.")
   ]);
   root.appendChild(sourceCard);
 
@@ -1671,18 +1671,18 @@ function renderCommercialCashFlow() {
     capex: "▤"
   };
   kpis.innerHTML = "";
-  const card = el("div", { class: "cash-ui-card" }, [
+  const card = el("div", { class: "cash-ui-card compact" }, [
     el("div", { class: "cash-ui-head" }, [
       el("div", { class: "cash-title-wrap" }, [
         el("div", { class: "cash-accent" }),
         el("div", {}, [
           el("h3", { class: "cash-title" }, "Cash Summary"),
-          el("p", { class: "cash-subtitle" }, "Commercial Cash Flow")
+          el("p", { class: "cash-subtitle" }, "Commercial Cash Flow · 2026 executive view")
         ])
       ]),
       el("div", { class: "cash-updated" }, `Updated ${lastUpdated}`)
     ]),
-    el("div", { class: "cash-ui-body" }, [
+    el("div", { class: "cash-ui-body compact-grid" }, [
       el("div", { class: "cash-lines" }, cashRows.map(row => {
         const display = formatFinancialMoney(row.value, { dashZero: true });
         return el("div", { class: `cash-line ${row.tone}` }, [
@@ -1691,14 +1691,24 @@ function renderCommercialCashFlow() {
           el("div", { class: moneyClass(display, "cash-line-value") }, display)
         ]);
       })),
-      el("div", { class: "cash-hero" }, [
-        el("div", { class: "cash-hero-icon" }, "↗"),
-        el("div", { class: "cash-hero-label" }, "Ending Cash"),
-        el("div", { class: moneyClass(formatFinancialMoney(totals.y2026.ending, {dashZero:true}), "cash-hero-value") }, formatFinancialMoney(totals.y2026.ending, {dashZero:true})),
+      el("div", { class: "cash-hero compact" }, [
+        el("div", { class: "cash-hero-top" }, [
+          el("div", { class: "cash-hero-icon" }, "↗"),
+          el("div", {}, [
+            el("div", { class: "cash-hero-label" }, "Ending Cash"),
+            el("div", { class: moneyClass(formatFinancialMoney(totals.y2026.ending, {dashZero:true}), "cash-hero-value") }, formatFinancialMoney(totals.y2026.ending, {dashZero:true}))
+          ])
+        ]),
         el("div", { class: "cash-hero-divider" }),
         el("div", { class: "cash-hero-meta" }, [
           el("span", { class: endingDelta < 0 ? "negative-value" : "positive-value" }, `vs Opening ${formatFinancialMoney(endingDelta, {dashZero:true})}`),
           el("span", { class: "cash-hero-pct" }, opening ? `(${formatPercent(endingDeltaPct)})` : "")
+        ]),
+        el("div", { class: "cash-mini-grid" }, [
+          el("div", { class: "cash-mini-pill" }, [el("span", {}, "Cash In"), el("strong", {}, formatFinancialMoney(totals.y2026.cashIn, {dashZero:true}))]),
+          el("div", { class: "cash-mini-pill negative" }, [el("span", {}, "Cash Out"), el("strong", {}, formatFinancialMoney(-totals.y2026.cashOut, {dashZero:true}))]),
+          el("div", { class: "cash-mini-pill" }, [el("span", {}, "Funding"), el("strong", {}, formatFinancialMoney(flow.y2026.cashIn["Funding"] || 0, {dashZero:true}))]),
+          el("div", { class: "cash-mini-pill" }, [el("span", {}, "Coverage"), el("strong", {}, cashCoverage)])
         ]),
         el("div", { class: "cash-pattern" })
       ])
@@ -1727,10 +1737,29 @@ function renderCommercialCashFlow() {
   });
   netTable.appendChild(tbody);
   const y = totals.y2026;
+  waterfall.className = "cash-bridge";
   waterfall.innerHTML = "";
+  const bridgeHead = el("div", { class: "cash-bridge-head" }, [
+    el("div", { class: "cash-bridge-title" }, "2026 Cash Bridge"),
+    el("div", { class: "cash-bridge-subtitle" }, "Compact reconciliation")
+  ]);
+  const bridgeGrid = el("div", { class: "cash-bridge-grid" });
   [
-    ["Opening Cash", opening], ["Cash In", y.cashIn], ["Funding", flow.y2026.cashIn["Funding"] || 0], ["Cash Out", -y.cashOut], ["CapEx", -(flow.y2026.cashOut["CapEx"] || 0)], ["Ending Cash", y.ending]
-  ].forEach(([label, value]) => waterfall.appendChild(el("div", { class: "waterfall-item" }, [el("span", {}, label), el("strong", {}, formatFinancialMoney(value, {dashZero:true}))])));
+    ["Opening", opening, "neutral"],
+    ["Cash In", y.cashIn, "positive"],
+    ["Funding", flow.y2026.cashIn["Funding"] || 0, "positive"],
+    ["Cash Out", -y.cashOut, "negative"],
+    ["CapEx", -(flow.y2026.cashOut["CapEx"] || 0), (flow.y2026.cashOut["CapEx"] || 0) ? "negative" : "zero"],
+    ["Ending", y.ending, y.ending < 0 ? "negative" : "positive"]
+  ].forEach(([label, value, tone]) => {
+    const chip = el("div", { class: `cash-bridge-chip ${tone}` }, [
+      el("span", { class: "cash-bridge-chip-label" }, label),
+      el("strong", { class: moneyClass(formatFinancialMoney(value, {dashZero:true}), "cash-bridge-chip-value") }, formatFinancialMoney(value, {dashZero:true}))
+    ]);
+    bridgeGrid.appendChild(chip);
+  });
+  waterfall.appendChild(bridgeHead);
+  waterfall.appendChild(bridgeGrid);
 }
 
 function initTabs() {
