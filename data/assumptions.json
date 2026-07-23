@@ -1,9 +1,9 @@
 {
   "meta": {
-    "modelStatus": "Board",
+    "modelStatus": "Draft",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "3.4",
+    "version": "3.6",
     "lastUpdate": "2026-07-11",
     "organicGrowth": "10%",
     "doverCapture": "20%",
@@ -151,13 +151,23 @@
           "y2026": "Calculated",
           "y2027": "Calculated",
           "y2028": "Calculated",
-          "y2029": "$240,000",
+          "y2029": "Calculated",
           "calculated": [
             "y2026",
             "y2027",
-            "y2028"
+            "y2028",
+            "y2029"
           ],
-          "note": "2026\u20132028 calculated from Target Ad Spend % of Ecommerce Gross Sales. 2029 is editable management reinvestment."
+          "note": "2026\u20132028 calculated from Target Ad Spend % of Ecommerce Gross Sales. 2029 default uses prior-year Ecommerce Gross Sales \u00d7 Reinvestment %. "
+        },
+        {
+          "driver": "2029 Reinvestment %",
+          "current": "Management input",
+          "y2026": "\u2014",
+          "y2027": "\u2014",
+          "y2028": "\u2014",
+          "y2029": "20%",
+          "note": "Default Logic (2029 onwards): Prior Year Ecommerce Gross Sales \u00d7 Reinvestment %."
         },
         {
           "driver": "ROAS",
@@ -173,7 +183,7 @@
           "y2026": "20%",
           "y2027": "20%",
           "y2028": "20%",
-          "y2029": "Calculated",
+          "y2029": "\u2014",
           "calculated": [
             "y2029"
           ],
@@ -223,8 +233,8 @@
       "rows": [
         {
           "driver": "Returning Customers %",
-          "current": "YTD avg pending",
-          "y2026": "45%",
+          "current": "46.6%",
+          "y2026": "47%",
           "y2027": "48%",
           "y2028": "52%",
           "y2029": "55%"
@@ -236,27 +246,28 @@
           "y2027": "50%",
           "y2028": "50%",
           "y2029": "\u2014",
-          "note": "% of prior-year Incremental Paid Growth + Net Dover Capture that becomes next-year base revenue"
+          "note": "Carryover applies only once when calculating the following year\u2019s Base Ecommerce Revenue. Applies to Organic Growth + Paid Growth Revenue + Net Dover Capture."
         },
         {
           "driver": "Purchase Frequency",
-          "current": "YTD avg pending",
-          "y2026": "2.8",
-          "y2027": "3.0",
-          "y2028": "3.2",
-          "y2029": "3.4"
+          "current": "1.01",
+          "y2026": "1.2",
+          "y2027": "1.5",
+          "y2028": "1.8",
+          "y2029": "2.0",
+          "note": "Must use same ecommerce population as AOV and GM1."
         },
         {
           "driver": "Email Revenue %",
           "current": "10.5%",
-          "y2026": "10%",
-          "y2027": "12%",
-          "y2028": "13%",
-          "y2029": "14%"
+          "y2026": "11%",
+          "y2027": "13%",
+          "y2028": "15%",
+          "y2029": "18%"
         },
         {
           "driver": "Annual GP per Customer",
-          "current": "Calculated pending",
+          "current": "$66",
           "y2026": "Calculated",
           "y2027": "Calculated",
           "y2028": "Calculated",
@@ -266,7 +277,8 @@
             "y2027",
             "y2028",
             "y2029"
-          ]
+          ],
+          "note": "AOV \u00d7 Purchase Frequency \u00d7 GM1%, all from the same business population."
         }
       ]
     },
@@ -325,27 +337,30 @@
       "rows": [
         {
           "driver": "Orders",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "Actuals pending",
+          "y2026": "Forecast from Shopify/Stacks",
+          "y2027": "Calculated / manual",
+          "y2028": "Calculated / manual",
+          "y2029": "Calculated / manual",
+          "note": "Baseline/current should feed from Shopify/Stacks ecommerce-only orders, excluding HITS, Wellington and Concierge."
         },
         {
           "driver": "AOV",
-          "current": "",
-          "y2026": "$",
-          "y2027": "$",
-          "y2028": "$",
-          "y2029": "$"
+          "current": "Actuals pending",
+          "y2026": "Forecast from Shopify",
+          "y2027": "Manual forecast",
+          "y2028": "Manual forecast",
+          "y2029": "Manual forecast",
+          "note": "Use ecommerce-only AOV."
         },
         {
           "driver": "GM1 %",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "Actuals pending",
+          "y2026": "30.5%",
+          "y2027": "30.5%",
+          "y2028": "30.5%",
+          "y2029": "30.5%",
+          "note": "GM1 must be defined on Net Sales."
         }
       ]
     },
@@ -354,35 +369,35 @@
       "rows": [
         {
           "driver": "Active Clients",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "Actuals pending",
+          "y2026": "10",
+          "y2027": "12",
+          "y2028": "15",
+          "y2029": "18"
         },
         {
           "driver": "Orders per Client",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "Actuals pending",
+          "y2026": "1.2",
+          "y2027": "1.5",
+          "y2028": "1.8",
+          "y2029": "2.0"
         },
         {
           "driver": "AOV",
-          "current": "",
-          "y2026": "$",
-          "y2027": "$",
-          "y2028": "$",
-          "y2029": "$"
+          "current": "Actuals pending",
+          "y2026": "$100",
+          "y2027": "$110",
+          "y2028": "$120",
+          "y2029": "$130"
         },
         {
           "driver": "GM1 %",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "Actuals pending",
+          "y2026": "30.5%",
+          "y2027": "30.5%",
+          "y2028": "30.5%",
+          "y2029": "30.5%"
         }
       ]
     },
@@ -392,19 +407,20 @@
       "rows": [
         {
           "driver": "Signature Active Members",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "84",
+          "y2026": "100",
+          "y2027": "200",
+          "y2028": "300",
+          "y2029": "400",
+          "note": "Current to be validated from Smartrr API."
         },
         {
           "driver": "Signature Boxes per Year",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "1.9",
+          "y2026": "2",
+          "y2027": "2",
+          "y2028": "2",
+          "y2029": "2"
         },
         {
           "driver": "Signature Price",
@@ -416,19 +432,19 @@
         },
         {
           "driver": "Premium Active Members",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "\u2014",
+          "y2026": "10",
+          "y2027": "20",
+          "y2028": "30",
+          "y2029": "40"
         },
         {
           "driver": "Premium Boxes per Year",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "\u2014",
+          "y2026": "2",
+          "y2027": "2",
+          "y2028": "2",
+          "y2029": "2"
         },
         {
           "driver": "Premium Price",
@@ -440,35 +456,35 @@
         },
         {
           "driver": "GM1 %",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "Actuals pending",
+          "y2026": "60%",
+          "y2027": "60%",
+          "y2028": "60%",
+          "y2029": "60%"
         },
         {
           "driver": "Organic Member Growth",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "Actuals pending",
+          "y2026": "10%",
+          "y2027": "10%",
+          "y2028": "10%",
+          "y2029": "10%"
         },
         {
           "driver": "Cavali Ad Spend",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "Actuals pending",
+          "y2026": "$0",
+          "y2027": "$0",
+          "y2028": "$0",
+          "y2029": "$0"
         },
         {
           "driver": "Cavali CAC",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "Actuals pending",
+          "y2026": "$100",
+          "y2027": "$100",
+          "y2028": "$100",
+          "y2029": "$100"
         }
       ]
     },
@@ -477,27 +493,27 @@
       "rows": [
         {
           "driver": "Orders",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "Actuals pending",
+          "y2026": "10",
+          "y2027": "12",
+          "y2028": "14",
+          "y2029": "16"
         },
         {
           "driver": "AOV",
-          "current": "",
-          "y2026": "$",
-          "y2027": "$",
-          "y2028": "$",
-          "y2029": "$"
+          "current": "Actuals pending",
+          "y2026": "$100",
+          "y2027": "$110",
+          "y2028": "$120",
+          "y2029": "$130"
         },
         {
           "driver": "GM1 %",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "Actuals pending",
+          "y2026": "30.5%",
+          "y2027": "30.5%",
+          "y2028": "30.5%",
+          "y2029": "30.5%"
         }
       ]
     },
@@ -507,27 +523,27 @@
       "rows": [
         {
           "driver": "Orders",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "\u2014",
+          "y2026": "10",
+          "y2027": "10",
+          "y2028": "10",
+          "y2029": "10"
         },
         {
           "driver": "AOV",
-          "current": "",
-          "y2026": "$",
-          "y2027": "$",
-          "y2028": "$",
-          "y2029": "$"
+          "current": "\u2014",
+          "y2026": "$0",
+          "y2027": "$15",
+          "y2028": "$20",
+          "y2029": "$25"
         },
         {
           "driver": "GM1 %",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "\u2014",
+          "y2026": "60%",
+          "y2027": "60%",
+          "y2028": "60%",
+          "y2029": "60%"
         }
       ]
     },
@@ -537,27 +553,28 @@
       "rows": [
         {
           "driver": "Units Sold",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "\u2014",
+          "y2026": "0",
+          "y2027": "100",
+          "y2028": "1,000",
+          "y2029": "1,000",
+          "note": "Launch timing gate; 2026 zero, 2027 limited initial quarter."
         },
         {
           "driver": "Average Selling Price",
-          "current": "",
-          "y2026": "$",
-          "y2027": "$",
-          "y2028": "$",
-          "y2029": "$"
+          "current": "\u2014",
+          "y2026": "$0",
+          "y2027": "$10",
+          "y2028": "$10",
+          "y2029": "$10"
         },
         {
           "driver": "GM1 %",
-          "current": "",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "\u2014",
+          "y2026": "70%",
+          "y2027": "70%",
+          "y2028": "70%",
+          "y2029": "70%"
         }
       ]
     }
@@ -566,31 +583,31 @@
     "commercialTerms": [
       {
         "driver": "Markup %",
-        "current": "",
-        "y2026": "",
-        "y2027": "",
-        "y2028": "",
-        "y2029": ""
+        "current": "Actuals pending",
+        "y2026": "10%",
+        "y2027": "10%",
+        "y2028": "10%",
+        "y2029": "10%"
       },
       {
         "driver": "Booking Amount",
-        "current": "",
-        "y2026": "",
-        "y2027": "",
-        "y2028": "",
-        "y2029": ""
+        "current": "Actuals pending",
+        "y2026": "$10k",
+        "y2027": "$10k",
+        "y2028": "$20k",
+        "y2029": "$20k"
       },
       {
         "driver": "Booking Discount %",
-        "current": "",
-        "y2026": "",
-        "y2027": "",
-        "y2028": "",
-        "y2029": ""
+        "current": "Actuals pending",
+        "y2026": "10%",
+        "y2027": "10%",
+        "y2028": "10%",
+        "y2029": "10%"
       },
       {
         "driver": "Discounts & Returns %",
-        "current": "YTD avg pending",
+        "current": "17%",
         "y2026": "16%",
         "y2027": "16%",
         "y2028": "16%",
@@ -607,37 +624,39 @@
       {
         "driver": "Inventory Turns",
         "current": "0.17x",
-        "y2026": "3.2x",
-        "y2027": "4.0x",
-        "y2028": "4.5x",
-        "y2029": "5.0x"
+        "y2026": "0.20x",
+        "y2027": "0.30x",
+        "y2028": "0.50x",
+        "y2029": "0.80x",
+        "note": "Current source conflict resolved to SKU/Savy 0.17x until Shopify/SKU source is confirmed."
       }
     ]
   },
   "operations": [
     {
       "driver": "Outbound Shipping Cost %",
-      "current": "",
-      "y2026": "",
-      "y2027": "",
-      "y2028": "",
-      "y2029": ""
+      "current": "Manual / ShipStation or QuickBooks pending",
+      "y2026": "0%",
+      "y2027": "0%",
+      "y2028": "0%",
+      "y2029": "0%",
+      "note": "Check whether split exists in QuickBooks or use manual source."
     },
     {
       "driver": "Shipping Revenue %",
-      "current": "",
-      "y2026": "",
-      "y2027": "",
-      "y2028": "",
-      "y2029": ""
+      "current": "Manual / Shopify pending",
+      "y2026": "0%",
+      "y2027": "0%",
+      "y2028": "0%",
+      "y2029": "0%"
     },
     {
       "driver": "Packaging Cost %",
-      "current": "",
-      "y2026": "",
-      "y2027": "",
-      "y2028": "",
-      "y2029": ""
+      "current": "Manual pending",
+      "y2026": "0%",
+      "y2027": "0%",
+      "y2028": "0%",
+      "y2029": "0%"
     }
   ],
   "growthInitiatives": [
@@ -663,7 +682,8 @@
       "trigger": "Base",
       "status": "Active",
       "launch": "2026",
-      "investment": "$306"
+      "investment": "$305.64",
+      "type": "OPEX / Sales & Marketing"
     },
     {
       "initiative": "Cavali Paid Growth",
@@ -1044,5 +1064,47 @@
   "cashFlow": {
     "openingCash": "$0",
     "minimumCashBuffer": "$250k"
+  },
+  "smartrr": {
+    "status": "API structure planned",
+    "summaryKpis": [
+      "Total Orders",
+      "Active Ordering Customers",
+      "Gross Sales",
+      "Net Sales",
+      "Gross Margin %",
+      "Gross Profit",
+      "AOV",
+      "Top 10 Products",
+      "Top 10 Customers"
+    ],
+    "currentExample": {
+      "orders": "159",
+      "customers": "84",
+      "grossSales": "$15k"
+    },
+    "note": "Use Smartrr API where available; add net sales, GM, GP and AOV beside gross sales."
+  },
+  "formulaNotes": [
+    "Carryover applies only once when calculating the following year Base Ecommerce Revenue; do not re-add prior carryover downstream.",
+    "GM1 must always be defined on Net Sales, not Gross Sales.",
+    "Annual GP per Customer uses AOV, Purchase Frequency and GM1 from the same business population.",
+    "2029 Default Logic onwards: Prior Year Ecommerce Gross Sales \u00d7 Reinvestment %.",
+    "Paid Growth Revenue: Revenue influenced by paid media. Assumes constant ROAS during selected fiscal year."
+  ],
+  "dataConnections": {
+    "shopifyDirect": "pending - do not expose Shopify tokens in GitHub Pages; use pipeline/API proxy/Google Sheets actuals",
+    "shopifyFieldsNeeded": [
+      "orders",
+      "gross_sales",
+      "net_sales",
+      "aov",
+      "discounts_returns",
+      "cogs",
+      "gm1",
+      "customers",
+      "new_customers",
+      "returning_customers"
+    ]
   }
 }

@@ -1,4 +1,4 @@
-# Strategic Operating Model v3.4
+# Strategic Operating Model v3.6
 
 Includes Page 1 Magic Page + Page 2 Growth & Margin Engine with Easy Numbers Test formula alignment.
 
@@ -34,3 +34,20 @@ Legacy classification does not come from this Strategic Model. It must be verifi
 - Cash Out uses Operating Cash Out plus Inventory, Advertising, Shipping & Fulfillment, S&M, G&A, Growth Investments, CapEx, Private Label Investment and Other.
 - Cash Coverage = Ending Cash ÷ Average Monthly Operating Cash Out.
 - Formula QA documents Default Logic (2029 onwards), Constant ROAS assumption, and carryover anti-double-counting rule.
+
+
+## Final QA notes from 2026-07-22
+- Carryover applies only once when calculating the following year Base Ecommerce Revenue; do not re-add the same revenue downstream.
+- GM1% must be defined over Net Sales, not Gross Sales.
+- Annual GP per Customer must use AOV, Purchase Frequency and GM1 from the same business population.
+- 2029 Default Logic onwards: Prior Year Ecommerce Gross Sales × Reinvestment %.
+- Paid Growth Revenue: revenue influenced by paid media; assumes constant ROAS during the selected fiscal year.
+- HITS is OPEX / Sales & Marketing for $305.64, not CapEx.
+
+
+## V32 notes
+
+- System-wide modern Corro blue visual refresh.
+- Light/dark mode toggle in the header: sun for light mode, moon for dark mode.
+- Editable percentage fields keep the `%` symbol visible.
+- Shopify direct API is not exposed in GitHub Pages; actuals refresh through Google Sheets/dashboard outputs until a secure backend/pipeline is connected.

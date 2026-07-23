@@ -602,3 +602,106 @@ td.total-row-label { font-weight: 800; color: var(--navy); }
   .cash-line-value { grid-column: 2; }
   .cash-title { font-size: 23px; }
 }
+
+
+/* ============================================================
+   V32 — Corro modern system-wide theme + light/dark toggle
+   ============================================================ */
+:root {
+  --corro-blue: #335CFF;
+  --corro-blue-600: #2149E8;
+  --corro-blue-100: #EEF3FF;
+  --corro-blue-200: #D8E2FF;
+  --navy: #0B1F4D;
+  --navy-ink: #081936;
+  --light-blue: #EAF1FF;
+  --paper: #F6F8FC;
+  --white: #FFFFFF;
+  --border: #DDE5F0;
+  --muted: #64748B;
+  --soft-yellow: #FFF4CC;
+  --soft-yellow-border: #E8D89A;
+  --shadow-card: 0 12px 32px rgba(9, 25, 54, .08), 0 2px 8px rgba(9, 25, 54, .05);
+  --radius: 14px;
+}
+body { background: radial-gradient(circle at top left, rgba(51,92,255,.08), transparent 34%), var(--paper); color: var(--navy-ink); }
+.header { background: linear-gradient(135deg, var(--navy-ink) 0%, #0D2D5C 58%, #123D78 100%); }
+.version-badge { background: rgba(51,92,255,.18); border-color: rgba(255,255,255,.22); }
+.scenario-banner, .section-header { background: linear-gradient(90deg, #EAF1FF, #F7FAFF); color: var(--navy); }
+.section-header { border-left-color: var(--corro-blue); }
+.section[data-accent="funding"] .section-header { border-left-color: var(--corro-blue); }
+.section[data-accent="commercial"] .section-header { border-left-color: #2E9D72; }
+.section[data-accent="bu"] .section-header { border-left-color: #D6A600; }
+.section[data-accent="margin"] .section-header { border-left-color: #8757D6; }
+.section[data-accent="growth"] .section-header { border-left-color: #E57A2F; }
+.section[data-accent="thesis"] .section-header { border-left-color: #D9576A; }
+.kpi-card, .block-card, .thesis-card, .placeholder-card, table.grid, .qa-card { border-radius: 16px; border-color: var(--border); box-shadow: var(--shadow-card); }
+.kpi-value, .thesis-value, .section-sub, table.grid th { color: var(--navy); }
+table.grid th { background: #EAF1FF; }
+td.editable input { background: var(--soft-yellow); }
+td.editable input.percent-input { font-variant-numeric: tabular-nums; }
+.positive-value { color: var(--corro-blue) !important; }
+.negative-value { color: #C85B61 !important; }
+.zero-value { color: #7B8794 !important; }
+.warning-cell { color:#B76900 !important; background:#FFF1D6 !important; }
+.action-btn, .add-row-btn { border-radius: 10px; }
+.action-btn.primary { background: var(--soft-yellow); color: var(--navy); }
+.theme-toggle {
+  min-width: 40px;
+  height: 36px;
+  border: 1px solid rgba(255,255,255,.24);
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 17px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.theme-toggle:hover { background: rgba(255,255,255,.16); }
+.theme-icon { line-height: 1; }
+
+body[data-theme="dark"] {
+  --paper: #07152C;
+  --white: #0E2342;
+  --border: #234263;
+  --light-blue: #112D55;
+  --navy: #DDE8FF;
+  --navy-ink: #F6F8FF;
+  --muted: #9FB2CB;
+  background: radial-gradient(circle at top left, rgba(51,92,255,.20), transparent 35%), #061225;
+  color: #F6F8FF;
+}
+body[data-theme="dark"] .header { background: linear-gradient(135deg, #030B18, #0A1D3C 62%, #143677); }
+body[data-theme="dark"] .scenario-banner,
+body[data-theme="dark"] .section-header,
+body[data-theme="dark"] table.grid th { background: linear-gradient(90deg, #132B50, #0E2342); color:#EAF1FF; }
+body[data-theme="dark"] .kpi-card,
+body[data-theme="dark"] .block-card,
+body[data-theme="dark"] .thesis-card,
+body[data-theme="dark"] .placeholder-card,
+body[data-theme="dark"] table.grid,
+body[data-theme="dark"] .qa-card,
+body[data-theme="dark"] .cash-lines,
+body[data-theme="dark"] .cash-ui-card { background:#0E2342; border-color:#234263; box-shadow:0 18px 45px rgba(0,0,0,.28); }
+body[data-theme="dark"] table.grid td.gray-cell { background:#142B4C; color:#C1CEE2; }
+body[data-theme="dark"] td.calc-cell { background:#0E2342; color:#C1CEE2; }
+body[data-theme="dark"] td.editable input,
+body[data-theme="dark"] .control-field select,
+body[data-theme="dark"] .control-field input { background:#FFF4CC; color:#241C00; }
+body[data-theme="dark"] .tab-btn.active { background:#061225; color:#EAF1FF; border-color:#061225; }
+body[data-theme="dark"] .cash-hero { background:linear-gradient(180deg,#122C56,#0E2342); }
+body[data-theme="dark"] .cash-ui-footer { background:#102747; border-color:#234263; }
+
+/* Shopify / source status block */
+.source-status-card {
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+  padding: 14px 16px;
+}
+.source-status-card h3 { margin:0 0 6px; color:var(--navy); font-size:14px; }
+.source-status-card p { margin:0; color:var(--muted); font-size:12px; line-height:1.5; }

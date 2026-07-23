@@ -123,16 +123,36 @@ function downloadState() {
   URL.revokeObjectURL(url);
 }
 
+function isPercentDriver(rowObj) {
+  const d = String(rowObj && rowObj.driver || "").toLowerCase();
+  return d.includes("%") || d.includes("gm1") || d.includes("margin") || d.includes("growth") || d.includes("carryover") || d.includes("returning customer") || d.includes("email revenue") || d.includes("overlap") || d.includes("capture") || d.includes("discount");
+}
+
+function normalizePercentDisplay(v) {
+  const text = String(v ?? "").trim();
+  if (!text || isFormulaToken(text)) return text;
+  if (text.includes("%")) return text;
+  const n = Number(text.replace(/,/g, ""));
+  if (Number.isFinite(n)) return `${n}%`;
+  return text;
+}
+
 function makeEditableCell(rowObj, key, onChange, opts = {}) {
   const td = el("td", { class: "editable" });
   const input = el("input", { type: "text" });
+  const percentDriver = opts.percent || isPercentDriver(rowObj);
   input.value = rowObj[key] ?? "";
   if (opts.money && typeof rowObj[key] === "number") input.value = formatMoney(rowObj[key]);
+  if (!opts.money && percentDriver) input.value = normalizePercentDisplay(input.value);
+  if (percentDriver) input.classList.add("percent-input");
   input.addEventListener("change", e => {
     let v = e.target.value;
     if (opts.money) {
       rowObj[key] = parseMoney(v);
       input.value = rowObj[key] ? formatMoney(rowObj[key]) : "$0";
+    } else if (percentDriver) {
+      rowObj[key] = normalizePercentDisplay(v);
+      input.value = rowObj[key];
     } else {
       rowObj[key] = v;
     }
@@ -545,7 +565,14 @@ function baseAdSpendByYear(yearKey) {
 
 function totalAdSpendManualOrEditable(yearKey) {
   const acq = getBlock(STATE.commercial, "Acquisition");
-  const totalRow = getRow(acq ? acq.rows : [], "Total Ad Spend");
+  const rows = acq ? acq.rows : [];
+  if (yearKey === "y2029") {
+    const reinvestRow = getRow(rows, "2029 Reinvestment %");
+    const pct = parsePercent(reinvestRow && reinvestRow[yearKey] ? reinvestRow[yearKey] : "20%");
+    const priorGross = ecommerceBuild("y2028").total;
+    return priorGross * pct;
+  }
+  const totalRow = getRow(rows, "Total Ad Spend");
   const directCell = totalRow ? totalRow[yearKey] : "";
   return !isFormulaToken(directCell) ? parseMoney(directCell) : 0;
 }
@@ -592,16 +619,12 @@ function computedCommercialValue(row, key) {
     return formatMoney(incrementalAdSpendByYear(key));
   }
   if (row.driver === "Total Ad Spend") {
-    // Calculated through 2028 from Target Ad Spend % of Ecommerce Gross Sales;
-    // 2029 is editable and therefore handled by the cell value.
-    if (key === "y2029") return null;
+    // 2026–2028 are calculated from Target Ad Spend % of Ecommerce Gross Sales.
+    // 2029 uses Default Logic: Prior Year Ecommerce Gross Sales × Reinvestment %.
     return formatMoney(totalAdSpendByYear(key));
   }
   if (row.driver === "Target Ad Spend % of Ecommerce Gross Sales") {
-    if (key === "y2029") {
-      const gross = ecommerceBuild(key).total;
-      return gross ? formatPercent(totalAdSpendByYear(key) / gross) : "—";
-    }
+    if (key === "y2029") return "—";
     return null;
   }
   if (row.driver === "Ad Spend % of Ecommerce Gross Sales" || row.driver === "Ad Spend % of Gross Sales") {
@@ -677,6 +700,25 @@ function actualEngineFallback(title, active) {
   return { gross, gp1: gross * gm1, gm1, active: true, note: "Google Sheet actual / baseline" };
 }
 
+function weightedAverageFromCavaliRows(rows, metric, year) {
+  const sigMembers = parseNumber(val(rows, "Signature Active Members", year));
+  const premMembers = parseNumber(val(rows, "Premium Active Members", year));
+  const sigValue = parseMoney(val(rows, `Signature ${metric}`, year)) || parseNumber(val(rows, `Signature ${metric}`, year));
+  const premValue = parseMoney(val(rows, `Premium ${metric}`, year)) || parseNumber(val(rows, `Premium ${metric}`, year));
+  const totalMembers = sigMembers + premMembers;
+  if (!totalMembers) return 0;
+  return ((sigMembers * sigValue) + (premMembers * premValue)) / totalMembers;
+}
+
+function engineDiscountRate(year) {
+  return parsePercent(val((STATE.purchasing || {}).commercialTerms || [], "Discounts & Returns %", year));
+}
+
+function engineGp1FromGross(gross, gm1, year) {
+  const net = gross * (1 - engineDiscountRate(year));
+  return net * gm1;
+}
+
 function engineGrossAndGp(engine, year) {
   const title = engine.title || "";
   const rows = engine.rows || [];
@@ -691,12 +733,21 @@ function engineGrossAndGp(engine, year) {
 
   if (!active) return { gross: 0, gp1: 0, gm1: 0, active: false, note: "Locked by funding gate" };
 
-  if (title.startsWith("Ecommerce") || title.startsWith("Wellington") || title.startsWith("Embroidery")) {
+  if (title.startsWith("Ecommerce")) {
+    const build = ecommerceBuild(year);
+    gross = build.total;
+    const gm1 = parsePercent(val(rows, "GM1 %", year));
+    gp1 = engineGp1FromGross(gross, gm1, year);
+    note = "Ecommerce Revenue Build total";
+    return { gross, gp1, gm1, active, note };
+  }
+
+  if (title.startsWith("Wellington") || title.startsWith("Embroidery")) {
     const orders = parseNumber(val(rows, "Orders", year));
     const aov = parseMoney(val(rows, "AOV", year));
     const gm1 = parsePercent(val(rows, "GM1 %", year));
     gross = orders * aov;
-    gp1 = gross * gm1;
+    gp1 = engineGp1FromGross(gross, gm1, year);
     note = "Orders × AOV";
     if (!gross) { const fallback = actualEngineFallback(title, active); if (fallback) return fallback; }
     return { gross, gp1, gm1, active, note };
@@ -708,7 +759,7 @@ function engineGrossAndGp(engine, year) {
     const aov = parseMoney(val(rows, "AOV", year));
     const gm1 = parsePercent(val(rows, "GM1 %", year));
     gross = clients * ordersPerClient * aov;
-    gp1 = gross * gm1;
+    gp1 = engineGp1FromGross(gross, gm1, year);
     note = "Clients × Orders/Client × AOV";
     if (!gross) { const fallback = actualEngineFallback(title, active); if (fallback) return fallback; }
     return { gross, gp1, gm1, active, note };
@@ -721,10 +772,16 @@ function engineGrossAndGp(engine, year) {
     const premMembers = parseNumber(val(rows, "Premium Active Members", year));
     const premBoxes = parseNumber(val(rows, "Premium Boxes per Year", year));
     const premPrice = parseMoney(val(rows, "Premium Price", year));
+    const cavaliAdSpend = parseMoney(val(rows, "Cavali Ad Spend", year));
+    const cavaliCac = parseMoney(val(rows, "Cavali CAC", year));
+    const weightedBoxes = weightedAverageFromCavaliRows(rows, "Boxes per Year", year) || 2;
+    const weightedPrice = weightedAverageFromCavaliRows(rows, "Price", year) || ((sigPrice + premPrice) / 2 || 149);
+    const paidMembers = cavaliCac ? cavaliAdSpend / cavaliCac : 0;
+    const paidGrowthRevenue = paidMembers * weightedBoxes * weightedPrice;
     const gm1 = parsePercent(val(rows, "GM1 %", year));
-    gross = sigMembers * sigBoxes * sigPrice + premMembers * premBoxes * premPrice;
-    gp1 = gross * gm1;
-    note = "$99 + $199 membership products";
+    gross = sigMembers * sigBoxes * sigPrice + premMembers * premBoxes * premPrice + paidGrowthRevenue;
+    gp1 = engineGp1FromGross(gross, gm1, year);
+    note = "$99 + $199 membership products + paid member growth";
     if (!gross) { const fallback = actualEngineFallback(title, active); if (fallback) return fallback; }
     return { gross, gp1, gm1, active, note };
   }
@@ -734,7 +791,7 @@ function engineGrossAndGp(engine, year) {
     const asp = parseMoney(val(rows, "Average Selling Price", year));
     const gm1 = parsePercent(val(rows, "GM1 %", year));
     gross = units * asp;
-    gp1 = gross * gm1;
+    gp1 = engineGp1FromGross(gross, gm1, year);
     note = "Units × ASP";
     if (!gross) { const fallback = actualEngineFallback(title, active); if (fallback) return fallback; }
     return { gross, gp1, gm1, active, note };
@@ -886,7 +943,7 @@ function ecommerceBuild(year) {
   let warning = "";
 
   if (year === "y2029") {
-    // 2029 is management reinvestment: direct editable spend, then ROAS creates paid growth revenue.
+    // 2029 Default Logic onwards: prior-year Ecommerce Gross Sales × Reinvestment %, then ROAS creates paid growth revenue.
     adSpend = totalAdSpendManualOrEditable(year);
     paid = adSpend * roas;
     total = prePaidRevenue + paid;
@@ -978,6 +1035,25 @@ function renderEcommerceRevenueBuild() {
 
 function selectedDnrPct(year) {
   return parsePercent(val((STATE.purchasing || {}).commercialTerms || [], "Discounts & Returns %", year));
+}
+
+function weightedAverageFromCavaliRows(rows, metric, year) {
+  const sigMembers = parseNumber(val(rows, "Signature Active Members", year));
+  const premMembers = parseNumber(val(rows, "Premium Active Members", year));
+  const sigValue = parseMoney(val(rows, `Signature ${metric}`, year)) || parseNumber(val(rows, `Signature ${metric}`, year));
+  const premValue = parseMoney(val(rows, `Premium ${metric}`, year)) || parseNumber(val(rows, `Premium ${metric}`, year));
+  const totalMembers = sigMembers + premMembers;
+  if (!totalMembers) return 0;
+  return ((sigMembers * sigValue) + (premMembers * premValue)) / totalMembers;
+}
+
+function engineDiscountRate(year) {
+  return parsePercent(val((STATE.purchasing || {}).commercialTerms || [], "Discounts & Returns %", year));
+}
+
+function engineGp1FromGross(gross, gm1, year) {
+  const net = gross * (1 - engineDiscountRate(year));
+  return net * gm1;
 }
 
 function engineGrossAndGp(engine, year) {
@@ -1298,6 +1374,12 @@ function renderFormulaQA() {
     table.appendChild(thead); table.appendChild(tbody);
     wrap.appendChild(table); root.appendChild(wrap);
   });
+  const sourceCard = el("div", { class: "source-status-card" }, [
+    el("h3", {}, "Data Source Status"),
+    el("p", {}, "Actuals currently refresh from Google Sheets/dashboard exports. Direct Shopify API remains a backend/pipeline task; do not expose Shopify tokens in GitHub Pages. Needed for full automation: ecommerce-only orders, AOV, Gross Sales, Net Sales, GM1, customer mix, plus SKU/Savy inventory turns and QuickBooks/ShipStation operating costs.")
+  ]);
+  root.appendChild(sourceCard);
+
   const load = document.getElementById("loadEasyNumbers");
   if (load) load.onclick = loadEasyNumberInputs;
   const restore = document.getElementById("restoreScenarioValues");
@@ -1328,8 +1410,9 @@ function loadEasyNumberInputs() {
   }
   const acq = getBlock(STATE.commercial, "Acquisition");
   if (acq) {
-    const target = getRow(acq.rows, "Target Ad Spend % of Ecommerce Gross Sales"); if (target) { target.y2026="—"; target.y2027="—"; target.y2028="—"; target.y2029="20%"; }
-    const total = getRow(acq.rows, "Total Ad Spend"); if (total) { total.y2026="$100"; total.y2027="$100"; total.y2028="$100"; total.y2029="$200"; }
+    const target = getRow(acq.rows, "Target Ad Spend % of Ecommerce Gross Sales"); if (target) { target.y2026="—"; target.y2027="—"; target.y2028="—"; target.y2029="—"; }
+    const reinvest = getRow(acq.rows, "2029 Reinvestment %"); if (reinvest) { reinvest.y2029="20%"; }
+    const total = getRow(acq.rows, "Total Ad Spend"); if (total) { total.y2026="$100"; total.y2027="$100"; total.y2028="$100"; total.y2029="Calculated"; }
   }
   renderAll();
   saveNow();
@@ -1961,7 +2044,7 @@ function applyActualsToState(corroBundle, cavaliBundle) {
   }
   const inventoryTurnsActual = weightedInventoryTurnsActuals([corroBundle.productsQ1, cavaliBundle.productsQ1]);
   if (inventoryTurnsActual !== null && STATE.purchasing && STATE.purchasing.capitalEfficiency) {
-    setCurrentInRows(STATE.purchasing.capitalEfficiency, "Inventory Turns", inventoryTurnsActual.toFixed(1) + "x");
+    setCurrentInRows(STATE.purchasing.capitalEfficiency, "Inventory Turns", inventoryTurnsActual.toFixed(2).replace(/\.00$/, "") + "x");
   }
 
   const conciergeRevenue = corro ? channelRevenueYtd(corroBundle.revenueShare, "Concierge", corro.latest) : 0;
@@ -2060,7 +2143,28 @@ async function refreshActualsFromSheets({ silent = false } = {}) {
   }
 }
 
+function applyTheme(theme) {
+  const next = theme === "dark" ? "dark" : "light";
+  document.body.setAttribute("data-theme", next);
+  localStorage.setItem("som_theme_v32", next);
+  const icon = document.getElementById("themeIcon");
+  const btn = document.getElementById("themeToggle");
+  if (icon) icon.textContent = next === "dark" ? "☾" : "☀";
+  if (btn) btn.title = next === "dark" ? "Switch to light mode" : "Switch to dark mode";
+}
+
+function initThemeToggle() {
+  const saved = localStorage.getItem("som_theme_v32") || "light";
+  applyTheme(saved);
+  const btn = document.getElementById("themeToggle");
+  if (btn) btn.addEventListener("click", () => {
+    const current = document.body.getAttribute("data-theme") || "light";
+    applyTheme(current === "dark" ? "light" : "dark");
+  });
+}
+
 async function boot() {
+  initThemeToggle();
   STATE = await DataService.load();
   renderAll();
   refreshActualsFromSheets({ silent: true });
