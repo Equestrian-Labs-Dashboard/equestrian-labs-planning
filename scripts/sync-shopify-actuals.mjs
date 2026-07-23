@@ -2,8 +2,8 @@
 /**
  * Shopify actuals sync for Strategic Operating Model.
  *
- * This runs in GitHub Actions, where Shopify tokens are available as secrets.
- * It writes a safe, token-free JSON file for GitHub Pages:
+ * Runs only in GitHub Actions. It uses repository secrets and writes a safe,
+ * token-free file for GitHub Pages:
  *   data/shopify_actuals.json
  *
  * Required repository secrets:
@@ -21,42 +21,37 @@ const START_DATE = process.env.SHOPIFY_SYNC_START_DATE || "2024-01-01";
 const END_DATE = process.env.SHOPIFY_SYNC_END_DATE || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 const stores = [
-  {
-    brand: "corro",
-    label: "Corro",
-    store: process.env.SHOPIFY_CORRO_STORE,
-    token: process.env.SHOPIFY_CORRO_TOKEN,
-  },
-  {
-    brand: "cavali",
-    label: "Cavali",
-    store: process.env.SHOPIFY_CAVALI_STORE,
-    token: process.env.SHOPIFY_CAVALI_TOKEN,
-  },
+  { brand: "corro", label: "Corro", store: process.env.SHOPIFY_CORRO_STORE, token: process.env.SHOPIFY_CORRO_TOKEN },
+  { brand: "cavali", label: "Cavali", store: process.env.SHOPIFY_CAVALI_STORE, token: process.env.SHOPIFY_CAVALI_TOKEN },
 ];
 
 function normalizeStore(store) {
   return String(store || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
 }
-
-function money(node) {
-  return Number(node?.shopMoney?.amount || 0);
-}
-
-function monthKey(dateString) {
-  return String(dateString || "").slice(0, 7);
-}
-
-function monthStart(period) {
-  return `${period}-01`;
-}
-
+function round2(n) { return Math.round(Number(n || 0) * 100) / 100; }
+function money(node) { return Number(node?.shopMoney?.amount || 0); }
+function monthKey(dateString) { return String(dateString || "").slice(0, 7); }
+function monthStart(period) { return `${period}-01`; }
 function monthEnd(period) {
   const [year, month] = period.split("-").map(Number);
   return new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
 }
+function tagText(tags) { return (tags || []).join(" ").toLowerCase(); }
 
-function emptyAgg(period) {
+function classifyOrder(order, lineItems) {
+  const orderTags = tagText(order.tags);
+  const productTags = tagText(lineItems.flatMap(li => li.product?.tags || []));
+  const combined = `${orderTags} ${productTags}`;
+
+  if (/drop\s*ship|dropship/.test(combined)) return "Drop ship";
+  if (/shopify\s*collective/.test(combined)) return "Shopify Collective";
+  if (/concierge/.test(combined)) return "Concierge";
+  if (/wellington/.test(combined)) return "Wellington";
+  if (/legacy/.test(combined)) return "Legacy";
+  return "e-commerce";
+}
+
+function emptyAgg(period, source = "shopify_admin_graphql") {
   return {
     period,
     period_start: monthStart(period),
@@ -73,7 +68,7 @@ function emptyAgg(period) {
     nb_units: 0,
     customers: new Set(),
     updated_at: new Date().toISOString(),
-    source: "shopify_admin_graphql",
+    source,
   };
 }
 
@@ -86,14 +81,24 @@ query OrdersForActuals($cursor: String, $query: String!) {
       name
       createdAt
       cancelledAt
+      tags
       totalShippingPriceSet { shopMoney { amount currencyCode } }
       currentTotalTaxSet { shopMoney { amount currencyCode } }
-      customer { id }
+      customer { id email }
       lineItems(first: 250) {
         nodes {
           quantity
+          title
+          sku
           originalUnitPriceSet { shopMoney { amount currencyCode } }
           discountedTotalSet { shopMoney { amount currencyCode } }
+          product {
+            id
+            title
+            vendor
+            productType
+            tags
+          }
         }
       }
     }
@@ -104,13 +109,9 @@ async function graphql(store, token, query, variables) {
   const endpoint = `https://${normalizeStore(store)}/admin/api/${API_VERSION}/graphql.json`;
   const res = await fetch(endpoint, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Shopify-Access-Token": token,
-    },
+    headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
     body: JSON.stringify({ query, variables }),
   });
-
   const json = await res.json().catch(() => ({}));
   if (!res.ok || json.errors) {
     const detail = JSON.stringify(json.errors || json, null, 2).slice(0, 2000);
@@ -125,12 +126,10 @@ async function fetchOrdersForStore(storeConfig) {
     console.warn(`Skipping ${label}: missing store/token secret.`);
     return [];
   }
-
   const query = `created_at:>=${START_DATE} created_at:<${END_DATE}`;
   let cursor = null;
   let orders = [];
   let page = 0;
-
   do {
     page += 1;
     const data = await graphql(store, token, ORDERS_QUERY, { cursor, query });
@@ -139,56 +138,39 @@ async function fetchOrdersForStore(storeConfig) {
     cursor = conn.pageInfo.hasNextPage ? conn.pageInfo.endCursor : null;
     console.log(`${label}: fetched page ${page}, total orders ${orders.length}`);
   } while (cursor);
-
   return orders;
 }
 
-function aggregateOrders(orders) {
-  const byMonth = new Map();
-
-  for (const order of orders) {
-    if (order.cancelledAt) continue;
-
-    const period = monthKey(order.createdAt);
-    if (!period) continue;
-
-    const agg = byMonth.get(period) || emptyAgg(period);
-    const lineItems = order.lineItems?.nodes || [];
-
-    let gross = 0;
-    let net = 0;
-    let units = 0;
-
-    for (const line of lineItems) {
-      const qty = Number(line.quantity || 0);
-      const originalUnit = money(line.originalUnitPriceSet);
-      const discountedTotal = money(line.discountedTotalSet);
-      gross += originalUnit * qty;
-      net += discountedTotal;
-      units += qty;
-    }
-
-    const discount = Math.max(0, gross - net);
-    const shipping = money(order.totalShippingPriceSet);
-    const taxes = money(order.currentTotalTaxSet);
-
-    agg.gross_sales += gross;
-    agg.net_sales += net;
-    agg.total_discounts += discount;
-    agg.shipping_income += shipping;
-    agg.taxes += taxes;
-    agg.nb_orders += 1;
-    agg.nb_units += units;
-    if (order.customer?.id) agg.customers.add(order.customer.id);
-
-    byMonth.set(period, agg);
+function addOrderToAgg(agg, order, lineItems) {
+  let gross = 0, net = 0, units = 0;
+  for (const line of lineItems) {
+    const qty = Number(line.quantity || 0);
+    const originalUnit = money(line.originalUnitPriceSet);
+    const discountedTotal = money(line.discountedTotalSet);
+    gross += originalUnit * qty;
+    net += discountedTotal;
+    units += qty;
   }
+  const discount = Math.max(0, gross - net);
+  const shipping = money(order.totalShippingPriceSet);
+  const taxes = money(order.currentTotalTaxSet);
 
-  return [...byMonth.values()]
+  agg.gross_sales += gross;
+  agg.net_sales += net;
+  agg.total_discounts += discount;
+  agg.shipping_income += shipping;
+  agg.taxes += taxes;
+  agg.nb_orders += 1;
+  agg.nb_units += units;
+  if (order.customer?.id) agg.customers.add(order.customer.id);
+}
+
+function finalizeKpiRows(map) {
+  return [...map.values()]
     .sort((a, b) => a.period.localeCompare(b.period))
-    .map((r) => {
+    .map(r => {
       const uniqueCustomers = r.customers.size;
-      const row = {
+      return {
         updated_at: r.updated_at,
         period: r.period,
         period_start: r.period_start,
@@ -210,12 +192,52 @@ function aggregateOrders(orders) {
         taxes: round2(r.taxes),
         source: r.source,
       };
-      return row;
     });
 }
 
-function round2(n) {
-  return Math.round(Number(n || 0) * 100) / 100;
+function aggregateOrders(orders) {
+  const byMonth = new Map();
+  const byMonthChannel = new Map();
+
+  for (const order of orders) {
+    if (order.cancelledAt) continue;
+    const period = monthKey(order.createdAt);
+    if (!period) continue;
+
+    const lineItems = order.lineItems?.nodes || [];
+    const channel = classifyOrder(order, lineItems);
+
+    const agg = byMonth.get(period) || emptyAgg(period);
+    addOrderToAgg(agg, order, lineItems);
+    byMonth.set(period, agg);
+
+    const channelKey = `${period}__${channel}`;
+    const ch = byMonthChannel.get(channelKey) || { ...emptyAgg(period), channel };
+    addOrderToAgg(ch, order, lineItems);
+    byMonthChannel.set(channelKey, ch);
+  }
+
+  const kpis_daily = finalizeKpiRows(byMonth);
+
+  const revenue_share = [...byMonthChannel.values()]
+    .sort((a, b) => (a.period + a.channel).localeCompare(b.period + b.channel))
+    .map(r => ({
+      updated_at: r.updated_at,
+      period: r.period,
+      period_start: r.period_start,
+      period_end: r.period_end,
+      channel: r.channel,
+      amount: round2(r.gross_sales),
+      gross_sales: round2(r.gross_sales),
+      net_sales: round2(r.net_sales),
+      nb_orders: r.nb_orders,
+      nb_units: r.nb_units,
+      aov: r.nb_orders ? round2(r.gross_sales / r.nb_orders) : 0,
+      unique_customers: r.customers.size,
+      source: "shopify_tags",
+    }));
+
+  return { kpis_daily, revenue_share };
 }
 
 function totals(rows) {
@@ -233,23 +255,25 @@ function totals(rows) {
 
 async function main() {
   const brands = {};
-
   for (const storeConfig of stores) {
     const orders = await fetchOrdersForStore(storeConfig);
-    const kpisDaily = aggregateOrders(orders);
+    const { kpis_daily, revenue_share } = aggregateOrders(orders);
     brands[storeConfig.brand] = {
       label: storeConfig.label,
       store: normalizeStore(storeConfig.store),
       source: "shopify_admin_graphql",
       apiVersion: API_VERSION,
       orderCount: orders.length,
-      kpis_daily: kpisDaily,
-      totals: totals(kpisDaily),
+      kpis_daily,
+      revenue_share,
+      totals: totals(kpis_daily),
       notes: [
-        "Shopify sync provides sales/orders/AOV/discounts/shipping/taxes.",
-        "COGS/GM1 are not overwritten here unless a product-cost pipeline is added.",
+        "Shopify sync provides sales/orders/units/AOV/discounts/shipping/taxes.",
+        "Corro channels are classified from order/product tags: Drop ship, Shopify Collective, Concierge, Wellington, Legacy, e-commerce.",
+        "Cavali orders are counted directly from Shopify; membership fields still depend on Smartrr until Smartrr API is connected.",
+        "COGS/GM1 are not overwritten unless a product-cost pipeline is added.",
         "Inventory turns should continue coming from SKU/Savy or product-cost inventory source.",
-        "QuickBooks/ShipStation remain the preferred source for cash timing, shipping cost, packaging, and OPEX."
+        "QuickBooks/ShipStation remain preferred source for cash timing, shipping cost, packaging, and OPEX."
       ],
     };
   }

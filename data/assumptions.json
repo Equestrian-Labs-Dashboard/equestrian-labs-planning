@@ -3,7 +3,7 @@
     "modelStatus": "Draft",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "3.6",
+    "version": "v3.9",
     "lastUpdate": "2026-07-11",
     "organicGrowth": "10%",
     "doverCapture": "20%",
@@ -405,6 +405,15 @@
       "title": "Cavali \u2014 Angela",
       "note": "",
       "rows": [
+        {
+          "driver": "Orders",
+          "current": "Actuals pending",
+          "y2026": "Actuals + 10",
+          "y2027": "Editable",
+          "y2028": "Editable",
+          "y2029": "Editable",
+          "note": "Shopify Cavali order count; future years remain editable."
+        },
         {
           "driver": "Signature Active Members",
           "current": "84",
@@ -1114,6 +1123,7 @@
       "SHOPIFY_CORRO_TOKEN",
       "SHOPIFY_CAVALI_STORE",
       "SHOPIFY_CAVALI_TOKEN"
-    ]
+    ],
+    "shopifySync": "connected via GitHub Actions to data/shopify_actuals.json when workflow runs"
   }
 }

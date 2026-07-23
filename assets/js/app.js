@@ -2066,6 +2066,7 @@ function applyActualsToState(corroBundle, cavaliBundle) {
   const cavaliEngine = getBlock(STATE.growthEngines, "Cavali");
   const concierge = getBlock(STATE.growthEngines, "Concierge");
   const wellington = getBlock(STATE.growthEngines, "Wellington");
+  ensureCavaliOrdersRow(cavaliEngine);
 
   const markupActual = weightedMarkupActuals([corroBundle.productsQ1, cavaliBundle.productsQ1]);
   if (markupActual !== null && STATE.purchasing && STATE.purchasing.commercialTerms) {
@@ -2076,13 +2077,17 @@ function applyActualsToState(corroBundle, cavaliBundle) {
     setCurrentInRows(STATE.purchasing.capitalEfficiency, "Inventory Turns", inventoryTurnsActual.toFixed(2).replace(/\.00$/, "") + "x");
   }
 
-  const conciergeRevenue = corro ? channelRevenueYtd(corroBundle.revenueShare, "Concierge", corro.latest) : 0;
-  const wellingtonRevenue = corro ? channelRevenueYtd(corroBundle.revenueShare, "Wellington", corro.latest) : 0;
-  const onlineRevenue = corro ? channelRevenueYtd(corroBundle.revenueShare, "Online", corro.latest) : 0;
+  const conciergeMetrics = corro ? channelMetricsYtd(corroBundle.revenueShare, "Concierge", corro.latest) : { grossSales:0 };
+  const wellingtonMetrics = corro ? channelMetricsYtd(corroBundle.revenueShare, "Wellington", corro.latest) : { grossSales:0 };
+  const ecommerceMetrics = corro ? (
+    channelMetricsYtd(corroBundle.revenueShare, "e-commerce", corro.latest).grossSales
+      ? channelMetricsYtd(corroBundle.revenueShare, "e-commerce", corro.latest)
+      : { grossSales: Math.max(0, corro.grossSales - conciergeMetrics.grossSales - wellingtonMetrics.grossSales), orders: corro.orders, aov: corro.aov }
+  ) : { grossSales:0 };
   STATE.actuals.engineGrossSales = {
-    Ecommerce: onlineRevenue || (corro ? Math.max(0, corro.grossSales - conciergeRevenue - wellingtonRevenue) : 0),
-    Concierge: conciergeRevenue,
-    Wellington: wellingtonRevenue,
+    Ecommerce: ecommerceMetrics.grossSales,
+    Concierge: conciergeMetrics.grossSales,
+    Wellington: wellingtonMetrics.grossSales,
     Cavali: cavali ? cavali.grossSales : 0
   };
   STATE.actuals.engineGm1 = {
@@ -2120,16 +2125,43 @@ function applyActualsToState(corroBundle, cavaliBundle) {
       setCurrentInRows(STATE.purchasing.commercialTerms, "Discounts & Returns %", formatPercent(corro.discountReturnsPct));
     }
     if (ecommerce) {
-      setCurrentInRows(ecommerce.rows, "Orders", Math.round(corro.orders).toLocaleString("en-US"));
-      setCurrentInRows(ecommerce.rows, "AOV", formatMoney(corro.aov));
+      const ecommerceOrders = ecommerceMetrics.orders || corro.orders;
+      const ecommerceAov = ecommerceMetrics.aov || corro.aov;
+      setCurrentInRows(ecommerce.rows, "Orders", Math.round(ecommerceOrders).toLocaleString("en-US"));
+      setCurrentInRows(ecommerce.rows, "AOV", formatMoney(ecommerceAov));
       setCurrentInRows(ecommerce.rows, "GM1 %", formatPercent(corro.gm1));
+      setYearInRows(ecommerce.rows, "Orders", "y2026", Math.round(ecommerceOrders + 10).toLocaleString("en-US"));
+      setYearInRows(ecommerce.rows, "AOV", "y2026", formatMoney(ecommerceAov));
+      setYearInRows(ecommerce.rows, "GM1 %", "y2026", formatPercent(corro.gm1));
     }
-    // Concierge and Wellington revenue comes from revenue_share. It is used in Tab 02
-    // as an actual/baseline fallback, but we do not force it into AOV because
-    // revenue_share does not provide Orders × AOV inputs.
+    if (concierge) {
+      const activeClients = conciergeMetrics.customers || 0;
+      const ordersPerClient = activeClients ? conciergeMetrics.orders / activeClients : 0;
+      setCurrentInRows(concierge.rows, "Active Clients", activeClients ? Math.round(activeClients).toLocaleString("en-US") : "No Concierge tag rows");
+      setCurrentInRows(concierge.rows, "Orders per Client", ordersPerClient ? ordersPerClient.toFixed(2) : "—");
+      setCurrentInRows(concierge.rows, "AOV", conciergeMetrics.aov ? formatMoney(conciergeMetrics.aov) : "—");
+      setCurrentInRows(concierge.rows, "GM1 %", formatPercent(corro.gm1));
+      setYearInRows(concierge.rows, "Active Clients", "y2026", String(Math.round(activeClients + 10)));
+      setYearInRows(concierge.rows, "Orders per Client", "y2026", ordersPerClient ? ordersPerClient.toFixed(2) : "1.2");
+      setYearInRows(concierge.rows, "AOV", "y2026", conciergeMetrics.aov ? formatMoney(conciergeMetrics.aov) : "$100");
+      setYearInRows(concierge.rows, "GM1 %", "y2026", formatPercent(corro.gm1));
+    }
+    if (wellington) {
+      setCurrentInRows(wellington.rows, "Orders", wellingtonMetrics.orders ? Math.round(wellingtonMetrics.orders).toLocaleString("en-US") : "No Wellington tag rows");
+      setCurrentInRows(wellington.rows, "AOV", wellingtonMetrics.aov ? formatMoney(wellingtonMetrics.aov) : "—");
+      setCurrentInRows(wellington.rows, "GM1 %", formatPercent(corro.gm1));
+      setYearInRows(wellington.rows, "Orders", "y2026", String(Math.round((wellingtonMetrics.orders || 0) + 10)));
+      setYearInRows(wellington.rows, "AOV", "y2026", wellingtonMetrics.aov ? formatMoney(wellingtonMetrics.aov) : "$100");
+      setYearInRows(wellington.rows, "GM1 %", "y2026", formatPercent(corro.gm1));
+    }
+    // Concierge and Wellington now feed from Shopify tag-based revenue_share
+    // when data/shopify_actuals.json is generated by the secure GitHub Action.
   }
 
   if (cavali && cavaliEngine) {
+    ensureCavaliOrdersRow(cavaliEngine);
+    setCurrentInRows(cavaliEngine.rows, "Orders", Math.round(cavali.orders).toLocaleString("en-US"));
+    setForecastPlus10(cavaliEngine.rows, "Orders", cavali.orders);
     setCurrentInRows(cavaliEngine.rows, "GM1 %", formatPercent(cavali.gm1));
     setCurrentInRows(cavaliEngine.rows, "Organic Member Growth", formatPercent(cavali.organicGrowth));
     if (cavaliAds && cavaliAds.spend) {
@@ -2185,28 +2217,127 @@ function mergeKpisRows(sheetRows = [], shopifyRows = []) {
   return [...byPeriod.values()].sort((a, b) => String(a.period || "").localeCompare(String(b.period || "")));
 }
 
-function overlayShopifyActuals(corroBundle, cavaliBundle, shopifyJson) {
+function shopifyRevenueShareRows(shopifyJson, brandKey) {
+  return (shopifyJson && shopifyJson.brands && shopifyJson.brands[brandKey] && shopifyJson.brands[brandKey].revenue_share) || [];
+}
+
+function overlayShopifyActuals(corroBundle = {}, cavaliBundle = {}, shopifyJson) {
   if (!shopifyJson) return { corroBundle, cavaliBundle, source: "google_sheets" };
   const corroRows = shopifyKpisRows(shopifyJson, "corro");
   const cavaliRows = shopifyKpisRows(shopifyJson, "cavali");
-  const nextCorro = { ...corroBundle, kpis: mergeKpisRows(corroBundle.kpis, corroRows) };
-  const nextCavali = { ...cavaliBundle, kpis: mergeKpisRows(cavaliBundle.kpis, cavaliRows) };
+  const corroRevenueShare = shopifyRevenueShareRows(shopifyJson, "corro");
+  const cavaliRevenueShare = shopifyRevenueShareRows(shopifyJson, "cavali");
+  const nextCorro = {
+    ...corroBundle,
+    kpis: mergeKpisRows(corroBundle.kpis || [], corroRows),
+    revenueShare: corroRevenueShare.length ? corroRevenueShare : (corroBundle.revenueShare || [])
+  };
+  const nextCavali = {
+    ...cavaliBundle,
+    kpis: mergeKpisRows(cavaliBundle.kpis || [], cavaliRows),
+    revenueShare: cavaliRevenueShare.length ? cavaliRevenueShare : (cavaliBundle.revenueShare || [])
+  };
   return { corroBundle: nextCorro, cavaliBundle: nextCavali, source: "shopify_json_overlay" };
 }
 
+
+
+async function fetchLocalShopifyActuals() {
+  try {
+    const res = await fetch("data/shopify_actuals.json", { cache: "no-store" });
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (!json || !json.brands) return null;
+    return json;
+  } catch (err) {
+    console.warn("No local Shopify actuals JSON found yet.", err);
+    return null;
+  }
+}
+
+function shopifyJsonToBundle(json, brand) {
+  const b = json && json.brands ? json.brands[brand] : null;
+  if (!b) return null;
+  return {
+    kpis: b.kpis_daily || [],
+    revenueShare: b.revenue_share || [],
+    newVsReturning: [],
+    adSpend: [],
+    smartrrProductVolume: [],
+    productsQ1: [],
+    _source: "shopify_actuals_json",
+    _store: b.store || "",
+    _generatedAt: json.generated_at || ""
+  };
+}
+
+function channelMetricsYtd(rows, channel, latest) {
+  if (!rows || !rows.length || !latest) return { grossSales:0, netSales:0, orders:0, units:0, customers:0, aov:0 };
+  const throughMonth = Math.min(latest.month, (STATE && STATE.meta && STATE.meta.actualsThroughMonth) || 6);
+  const ytd = rowsForYtd(rows, latest.year, throughMonth)
+    .filter(r => String(r.channel || "").toLowerCase().includes(String(channel).toLowerCase()));
+  const grossSales = sumField(ytd, "gross_sales") || sumField(ytd, "amount");
+  const netSales = sumField(ytd, "net_sales");
+  const orders = sumField(ytd, "nb_orders");
+  const units = sumField(ytd, "nb_units");
+  const customers = sumField(ytd, "unique_customers");
+  return { grossSales, netSales, orders, units, customers, aov: orders ? grossSales / orders : 0 };
+}
+
+function setYearInRows(rows, driver, year, value) {
+  const row = getRow(rows, driver);
+  if (row && Object.keys(row).length) row[year] = value;
+}
+
+function setForecastPlus10(rows, driver, baseNumber, formatter = (n) => String(Math.round(n))) {
+  if (!rows) return;
+  const row = getRow(rows, driver);
+  if (!row || !Object.keys(row).length) return;
+  const base = Number(baseNumber || 0);
+  row.y2026 = formatter(base + 10);
+  row.y2027 = formatter(base + 20);
+  row.y2028 = formatter(base + 30);
+  row.y2029 = formatter(base + 40);
+}
+
+function ensureCavaliOrdersRow(cavaliEngine) {
+  if (!cavaliEngine || !Array.isArray(cavaliEngine.rows)) return;
+  if (!getRow(cavaliEngine.rows, "Orders").driver) {
+    cavaliEngine.rows.unshift({
+      driver: "Orders",
+      current: "Actuals pending",
+      y2026: "Actuals + 10",
+      y2027: "Editable",
+      y2028: "Editable",
+      y2029: "Editable",
+      note: "Shopify Cavali order count; future years remain editable."
+    });
+  }
+}
 
 async function refreshActualsFromSheets({ silent = false } = {}) {
   const sources = STATE.dataSources || {};
   const corroSource = sources.corroDashboard || sources.corro;
   const cavaliSource = sources.cavaliDashboard || sources.cavali;
-  if (!corroSource || !cavaliSource) return;
+
   try {
     updateIndicator("Refreshing actuals…");
-    const [baseCorroBundle, baseCavaliBundle, shopifyJson] = await Promise.all([
-      fetchDashboardBundle(corroSource, "corro"),
-      fetchDashboardBundle(cavaliSource, "cavali"),
-      fetchShopifyActualsJson()
-    ]);
+
+    const shopifyJson = await fetchShopifyActualsJson();
+    let baseCorroBundle = { kpis: [], revenueShare: [], newVsReturning: [], adSpend: [], smartrrProductVolume: [], productsQ1: [] };
+    let baseCavaliBundle = { kpis: [], revenueShare: [], newVsReturning: [], adSpend: [], smartrrProductVolume: [], productsQ1: [] };
+
+    if (corroSource && cavaliSource) {
+      try {
+        [baseCorroBundle, baseCavaliBundle] = await Promise.all([
+          fetchDashboardBundle(corroSource, "corro"),
+          fetchDashboardBundle(cavaliSource, "cavali")
+        ]);
+      } catch (sheetErr) {
+        console.warn("Google Sheets fallback/support data unavailable. Continuing with Shopify JSON if present.", sheetErr);
+        if (!shopifyJson) throw sheetErr;
+      }
+    }
 
     const overlay = overlayShopifyActuals(baseCorroBundle, baseCavaliBundle, shopifyJson);
     const corroBundle = overlay.corroBundle;
@@ -2229,14 +2360,14 @@ async function refreshActualsFromSheets({ silent = false } = {}) {
     renderCommercialCashFlow();
     saveNow();
 
-    const sourceLabel = shopifyJson ? "Shopify sync + Google Sheets support data" : "Google Sheets";
-    const msg = `Actuals refreshed ✓ ${STATE.actuals.corroPeriod || ""}`;
+    const sourceLabel = shopifyJson ? "Shopify sync" : "Google Sheets";
+    const msg = `Actuals refreshed ✓ ${sourceLabel} · ${STATE.actuals.corroPeriod || ""}`;
     updateIndicator(msg);
-    if (!silent) alert(`Actuals connected from ${sourceLabel}.\nCorro: ${STATE.actuals.corroPeriod}\nCavali: ${STATE.actuals.cavaliPeriod}\n\nShopify sync: ${shopifyJson ? "available" : "not generated yet"}\n\nLoaded tabs:\nCorro: ${JSON.stringify(STATE.actuals.sources.corro)}\nCavali: ${JSON.stringify(STATE.actuals.sources.cavali)}\n\nStill needed for full automation: Klaviyo/email revenue and clean QuickBooks shipping/packaging/OPEX. COGS/GM1 remain preserved from Sheets/SKU source until a product-cost Shopify/SKU pipeline is added.`);
+    if (!silent) alert(`Actuals connected from ${sourceLabel}.\nCorro: ${STATE.actuals.corroPeriod}\nCavali: ${STATE.actuals.cavaliPeriod}\n\nShopify sync: ${shopifyJson ? "available" : "not generated yet"}\n\nLoaded sources:\nCorro: ${JSON.stringify(STATE.actuals.sources.corro)}\nCavali: ${JSON.stringify(STATE.actuals.sources.cavali)}\n\nStill needed: Klaviyo/email revenue, SKU/Savy inventory turns/costs, and QuickBooks/ShipStation shipping/packaging/OPEX.`);
   } catch (err) {
     console.error(err);
     updateIndicator("Actuals refresh failed");
-    if (!silent) alert(`Could not refresh actuals: ${err.message}\n\nIf Shopify sync failed, check Actions logs and verify the four Shopify secrets. If Google Sheets failed, make sure both sheets are shared as Viewer with the link and tabs are named kpis_daily, revenue_share, new_vs_returning, ad_spend, and smartrr_product_volume for Cavali.`);
+    if (!silent) alert(`Could not refresh actuals: ${err.message}\n\nIf Shopify sync is enabled, run GitHub Actions and confirm data/shopify_actuals.json is generated.`);
   }
 }
 

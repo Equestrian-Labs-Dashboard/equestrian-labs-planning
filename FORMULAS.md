@@ -139,3 +139,16 @@ AOV = Gross Sales ÷ Orders
 ```
 
 COGS/GM1 are preserved from Google Sheets/SKU source until product-cost automation is added.
+
+
+## Shopify tag/channel mapping v36
+
+Corro Shopify sync classifies order/product tags in this order:
+1. Drop ship
+2. Shopify Collective
+3. Concierge
+4. Wellington
+5. Legacy
+6. e-commerce fallback
+
+These channel rows feed Growth Engines baseline/current. Cavali orders are counted directly from Shopify and Section 3 forecasts use actual orders plus simple +10 placeholders for editable future-year review.
