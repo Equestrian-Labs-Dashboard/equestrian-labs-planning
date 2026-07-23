@@ -2161,9 +2161,9 @@ function applyActualsToState(corroBundle, cavaliBundle) {
   if (cavali && cavaliEngine) {
     ensureCavaliOrdersRow(cavaliEngine);
     setCurrentInRows(cavaliEngine.rows, "Orders", Math.round(cavali.orders).toLocaleString("en-US"));
-    setForecastPlus10(cavaliEngine.rows, "Orders", cavali.orders);
     setCurrentInRows(cavaliEngine.rows, "GM1 %", formatPercent(cavali.gm1));
     setCurrentInRows(cavaliEngine.rows, "Organic Member Growth", formatPercent(cavali.organicGrowth));
+
     if (cavaliAds && cavaliAds.spend) {
       setCurrentInRows(cavaliEngine.rows, "Cavali Ad Spend", formatMoney(cavaliAds.spend));
       setCurrentInRows(cavaliEngine.rows, "Cavali CAC", formatMoney(cavaliAds.cac));
@@ -2171,10 +2171,15 @@ function applyActualsToState(corroBundle, cavaliBundle) {
       setCurrentInRows(cavaliEngine.rows, "Cavali Ad Spend", "No ad_spend rows");
       setCurrentInRows(cavaliEngine.rows, "Cavali CAC", "Needs members/ad source");
     }
+
     if (cavaliMembers.signatureActive || cavaliMembers.premiumActive) {
       setCurrentInRows(cavaliEngine.rows, "Signature Active Members", Math.round(cavaliMembers.signatureActive).toLocaleString("en-US"));
       setCurrentInRows(cavaliEngine.rows, "Premium Active Members", Math.round(cavaliMembers.premiumActive).toLocaleString("en-US"));
     }
+
+    // Fill all 2026 Cavali forecast fields, not only Orders.
+    // Counts use actual +10 placeholder; the remaining assumptions carry current/default values.
+    setCavaliForecastFields(cavaliEngine, cavali, cavaliAds);
   }
 }
 
@@ -2299,6 +2304,61 @@ function setForecastPlus10(rows, driver, baseNumber, formatter = (n) => String(M
   row.y2028 = formatter(base + 30);
   row.y2029 = formatter(base + 40);
 }
+
+function setForecastFromCurrentPlus10(rows, driver, formatter = (n) => String(Math.round(n))) {
+  const row = getRow(rows, driver);
+  if (!row || !Object.keys(row).length) return;
+  const base = parseNumber(row.current);
+  if (!Number.isFinite(base) || base === 0) return;
+  row.y2026 = formatter(base + 10);
+  row.y2027 = formatter(base + 20);
+  row.y2028 = formatter(base + 30);
+  row.y2029 = formatter(base + 40);
+}
+
+function carryCurrentToForecast(rows, driver, fallback = "—") {
+  const row = getRow(rows, driver);
+  if (!row || !Object.keys(row).length) return;
+  const value = !isBlankLike(row.current) ? row.current : fallback;
+  row.y2026 = value;
+  row.y2027 = value;
+  row.y2028 = value;
+  row.y2029 = value;
+}
+
+function setCavaliForecastFields(cavaliEngine, cavali, cavaliAds) {
+  if (!cavaliEngine || !Array.isArray(cavaliEngine.rows)) return;
+  // Counts: actual/current + 10/20/30/40 placeholders, still editable.
+  setForecastPlus10(cavaliEngine.rows, "Orders", cavali ? cavali.orders : parseNumber(getRow(cavaliEngine.rows, "Orders").current));
+  setForecastFromCurrentPlus10(cavaliEngine.rows, "Signature Active Members");
+  setForecastFromCurrentPlus10(cavaliEngine.rows, "Premium Active Members");
+
+  // Operating assumptions: carry actual/current or use sensible editable defaults.
+  carryCurrentToForecast(cavaliEngine.rows, "Signature Boxes per Year", "2");
+  carryCurrentToForecast(cavaliEngine.rows, "Signature Price", "$99");
+  carryCurrentToForecast(cavaliEngine.rows, "Premium Boxes per Year", "2");
+  carryCurrentToForecast(cavaliEngine.rows, "Premium Price", "$199");
+  carryCurrentToForecast(cavaliEngine.rows, "GM1 %", cavali && cavali.gm1 ? formatPercent(cavali.gm1) : "32.1%");
+  carryCurrentToForecast(cavaliEngine.rows, "Organic Member Growth", "10%");
+
+  const adSpendRow = getRow(cavaliEngine.rows, "Cavali Ad Spend");
+  if (adSpendRow && Object.keys(adSpendRow).length) {
+    const spend = cavaliAds && cavaliAds.spend ? formatMoney(cavaliAds.spend) : "$0";
+    adSpendRow.y2026 = spend;
+    adSpendRow.y2027 = spend;
+    adSpendRow.y2028 = spend;
+    adSpendRow.y2029 = spend;
+  }
+  const cacRow = getRow(cavaliEngine.rows, "Cavali CAC");
+  if (cacRow && Object.keys(cacRow).length) {
+    const cac = cavaliAds && cavaliAds.cac ? formatMoney(cavaliAds.cac) : "$100";
+    cacRow.y2026 = cac;
+    cacRow.y2027 = cac;
+    cacRow.y2028 = cac;
+    cacRow.y2029 = cac;
+  }
+}
+
 
 function ensureCavaliOrdersRow(cavaliEngine) {
   if (!cavaliEngine || !Array.isArray(cavaliEngine.rows)) return;

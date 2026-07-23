@@ -3,7 +3,7 @@
     "modelStatus": "Draft",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "v3.9",
+    "version": "v4.0",
     "lastUpdate": "2026-07-11",
     "organicGrowth": "10%",
     "doverCapture": "20%",
@@ -465,7 +465,7 @@
         },
         {
           "driver": "GM1 %",
-          "current": "Actuals pending",
+          "current": "32.1%",
           "y2026": "60%",
           "y2027": "60%",
           "y2028": "60%",
@@ -473,7 +473,7 @@
         },
         {
           "driver": "Organic Member Growth",
-          "current": "Actuals pending",
+          "current": "-33.9%",
           "y2026": "10%",
           "y2027": "10%",
           "y2028": "10%",
@@ -481,7 +481,7 @@
         },
         {
           "driver": "Cavali Ad Spend",
-          "current": "Actuals pending",
+          "current": "No ad_spend rows",
           "y2026": "$0",
           "y2027": "$0",
           "y2028": "$0",
@@ -489,7 +489,7 @@
         },
         {
           "driver": "Cavali CAC",
-          "current": "Actuals pending",
+          "current": "Needs members/ad source",
           "y2026": "$100",
           "y2027": "$100",
           "y2028": "$100",
