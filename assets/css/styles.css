@@ -371,3 +371,18 @@ td.total-row-label { font-weight: 800; color: var(--navy); }
 .qa-card{margin:14px 0;padding:12px;background:#fff;border:1px solid #d8e4f0;border-radius:12px;box-shadow:0 3px 12px rgba(0,0,0,.04);}
 .qa-card h3{margin:0 0 10px;color:var(--navy);font-size:14px;}
 .qa-table td:nth-child(4){white-space:nowrap;color:#173F6B;font-weight:700;}
+
+/* V29 final audit visual rules */
+.negative-value { color: #B85A54 !important; }
+.zero-value { color: #7A8794 !important; }
+.important-row td { background: #F8FBFE; font-weight: 700; }
+.important-row td.calc-cell { color: var(--navy); }
+#tab3PnlTable th:first-child, #tab3PnlTable td:first-child,
+#tab4CashInTable th:first-child, #tab4CashInTable td:first-child,
+#tab4CashOutTable th:first-child, #tab4CashOutTable td:first-child,
+#tab4NetCashTable th:first-child, #tab4NetCashTable td:first-child { width: 36%; }
+#tab3PnlTable td.calc-cell, #tab4CashInTable td.calc-cell, #tab4CashOutTable td.calc-cell, #tab4NetCashTable td.calc-cell { font-style: normal; }
+.section[data-accent="commercial"] .section-header { border-left-color: #548235; }
+.section[data-accent="margin"] .section-header { border-left-color: #7030A0; }
+.section[data-accent="bu"] .section-header { border-left-color: #BF8F00; }
+.section[data-accent="funding"] .section-header { border-left-color: #2E75B6; }

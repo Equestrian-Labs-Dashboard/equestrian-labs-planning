@@ -22,3 +22,15 @@ Added Tab 03 Financial Summary and Tab 04 Commercial Cash Flow as read-only exec
 
 ## Legacy clarification for SKU/Savy
 Legacy classification does not come from this Strategic Model. It must be verified in the SKU/Savy data pipeline/source logic: whether it is Shopify tag/metafield/status, SKU/Savy mapping, collection, product age, or another rule. Do not assume source of truth until the SKU/Savy code or source data is checked.
+
+
+## V29 final audit updates
+- Tab 03 removes “No editable inputs” subtitle noise and uses softer visual hierarchy.
+- Tab 03 Commercial P&L highlights Gross Sales, Net Sales, GP1, GP2, GP3 and EBITDA.
+- Zero values display as — in financial output views; negative values use soft red.
+- Technology is renamed Other Operating Expenses.
+- Operating KPIs use Checkout Abandonment Rate instead of Paid Revenue.
+- Tab 04 Cash Flow now follows commercial cash timing: Shopify Deposits Corro, Shopify Deposits Cavali, Funding and Other Cash Receipts.
+- Cash Out uses Operating Cash Out plus Inventory, Advertising, Shipping & Fulfillment, S&M, G&A, Growth Investments, CapEx, Private Label Investment and Other.
+- Cash Coverage = Ending Cash ÷ Average Monthly Operating Cash Out.
+- Formula QA documents Default Logic (2029 onwards), Constant ROAS assumption, and carryover anti-double-counting rule.
