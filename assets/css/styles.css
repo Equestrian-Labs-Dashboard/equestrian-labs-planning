@@ -898,3 +898,167 @@ body[data-theme="dark"] .cash-bridge-chip.negative { background: rgba(217,87,106
 body[data-theme="dark"] .cash-mini-pill span,
 body[data-theme="dark"] .cash-bridge-subtitle,
 body[data-theme="dark"] .cash-updated { color: #AFC0D8; }
+
+
+/* ============================================================
+   V34 — Refined dark mode palette
+   Serious Corro navy + repeated cobalt accents + readable cash UI
+   ============================================================ */
+body[data-theme="dark"] {
+  --paper: #061225;
+  --white: #0D2442;
+  --border: #244363;
+  --light-blue: #112D55;
+  --navy: #EAF1FF;
+  --navy-ink: #F8FAFF;
+  --muted: #A8B9D2;
+  --corro-blue: #6F92FF;
+  --corro-blue-600: #4F76F6;
+  --corro-blue-100: rgba(111,146,255,.14);
+  --corro-blue-200: rgba(111,146,255,.28);
+  --corro-blue-dark: #EAF1FF;
+  --soft-red: #F08A96;
+  --soft-red-bg: rgba(240,138,150,.11);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(79,118,246,.20), transparent 32%),
+    linear-gradient(180deg, #061225 0%, #081A33 100%);
+  color: #EAF1FF;
+}
+body[data-theme="dark"] .header {
+  background: linear-gradient(135deg, #061225 0%, #0B2850 58%, #123C76 100%);
+  border-bottom: 1px solid rgba(111,146,255,.18);
+}
+body[data-theme="dark"] .scenario-banner,
+body[data-theme="dark"] .section-header {
+  background: linear-gradient(90deg, rgba(111,146,255,.18), rgba(17,45,85,.72));
+  color: #F4F7FF;
+  border-left-color: var(--corro-blue);
+}
+body[data-theme="dark"] .tab-btn {
+  background: rgba(255,255,255,.045);
+  color: #BFD0EA;
+  border-color: rgba(180,205,255,.20);
+}
+body[data-theme="dark"] .tab-btn.active {
+  background: linear-gradient(180deg, #F4F7FF, #DDE8FF);
+  color: #0B1F4D;
+  border-color: transparent;
+}
+body[data-theme="dark"] .action-btn {
+  background: rgba(255,255,255,.07);
+  color: #EAF1FF;
+  border-color: rgba(180,205,255,.22);
+}
+body[data-theme="dark"] .action-btn.primary {
+  background: #FFF4CC;
+  color: #0B1F4D;
+  border-color: #E8D89A;
+}
+body[data-theme="dark"] .theme-toggle {
+  background: rgba(111,146,255,.14);
+  border-color: rgba(111,146,255,.32);
+  color: #EAF1FF;
+}
+body[data-theme="dark"] .kpi-card,
+body[data-theme="dark"] .block-card,
+body[data-theme="dark"] .thesis-card,
+body[data-theme="dark"] .placeholder-card,
+body[data-theme="dark"] table.grid,
+body[data-theme="dark"] .qa-card,
+body[data-theme="dark"] .cash-ui-card,
+body[data-theme="dark"] .cash-lines,
+body[data-theme="dark"] .cash-bridge {
+  background: linear-gradient(180deg, #0D2442 0%, #0A1D37 100%);
+  border-color: rgba(148,176,220,.24);
+  box-shadow: 0 18px 42px rgba(0,0,0,.24);
+}
+body[data-theme="dark"] table.grid th {
+  background: rgba(111,146,255,.12);
+  color: #DDE8FF;
+}
+body[data-theme="dark"] table.grid td {
+  border-bottom-color: rgba(148,176,220,.18);
+}
+body[data-theme="dark"] .cash-ui-card.compact {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(111,146,255,.12), transparent 26%),
+    linear-gradient(180deg, #0D2442 0%, #0A1D37 100%);
+}
+body[data-theme="dark"] .cash-title,
+body[data-theme="dark"] .cash-line-label,
+body[data-theme="dark"] .cash-bridge-title {
+  color: #F5F8FF;
+}
+body[data-theme="dark"] .cash-subtitle,
+body[data-theme="dark"] .cash-hero-label,
+body[data-theme="dark"] .cash-line-value.zero-value,
+body[data-theme="dark"] .cash-hero-pct,
+body[data-theme="dark"] .cash-mini-pill span,
+body[data-theme="dark"] .cash-bridge-chip-label,
+body[data-theme="dark"] .cash-ui-footer,
+body[data-theme="dark"] .cash-updated {
+  color: #A8B9D2 !important;
+}
+body[data-theme="dark"] .cash-accent {
+  background: var(--corro-blue);
+  box-shadow: 0 0 0 5px rgba(111,146,255,.10);
+}
+body[data-theme="dark"] .cash-line {
+  border-bottom-color: rgba(148,176,220,.18);
+}
+body[data-theme="dark"] .cash-line-icon.neutral,
+body[data-theme="dark"] .cash-line-icon.positive {
+  background: rgba(111,146,255,.14);
+  color: #AFC4FF;
+}
+body[data-theme="dark"] .cash-line-icon.negative {
+  background: rgba(240,138,150,.12);
+  color: #F08A96;
+}
+body[data-theme="dark"] .cash-line-value,
+body[data-theme="dark"] .cash-mini-pill strong,
+body[data-theme="dark"] .cash-bridge-chip-value {
+  color: #EAF1FF;
+}
+body[data-theme="dark"] .positive-value,
+body[data-theme="dark"] .cash-line-value.positive-value {
+  color: #AFC4FF !important;
+}
+body[data-theme="dark"] .negative-value,
+body[data-theme="dark"] .cash-line-value.negative-value,
+body[data-theme="dark"] .cash-mini-pill.negative strong {
+  color: #F08A96 !important;
+}
+body[data-theme="dark"] .cash-hero.compact {
+  background:
+    radial-gradient(circle at 90% 95%, rgba(111,146,255,.16), transparent 32%),
+    linear-gradient(145deg, #102C54 0%, #0B213E 100%);
+  border-color: rgba(111,146,255,.36);
+}
+body[data-theme="dark"] .cash-hero-icon {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(111,146,255,.42);
+  color: #AFC4FF;
+}
+body[data-theme="dark"] .cash-hero-value {
+  color: #DDE8FF;
+  text-shadow: 0 0 22px rgba(111,146,255,.12);
+}
+body[data-theme="dark"] .cash-hero-divider,
+body[data-theme="dark"] .cash-footer-sep {
+  background: rgba(148,176,220,.22);
+}
+body[data-theme="dark"] .cash-mini-pill,
+body[data-theme="dark"] .cash-bridge-chip {
+  background: rgba(255,255,255,.045);
+  border-color: rgba(148,176,220,.22);
+}
+body[data-theme="dark"] .cash-bridge-chip.positive {
+  background: rgba(111,146,255,.10);
+}
+body[data-theme="dark"] .cash-bridge-chip.negative {
+  background: rgba(240,138,150,.08);
+}
+body[data-theme="dark"] .cash-pattern {
+  opacity: .16;
+}
