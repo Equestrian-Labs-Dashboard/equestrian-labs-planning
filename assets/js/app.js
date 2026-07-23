@@ -1376,7 +1376,7 @@ function renderFormulaQA() {
   });
   const sourceCard = el("div", { class: "source-status-card" }, [
     el("h3", {}, "Data Source Status"),
-    el("p", {}, "Actuals currently refresh from Google Sheets/dashboard exports. Shopify repository secrets can power the next backend step, but GitHub Pages still cannot read those secrets directly in the browser. To complete automation, add a GitHub Action/API proxy that writes refreshed Shopify actuals for Corro and Cavali into a safe JSON/Sheets layer. Still needed for full automation: ecommerce-only orders, AOV, Gross Sales, Net Sales, GM1, customer mix, plus SKU/Savy inventory turns and QuickBooks/ShipStation operating costs.")
+    el("p", {}, "Actuals refresh from Shopify sync when data/shopify_actuals.json exists, with Google Sheets used as support data for COGS/GM1, product cost, ads, Smartrr and other tables. GitHub Actions reads Shopify secrets safely and writes a token-free JSON for GitHub Pages. Still needed for full automation: product-cost/COGS pipeline, SKU/Savy inventory turns, Klaviyo/email revenue and QuickBooks/ShipStation operating costs.")
   ]);
   root.appendChild(sourceCard);
 
@@ -2146,6 +2146,55 @@ function applyActualsToState(corroBundle, cavaliBundle) {
   }
 }
 
+
+async function fetchShopifyActualsJson() {
+  try {
+    const res = await fetch(`data/shopify_actuals.json?ts=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json && json.brands ? json : null;
+  } catch (err) {
+    console.warn("Shopify actuals JSON not available yet", err);
+    return null;
+  }
+}
+
+function shopifyKpisRows(shopifyJson, brandKey) {
+  return (shopifyJson && shopifyJson.brands && shopifyJson.brands[brandKey] && shopifyJson.brands[brandKey].kpis_daily) || [];
+}
+
+function mergeKpisRows(sheetRows = [], shopifyRows = []) {
+  if (!shopifyRows || !shopifyRows.length) return sheetRows || [];
+  const byPeriod = new Map();
+  (sheetRows || []).forEach(row => byPeriod.set(String(row.period || ""), { ...row }));
+  (shopifyRows || []).forEach(row => {
+    const period = String(row.period || "");
+    if (!period) return;
+    const existing = byPeriod.get(period) || {};
+    // Shopify is the source of truth for order/sales fields.
+    // Preserve COGS/GP/GM from the existing dashboard sheet until a product-cost Shopify/SKU pipeline is added.
+    byPeriod.set(period, {
+      ...existing,
+      ...row,
+      cogs: existing.cogs ?? row.cogs ?? "",
+      gross_profit: existing.gross_profit ?? row.gross_profit ?? "",
+      pct_gm: existing.pct_gm ?? row.pct_gm ?? "",
+      source: "shopify_admin_graphql"
+    });
+  });
+  return [...byPeriod.values()].sort((a, b) => String(a.period || "").localeCompare(String(b.period || "")));
+}
+
+function overlayShopifyActuals(corroBundle, cavaliBundle, shopifyJson) {
+  if (!shopifyJson) return { corroBundle, cavaliBundle, source: "google_sheets" };
+  const corroRows = shopifyKpisRows(shopifyJson, "corro");
+  const cavaliRows = shopifyKpisRows(shopifyJson, "cavali");
+  const nextCorro = { ...corroBundle, kpis: mergeKpisRows(corroBundle.kpis, corroRows) };
+  const nextCavali = { ...cavaliBundle, kpis: mergeKpisRows(cavaliBundle.kpis, cavaliRows) };
+  return { corroBundle: nextCorro, cavaliBundle: nextCavali, source: "shopify_json_overlay" };
+}
+
+
 async function refreshActualsFromSheets({ silent = false } = {}) {
   const sources = STATE.dataSources || {};
   const corroSource = sources.corroDashboard || sources.corro;
@@ -2153,22 +2202,41 @@ async function refreshActualsFromSheets({ silent = false } = {}) {
   if (!corroSource || !cavaliSource) return;
   try {
     updateIndicator("Refreshing actuals…");
-    const [corroBundle, cavaliBundle] = await Promise.all([
+    const [baseCorroBundle, baseCavaliBundle, shopifyJson] = await Promise.all([
       fetchDashboardBundle(corroSource, "corro"),
-      fetchDashboardBundle(cavaliSource, "cavali")
+      fetchDashboardBundle(cavaliSource, "cavali"),
+      fetchShopifyActualsJson()
     ]);
+
+    const overlay = overlayShopifyActuals(baseCorroBundle, baseCavaliBundle, shopifyJson);
+    const corroBundle = overlay.corroBundle;
+    const cavaliBundle = overlay.cavaliBundle;
+
     applyActualsToState(corroBundle, cavaliBundle);
+    if (STATE.actuals) {
+      STATE.actuals.actualsSource = overlay.source;
+      STATE.actuals.shopifySync = shopifyJson ? {
+        generated_at: shopifyJson.generated_at,
+        apiVersion: shopifyJson.apiVersion,
+        corroOrders: shopifyJson.brands?.corro?.orderCount || 0,
+        cavaliOrders: shopifyJson.brands?.cavali?.orderCount || 0
+      } : null;
+    }
+
     renderCommercial();
     renderBusinessUnits();
     renderSheet2Draft();
+    renderCommercialCashFlow();
     saveNow();
+
+    const sourceLabel = shopifyJson ? "Shopify sync + Google Sheets support data" : "Google Sheets";
     const msg = `Actuals refreshed ✓ ${STATE.actuals.corroPeriod || ""}`;
     updateIndicator(msg);
-    if (!silent) alert(`Actuals connected from Google Sheets.\nCorro: ${STATE.actuals.corroPeriod}\nCavali: ${STATE.actuals.cavaliPeriod}\n\nLoaded tabs:\nCorro: ${JSON.stringify(STATE.actuals.sources.corro)}\nCavali: ${JSON.stringify(STATE.actuals.sources.cavali)}\n\nStill needed for full automation: Klaviyo/email revenue and clean QuickBooks shipping/packaging/OPEX. Markup weighted average is read from products_q1_2026 when price/cost/units columns are present.`);
+    if (!silent) alert(`Actuals connected from ${sourceLabel}.\nCorro: ${STATE.actuals.corroPeriod}\nCavali: ${STATE.actuals.cavaliPeriod}\n\nShopify sync: ${shopifyJson ? "available" : "not generated yet"}\n\nLoaded tabs:\nCorro: ${JSON.stringify(STATE.actuals.sources.corro)}\nCavali: ${JSON.stringify(STATE.actuals.sources.cavali)}\n\nStill needed for full automation: Klaviyo/email revenue and clean QuickBooks shipping/packaging/OPEX. COGS/GM1 remain preserved from Sheets/SKU source until a product-cost Shopify/SKU pipeline is added.`);
   } catch (err) {
     console.error(err);
     updateIndicator("Actuals refresh failed");
-    if (!silent) alert(`Could not refresh Google Sheet actuals: ${err.message}\n\nMake sure both Google Sheets are shared as Viewer with the link and tabs are named kpis_daily, revenue_share, new_vs_returning, ad_spend, and smartrr_product_volume for Cavali.`);
+    if (!silent) alert(`Could not refresh actuals: ${err.message}\n\nIf Shopify sync failed, check Actions logs and verify the four Shopify secrets. If Google Sheets failed, make sure both sheets are shared as Viewer with the link and tabs are named kpis_daily, revenue_share, new_vs_returning, ad_spend, and smartrr_product_volume for Cavali.`);
   }
 }
 

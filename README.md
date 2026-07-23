@@ -51,3 +51,25 @@ Legacy classification does not come from this Strategic Model. It must be verifi
 - Light/dark mode toggle in the header: sun for light mode, moon for dark mode.
 - Editable percentage fields keep the `%` symbol visible.
 - Shopify direct API is not exposed in GitHub Pages; actuals refresh through Google Sheets/dashboard outputs until a secure backend/pipeline is connected.
+
+
+## Shopify direct sync
+
+This version includes a secure Shopify sync step in GitHub Actions.
+
+Required repository secrets:
+
+- `SHOPIFY_CORRO_STORE`
+- `SHOPIFY_CORRO_TOKEN`
+- `SHOPIFY_CAVALI_STORE`
+- `SHOPIFY_CAVALI_TOKEN`
+
+The workflow runs `scripts/sync-shopify-actuals.mjs`, calls the Shopify Admin GraphQL API, and writes:
+
+```text
+data/shopify_actuals.json
+```
+
+The browser reads this JSON. Shopify tokens are never exposed in frontend JavaScript.
+
+Important: Shopify sync provides sales/order metrics. COGS/GM1, inventory turns, Klaviyo and QuickBooks/ShipStation still require their respective data sources.

@@ -1106,5 +1106,14 @@
       "new_customers",
       "returning_customers"
     ]
+  },
+  "dataStatus": {
+    "shopifyDirect": "connected through GitHub Actions sync when workflow runs; writes data/shopify_actuals.json",
+    "shopifySecrets": [
+      "SHOPIFY_CORRO_STORE",
+      "SHOPIFY_CORRO_TOKEN",
+      "SHOPIFY_CAVALI_STORE",
+      "SHOPIFY_CAVALI_TOKEN"
+    ]
   }
 }
