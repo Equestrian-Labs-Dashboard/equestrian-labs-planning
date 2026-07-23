@@ -1567,16 +1567,68 @@ function renderCommercialCashFlow() {
     running += net;
     totals[y] = { cashIn, cashOut, net, ending: running };
   });
+  const cashCoverage = totals.y2026.cashOut ? `${Math.max(0, (totals.y2026.ending / (totals.y2026.cashOut / 12))).toFixed(1)} mo` : "—";
+  const minimumBuffer = Number((STATE.cashFlow && STATE.cashFlow.minimumCashBuffer) || 0);
+  const capex = flow.y2026.cashOut["CapEx"] || 0;
+  const endingDelta = totals.y2026.ending - opening;
+  const endingDeltaPct = opening ? endingDelta / opening : 0;
+  const lastUpdated = (STATE.meta && STATE.meta.lastUpdated) || new Date().toISOString().slice(0, 10);
+  const cashRows = [
+    { label: "Opening Cash", value: opening, icon: "wallet", tone: "neutral" },
+    { label: "Cash In", value: totals.y2026.cashIn, icon: "in", tone: "positive" },
+    { label: "Funding", value: flow.y2026.cashIn["Funding"] || 0, icon: "bank", tone: "positive" },
+    { label: "Operating Cash Out", value: -totals.y2026.cashOut, icon: "out", tone: "negative" },
+    { label: "CapEx", value: -capex, icon: "capex", tone: capex ? "negative" : "zero" }
+  ];
+  const iconMarkup = {
+    wallet: "▣",
+    in: "↓",
+    bank: "▥",
+    out: "↑",
+    capex: "▤"
+  };
   kpis.innerHTML = "";
-  [
-    { label: "Opening Cash", value: formatFinancialMoney(opening, {dashZero:true}), sub: "Scenario input" },
-    { label: "Ending Cash", value: formatFinancialMoney(totals.y2026.ending, {dashZero:true}), sub: "2026" },
-    { label: "Net Cash Flow", value: formatFinancialMoney(totals.y2026.net, {dashZero:true}), sub: "2026" },
-    { label: "Cash Coverage", value: totals.y2026.cashOut ? `${Math.max(0, (totals.y2026.ending / (totals.y2026.cashOut / 12))).toFixed(1)} mo` : "—", sub: "Ending Cash / Avg Monthly Operating Cash Out" },
-    { label: "Minimum Cash Buffer", value: formatFinancialMoney((STATE.cashFlow && STATE.cashFlow.minimumCashBuffer) || 0, {dashZero:true}), sub: "Reference" }
-  ].forEach(card => kpis.appendChild(el("div", { class: "kpi-card" }, [
-    el("div", { class: "kpi-label" }, card.label), el("div", { class: "kpi-value" }, card.value), el("div", { class: "kpi-sub" }, card.sub)
-  ])));
+  const card = el("div", { class: "cash-ui-card" }, [
+    el("div", { class: "cash-ui-head" }, [
+      el("div", { class: "cash-title-wrap" }, [
+        el("div", { class: "cash-accent" }),
+        el("div", {}, [
+          el("h3", { class: "cash-title" }, "Cash Summary"),
+          el("p", { class: "cash-subtitle" }, "Commercial Cash Flow")
+        ])
+      ]),
+      el("div", { class: "cash-updated" }, `Updated ${lastUpdated}`)
+    ]),
+    el("div", { class: "cash-ui-body" }, [
+      el("div", { class: "cash-lines" }, cashRows.map(row => {
+        const display = formatFinancialMoney(row.value, { dashZero: true });
+        return el("div", { class: `cash-line ${row.tone}` }, [
+          el("div", { class: `cash-line-icon ${row.tone}` }, iconMarkup[row.icon] || "•"),
+          el("div", { class: "cash-line-label" }, row.label),
+          el("div", { class: moneyClass(display, "cash-line-value") }, display)
+        ]);
+      })),
+      el("div", { class: "cash-hero" }, [
+        el("div", { class: "cash-hero-icon" }, "↗"),
+        el("div", { class: "cash-hero-label" }, "Ending Cash"),
+        el("div", { class: moneyClass(formatFinancialMoney(totals.y2026.ending, {dashZero:true}), "cash-hero-value") }, formatFinancialMoney(totals.y2026.ending, {dashZero:true})),
+        el("div", { class: "cash-hero-divider" }),
+        el("div", { class: "cash-hero-meta" }, [
+          el("span", { class: endingDelta < 0 ? "negative-value" : "positive-value" }, `vs Opening ${formatFinancialMoney(endingDelta, {dashZero:true})}`),
+          el("span", { class: "cash-hero-pct" }, opening ? `(${formatPercent(endingDeltaPct)})` : "")
+        ]),
+        el("div", { class: "cash-pattern" })
+      ])
+    ]),
+    el("div", { class: "cash-ui-footer" }, [
+      el("span", {}, "All figures are in USD"),
+      el("span", { class: "cash-footer-sep" }, ""),
+      el("span", {}, `Cash Coverage: ${cashCoverage}`),
+      el("span", { class: "cash-footer-sep" }, ""),
+      el("span", {}, `Minimum Buffer: ${formatFinancialMoney(minimumBuffer, {dashZero:true})}`)
+    ])
+  ]);
+  kpis.appendChild(card);
   netTable.innerHTML = `<thead><tr><th>Net Cash Flow</th>${years.map(y => `<th>${yearLabel(y)}</th>`).join("")}</tr></thead>`;
   const tbody = el("tbody");
   [
