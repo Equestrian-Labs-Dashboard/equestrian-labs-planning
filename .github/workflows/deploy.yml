@@ -1,9 +1,11 @@
-name: Deploy to GitHub Pages
+name: Sync Actuals and Deploy to GitHub Pages
 
 on:
   push:
     branches: ["main"]
   workflow_dispatch:
+  schedule:
+    - cron: "0 11 * * *"
 
 permissions:
   contents: read
@@ -12,7 +14,7 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -23,6 +25,21 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Sync Shopify actuals
+        env:
+          SHOPIFY_CORRO_STORE: ${{ secrets.SHOPIFY_CORRO_STORE }}
+          SHOPIFY_CORRO_TOKEN: ${{ secrets.SHOPIFY_CORRO_TOKEN }}
+          SHOPIFY_CAVALI_STORE: ${{ secrets.SHOPIFY_CAVALI_STORE }}
+          SHOPIFY_CAVALI_TOKEN: ${{ secrets.SHOPIFY_CAVALI_TOKEN }}
+          SHOPIFY_API_VERSION: "2026-07"
+          SHOPIFY_SYNC_START_DATE: "2024-01-01"
+        run: node scripts/sync-shopify-actuals.mjs
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
