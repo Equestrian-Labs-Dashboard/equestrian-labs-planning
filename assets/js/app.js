@@ -1493,6 +1493,23 @@ function newCustomersForYear(yearKey) {
   return ordersForYear(yearKey) * (mix || 0);
 }
 
+function checkoutAbandonmentRateForYear(yearKey) {
+  const candidates = [
+    STATE?.actuals?.checkoutAbandonmentRate,
+    STATE?.actuals?.shopifySync?.checkoutAbandonmentRate,
+    STATE?.operatingKpis?.checkoutAbandonmentRate,
+    STATE?.financialAssumptions?.checkoutAbandonmentRate
+  ];
+  for (const candidate of candidates) {
+    const value = typeof candidate === "object" && candidate !== null ? candidate[yearKey] : candidate;
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      const parsed = parsePercent(value);
+      if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+    }
+  }
+  return null;
+}
+
 function renderFinancialSummary() {
   const kpiWrap = document.getElementById("tab3KpiGrid");
   const table = document.getElementById("tab3PnlTable");
@@ -1531,14 +1548,14 @@ function renderFinancialSummary() {
     ["GP3", y => bridges[y].gp3, true],
     ["Sales & Marketing (S&M)", y => -pnlOpexForYear(y, bridges[y]).sm],
     ["General & Administrative (G&A)", y => -(pnlOpexForYear(y, bridges[y]).payroll + pnlOpexForYear(y, bridges[y]).ga)],
-    ["Other Operating Expenses", y => -pnlOpexForYear(y, bridges[y]).tech],
+    ["Other Operating Expenses", y => -pnlOpexForYear(y, bridges[y]).tech, false, "money-zero"],
     ["EBITDA", y => bridges[y].gp3 - pnlOpexForYear(y, bridges[y]).total, true],
     ["EBITDA %", y => { const e = bridges[y].gp3 - pnlOpexForYear(y, bridges[y]).total; return bridges[y].netSales ? e / bridges[y].netSales : 0; }, true, "pct"]
   ];
   rows.forEach(([label, fn, bold, type]) => {
     const tr = el("tr", { class: bold ? "important-row" : "" });
     tr.appendChild(el("td", { class: "label-cell" + (bold ? " total-row-label" : "") }, label));
-    years.forEach(y => tr.appendChild(makeCalcCell(type === "pct" ? formatPercent(fn(y)) : formatFinancialMoney(fn(y), {dashZero:true}))));
+    years.forEach(y => tr.appendChild(makeCalcCell(type === "pct" ? formatPercent(fn(y)) : formatFinancialMoney(fn(y), {dashZero:type !== "money-zero"}))));
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
@@ -1550,7 +1567,7 @@ function renderFinancialSummary() {
     { label: "ROAS", value: `${roasForYear("y2026").toFixed(1)}x`, sub: "Scenario assumption" },
     { label: "Ad Spend", value: formatFinancialMoney(totalAdSpendByYear("y2026"), {dashZero:true}), sub: "Advertising" },
     { label: "Net / Gross Ratio", value: formatPercent(b.grossSales ? b.netSales / b.grossSales : 0), sub: "Net Sales / Gross Sales" },
-    { label: "Checkout Abandonment Rate", value: "—", sub: "Shopify KPI" }
+    { label: "Checkout Abandonment Rate", value: checkoutAbandonmentRateForYear("y2026") === null ? "Data unavailable" : formatPercent(checkoutAbandonmentRateForYear("y2026")), sub: checkoutAbandonmentRateForYear("y2026") === null ? "Connect Shopify analytics or set the model assumption" : "Shopify KPI" }
   ].forEach(card => opsWrap.appendChild(el("div", { class: "kpi-card" }, [
     el("div", { class: "kpi-label" }, card.label), el("div", { class: "kpi-value " + moneyClass(card.value, "") }, card.value), el("div", { class: "kpi-sub" }, card.sub)
   ])));
@@ -1586,15 +1603,14 @@ function cashFlowRows(yearKey) {
   const cashOut = {
     "Operating Cash Out": operatingCashOut,
     "Inventory": recurrentInventory,
-    "Advertising": advertising,
     "Shipping & Fulfillment": shipping,
+    "Advertising": advertising,
     "Sales & Marketing (S&M)": sm,
     "General & Administrative (G&A)": ga,
-    "Growth Investments": yearKey === fundingYear ? parseMoney(fundingRow.embroidery) : 0,
-    "CapEx": 0,
-    "Private Label Investment": yearKey === fundingYear ? parseMoney(fundingRow.privateLabel) : 0,
-    "Other Cash Out": 0,
-    "Other": otherOperating
+    "Other Operating Expenses": otherOperating,
+    "Growth Investments": yearKey === fundingYear ? parseMoney(fundingRow.privateLabel) : 0,
+    "CapEx": yearKey === fundingYear ? parseMoney(fundingRow.embroidery) : 0,
+    "Other Cash Out": 0
   };
   return { cashIn, cashOut, operatingCashOut };
 }
@@ -1619,7 +1635,7 @@ function renderCashTable(id, title, rowsByYear, sign = 1) {
     let totalValue;
     if (title.startsWith("Cash Out")) {
       const r = rowsByYear[y];
-      totalValue = (r["Operating Cash Out"] || 0) + (r["Growth Investments"] || 0) + (r["CapEx"] || 0) + (r["Private Label Investment"] || 0) + (r["Other Cash Out"] || 0);
+      totalValue = (r["Operating Cash Out"] || 0) + (r["Growth Investments"] || 0) + (r["CapEx"] || 0) + (r["Other Cash Out"] || 0);
     } else {
       totalValue = Object.values(rowsByYear[y]).reduce((s, v) => s + Number(v || 0), 0);
     }
@@ -1645,10 +1661,10 @@ function renderCommercialCashFlow() {
   const totals = {};
   years.forEach(y => {
     const cashIn = Object.values(cashInRows[y]).reduce((s, v) => s + Number(v || 0), 0);
-    const cashOut = (cashOutRows[y]["Operating Cash Out"] || 0) + (cashOutRows[y]["Growth Investments"] || 0) + (cashOutRows[y]["CapEx"] || 0) + (cashOutRows[y]["Private Label Investment"] || 0) + (cashOutRows[y]["Other Cash Out"] || 0);
+    const cashOut = (cashOutRows[y]["Operating Cash Out"] || 0) + (cashOutRows[y]["Growth Investments"] || 0) + (cashOutRows[y]["CapEx"] || 0) + (cashOutRows[y]["Other Cash Out"] || 0);
     const net = cashIn - cashOut;
     running += net;
-    totals[y] = { cashIn, cashOut, net, ending: running };
+    totals[y] = { cashIn, cashOut, cashOutExCapex: cashOut - (cashOutRows[y]["CapEx"] || 0), net, ending: running };
   });
   const cashCoverage = totals.y2026.cashOut ? `${Math.max(0, (totals.y2026.ending / (totals.y2026.cashOut / 12))).toFixed(1)} mo` : "—";
   const minimumBuffer = Number((STATE.cashFlow && STATE.cashFlow.minimumCashBuffer) || 0);
@@ -1660,7 +1676,7 @@ function renderCommercialCashFlow() {
     { label: "Opening Cash", value: opening, icon: "wallet", tone: "neutral" },
     { label: "Cash In", value: totals.y2026.cashIn, icon: "in", tone: "positive" },
     { label: "Funding", value: flow.y2026.cashIn["Funding"] || 0, icon: "bank", tone: "positive" },
-    { label: "Operating Cash Out", value: -totals.y2026.cashOut, icon: "out", tone: "negative" },
+    { label: "Operating Cash Out", value: -totals.y2026.cashOutExCapex, icon: "out", tone: "negative" },
     { label: "CapEx", value: -capex, icon: "capex", tone: capex ? "negative" : "zero" }
   ];
   const iconMarkup = {
@@ -1684,7 +1700,7 @@ function renderCommercialCashFlow() {
     ]),
     el("div", { class: "cash-ui-body compact-grid" }, [
       el("div", { class: "cash-lines" }, cashRows.map(row => {
-        const display = formatFinancialMoney(row.value, { dashZero: true });
+        const display = formatFinancialMoney(row.value, { dashZero: row.label !== "Opening Cash" });
         return el("div", { class: `cash-line ${row.tone}` }, [
           el("div", { class: `cash-line-icon ${row.tone}` }, iconMarkup[row.icon] || "•"),
           el("div", { class: "cash-line-label" }, row.label),
@@ -1706,7 +1722,7 @@ function renderCommercialCashFlow() {
         ]),
         el("div", { class: "cash-mini-grid" }, [
           el("div", { class: "cash-mini-pill" }, [el("span", {}, "Cash In"), el("strong", {}, formatFinancialMoney(totals.y2026.cashIn, {dashZero:true}))]),
-          el("div", { class: "cash-mini-pill negative" }, [el("span", {}, "Cash Out"), el("strong", {}, formatFinancialMoney(-totals.y2026.cashOut, {dashZero:true}))]),
+          el("div", { class: "cash-mini-pill negative" }, [el("span", {}, "Cash Out"), el("strong", {}, formatFinancialMoney(-totals.y2026.cashOutExCapex, {dashZero:true}))]),
           el("div", { class: "cash-mini-pill" }, [el("span", {}, "Funding"), el("strong", {}, formatFinancialMoney(flow.y2026.cashIn["Funding"] || 0, {dashZero:true}))]),
           el("div", { class: "cash-mini-pill" }, [el("span", {}, "Coverage"), el("strong", {}, cashCoverage)])
         ]),
@@ -1745,16 +1761,16 @@ function renderCommercialCashFlow() {
   ]);
   const bridgeGrid = el("div", { class: "cash-bridge-grid" });
   [
-    ["Opening", opening, "neutral"],
+    ["Opening", opening, "neutral", true],
     ["Cash In", y.cashIn, "positive"],
     ["Funding", flow.y2026.cashIn["Funding"] || 0, "positive"],
-    ["Cash Out", -y.cashOut, "negative"],
+    ["Cash Out", -y.cashOutExCapex, "negative"],
     ["CapEx", -(flow.y2026.cashOut["CapEx"] || 0), (flow.y2026.cashOut["CapEx"] || 0) ? "negative" : "zero"],
     ["Ending", y.ending, y.ending < 0 ? "negative" : "positive"]
-  ].forEach(([label, value, tone]) => {
+  ].forEach(([label, value, tone, showZero]) => {
     const chip = el("div", { class: `cash-bridge-chip ${tone}` }, [
       el("span", { class: "cash-bridge-chip-label" }, label),
-      el("strong", { class: moneyClass(formatFinancialMoney(value, {dashZero:true}), "cash-bridge-chip-value") }, formatFinancialMoney(value, {dashZero:true}))
+      el("strong", { class: moneyClass(formatFinancialMoney(value, {dashZero:!showZero}), "cash-bridge-chip-value") }, formatFinancialMoney(value, {dashZero:!showZero}))
     ]);
     bridgeGrid.appendChild(chip);
   });

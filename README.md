@@ -92,3 +92,14 @@ Cavali Section 3 now fills all baseline/2026 fields, not only Orders. Shopify sy
 - Internal team instructions may be maintained in Spanish outside the client-facing application and production source code.
 - New contributions must preserve this standard.
 
+
+## July 22, 2026 review corrections
+
+- Checkout Abandonment Rate is connected through `STATE.actuals.checkoutAbandonmentRate`, `shopifySync.checkoutAbandonmentRate`, or the model assumption. When no analytics value exists, the card explicitly shows `Data unavailable` instead of a blank dash.
+- Other Operating Expenses displays `$0` when the calculated value is zero.
+- Cash Flow order is Inventory, Shipping & Fulfillment, Advertising, Sales & Marketing, G&A, and Other Operating Expenses.
+- Private Label is classified under Growth Investments.
+- Embroidery Machine is classified under CapEx.
+- Removed the duplicate Private Label Investment and Other rows; only Other Cash Out remains.
+- The Cash Bridge separates Cash Out from CapEx and shows Opening Cash as `$0` when the opening balance is zero.
+- Section accent bars use green for KPI/commercial, purple for financial/margin, yellow for operations/business units, and blue for cash flow/funding where semantically appropriate.
