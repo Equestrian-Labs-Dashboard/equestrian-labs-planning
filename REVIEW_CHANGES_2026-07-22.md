@@ -17,3 +17,14 @@
 
 - A true Shopify Checkout Abandonment Rate requires Shopify analytics data or a maintained model assumption. The current order sync alone cannot calculate it reliably.
 - QuickBooks/ShipStation integration remains pending for operating-cost actuals and cash timing.
+
+## Final cash-flow and Shopify KPI correction
+
+- 2026 Opening Cash is no longer zero by default. It starts at an editable `$100k` assumption.
+- Clicking the Opening Cash value in the Cash Summary lets the user change the 2026 opening balance.
+- Opening Cash for 2027–2029 is calculated from the immediately preceding year's Ending Cash, preserving the cash roll-forward.
+- The Net Cash Flow table now displays Opening Cash for every year.
+- Blank/manual future count assumptions for 2027–2029 default to `100` while remaining editable.
+- The secure GitHub Actions Shopify sync now requests sessions, visitors, pageviews, conversion rate, and checkout conversion rate through ShopifyQL.
+- Checkout Abandonment Rate is calculated as `100% - checkout conversion rate` and is passed into the dashboard JSON.
+- When Shopify does not expose checkout conversion rate for a store or date range, the dashboard continues to show a clear unavailable-data message instead of a false zero.

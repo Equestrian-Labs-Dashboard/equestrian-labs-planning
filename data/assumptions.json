@@ -1071,8 +1071,14 @@
     "note": "Base Ecommerce Revenue = Monthly Ecommerce Run Rate × 12 months. Organic Growth applies only to Base Ecommerce Revenue in V1."
   },
   "cashFlow": {
-    "openingCash": "$0",
-    "minimumCashBuffer": "$250k"
+    "openingCash": "$100k",
+    "minimumCashBuffer": "$250k",
+    "openingCashByYear": {
+      "y2026": "$100k",
+      "y2027": "Prior year ending cash",
+      "y2028": "Prior year ending cash",
+      "y2029": "Prior year ending cash"
+    }
   },
   "smartrr": {
     "status": "API structure planned",

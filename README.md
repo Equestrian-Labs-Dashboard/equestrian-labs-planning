@@ -103,3 +103,13 @@ Cavali Section 3 now fills all baseline/2026 fields, not only Orders. Shopify sy
 - Removed the duplicate Private Label Investment and Other rows; only Other Cash Out remains.
 - The Cash Bridge separates Cash Out from CapEx and shows Opening Cash as `$0` when the opening balance is zero.
 - Section accent bars use green for KPI/commercial, purple for financial/margin, yellow for operations/business units, and blue for cash flow/funding where semantically appropriate.
+
+## Cash roll-forward and checkout KPI
+
+The 2026 Opening Cash assumption defaults to `$100k` and can be edited by clicking its value in the Cash Summary. Each later year's Opening Cash equals the prior year's Ending Cash automatically.
+
+The Shopify sync also requests session metrics through ShopifyQL. When available, Checkout Abandonment Rate is calculated as:
+
+`Checkout Abandonment Rate = 100% - Checkout Conversion Rate`
+
+The GitHub repository must keep the existing Shopify store and access-token secrets configured for the scheduled workflow.

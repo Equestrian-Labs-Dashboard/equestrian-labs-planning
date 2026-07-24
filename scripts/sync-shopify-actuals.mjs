@@ -240,6 +240,83 @@ function aggregateOrders(orders) {
   return { kpis_daily, revenue_share };
 }
 
+
+function parsePercentMetric(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const numeric = Number(String(value).replace("%", "").replaceAll(",", "").trim());
+  if (!Number.isFinite(numeric)) return null;
+  return Math.abs(numeric) <= 1 ? numeric * 100 : numeric;
+}
+
+async function runShopifyQl(store, token, shopifyQl) {
+  const escaped = shopifyQl.replaceAll("\\", "\\\\").replaceAll('"', '\"');
+  const query = `{ shopifyqlQuery(query: "${escaped}") { tableData { rows } parseErrors } }`;
+  const data = await graphql(store, token, query, {});
+  const result = data?.shopifyqlQuery;
+  if (!result || (result.parseErrors || []).length || !result.tableData) return [];
+  const rows = result.tableData.rows;
+  if (Array.isArray(rows)) return rows;
+  if (typeof rows === "string") {
+    try { return JSON.parse(rows); } catch { return []; }
+  }
+  return [];
+}
+
+async function fetchSessionMetrics(storeConfig, period) {
+  const { store, token, label } = storeConfig;
+  if (!store || !token) return null;
+  const start = monthStart(period);
+  const endExclusive = new Date(`${monthEnd(period)}T00:00:00Z`);
+  endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
+  const until = endExclusive.toISOString().slice(0, 10);
+
+  let rows = await runShopifyQl(store, token,
+    `FROM sessions SHOW online_store_visitors, sessions, pageviews, conversion_rate WHERE human_or_bot_session != 'human_bot' SINCE ${start} UNTIL ${until}`
+  );
+  if (!rows.length) {
+    rows = await runShopifyQl(store, token,
+      `FROM sessions SHOW online_store_visitors, sessions, pageviews, conversion_rate SINCE ${start} UNTIL ${until}`
+    );
+  }
+  const base = rows.at(-1) || {};
+
+  let checkoutRows = await runShopifyQl(store, token,
+    `FROM sessions SHOW checkout_conversion_rate WHERE human_or_bot_session != 'human_bot' SINCE ${start} UNTIL ${until}`
+  );
+  if (!checkoutRows.length) {
+    checkoutRows = await runShopifyQl(store, token,
+      `FROM sessions SHOW checkout_conversion_rate SINCE ${start} UNTIL ${until}`
+    );
+  }
+  const checkout = checkoutRows.at(-1) || {};
+  const checkoutConversion = parsePercentMetric(
+    checkout.checkout_conversion_rate ?? checkout.checkoutConversionRate ?? checkout["checkout conversion rate"]
+  );
+  const abandonment = checkoutConversion === null ? "" : round2(Math.max(0, Math.min(100, 100 - checkoutConversion)));
+
+  console.log(`${label} ${period}: sessions=${Number(base.sessions || 0)}, checkout abandonment=${abandonment === "" ? "unavailable" : `${abandonment}%`}`);
+  return {
+    sessions: Number(base.sessions || 0),
+    unique_visitors: Number(base.online_store_visitors || 0),
+    pageviews: Number(base.pageviews || 0),
+    conversion_rate: parsePercentMetric(base.conversion_rate) ?? 0,
+    checkout_abandonment_rate: abandonment,
+  };
+}
+
+async function enrichKpisWithSessionMetrics(storeConfig, rows) {
+  for (const row of rows) {
+    try {
+      const metrics = await fetchSessionMetrics(storeConfig, row.period);
+      if (metrics) Object.assign(row, metrics);
+    } catch (error) {
+      console.warn(`${storeConfig.label} ${row.period}: session metrics unavailable.`, error.message);
+      Object.assign(row, { sessions: 0, unique_visitors: 0, pageviews: 0, conversion_rate: 0, checkout_abandonment_rate: "" });
+    }
+  }
+  return rows;
+}
+
 function totals(rows) {
   return rows.reduce((acc, r) => {
     acc.gross_sales += Number(r.gross_sales || 0);
@@ -258,6 +335,7 @@ async function main() {
   for (const storeConfig of stores) {
     const orders = await fetchOrdersForStore(storeConfig);
     const { kpis_daily, revenue_share } = aggregateOrders(orders);
+    await enrichKpisWithSessionMetrics(storeConfig, kpis_daily);
     brands[storeConfig.brand] = {
       label: storeConfig.label,
       store: normalizeStore(storeConfig.store),
@@ -268,7 +346,7 @@ async function main() {
       revenue_share,
       totals: totals(kpis_daily),
       notes: [
-        "Shopify sync provides sales/orders/units/AOV/discounts/shipping/taxes.",
+        "Shopify sync provides sales, orders, units, AOV, discounts, shipping, taxes, sessions, conversion rate, and checkout abandonment rate when ShopifyQL exposes checkout_conversion_rate.",
         "Corro channels are classified from order/product tags: Drop ship, Shopify Collective, Concierge, Wellington, Legacy, e-commerce.",
         "Cavali orders are counted directly from Shopify; membership fields still depend on Smartrr until Smartrr API is connected.",
         "COGS/GM1 are not overwritten unless a product-cost pipeline is added.",

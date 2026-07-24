@@ -1062,3 +1062,6 @@ body[data-theme="dark"] .cash-bridge-chip.negative {
 body[data-theme="dark"] .cash-pattern {
   opacity: .16;
 }
+
+.editable-cash-value { cursor: pointer; border-bottom: 1px dashed currentColor; }
+.editable-cash-value:hover { opacity: .8; }

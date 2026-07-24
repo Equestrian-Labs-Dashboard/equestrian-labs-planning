@@ -1497,6 +1497,7 @@ function checkoutAbandonmentRateForYear(yearKey) {
   const candidates = [
     STATE?.actuals?.checkoutAbandonmentRate,
     STATE?.actuals?.shopifySync?.checkoutAbandonmentRate,
+    STATE?.actuals?.latestKpis?.checkoutAbandonmentRate,
     STATE?.operatingKpis?.checkoutAbandonmentRate,
     STATE?.financialAssumptions?.checkoutAbandonmentRate
   ];
@@ -1645,6 +1646,19 @@ function renderCashTable(id, title, rowsByYear, sign = 1) {
   table.appendChild(tbody);
 }
 
+function openingCashForYear(yearKey, totalsSoFar = {}) {
+  if (!STATE.cashFlow) STATE.cashFlow = {};
+  const configured = STATE.cashFlow.openingCashByYear || {};
+  if (yearKey === "y2026") {
+    return parseMoney(configured.y2026 || STATE.cashFlow.openingCash || "$100k");
+  }
+  const years = yearKeys();
+  const index = years.indexOf(yearKey);
+  const priorYear = index > 0 ? years[index - 1] : null;
+  if (priorYear && totalsSoFar[priorYear]) return totalsSoFar[priorYear].ending;
+  return parseMoney(configured[yearKey] || 0);
+}
+
 function renderCommercialCashFlow() {
   const kpis = document.getElementById("tab4CashKpis");
   const netTable = document.getElementById("tab4NetCashTable");
@@ -1656,16 +1670,15 @@ function renderCommercialCashFlow() {
   const cashOutRows = Object.fromEntries(years.map(y => [y, flow[y].cashOut]));
   renderCashTable("tab4CashInTable", "Cash In", cashInRows, 1);
   renderCashTable("tab4CashOutTable", "Cash Out", cashOutRows, -1);
-  const opening = parseMoney((STATE.cashFlow && STATE.cashFlow.openingCash) || "$0");
-  let running = opening;
   const totals = {};
   years.forEach(y => {
-    const cashIn = Object.values(cashInRows[y]).reduce((s, v) => s + Number(v || 0), 0);
+    const opening = openingCashForYear(y, totals);
+    const cashIn = Object.values(cashInRows[y]).reduce((sum, value) => sum + Number(value || 0), 0);
     const cashOut = (cashOutRows[y]["Operating Cash Out"] || 0) + (cashOutRows[y]["Growth Investments"] || 0) + (cashOutRows[y]["CapEx"] || 0) + (cashOutRows[y]["Other Cash Out"] || 0);
     const net = cashIn - cashOut;
-    running += net;
-    totals[y] = { cashIn, cashOut, cashOutExCapex: cashOut - (cashOutRows[y]["CapEx"] || 0), net, ending: running };
+    totals[y] = { opening, cashIn, cashOut, cashOutExCapex: cashOut - (cashOutRows[y]["CapEx"] || 0), net, ending: opening + net };
   });
+  const opening = totals.y2026.opening;
   const cashCoverage = totals.y2026.cashOut ? `${Math.max(0, (totals.y2026.ending / (totals.y2026.cashOut / 12))).toFixed(1)} mo` : "—";
   const minimumBuffer = Number((STATE.cashFlow && STATE.cashFlow.minimumCashBuffer) || 0);
   const capex = flow.y2026.cashOut["CapEx"] || 0;
@@ -1738,9 +1751,26 @@ function renderCommercialCashFlow() {
     ])
   ]);
   kpis.appendChild(card);
+  const openingValue = kpis.querySelector(".cash-line.neutral .cash-line-value");
+  if (openingValue) {
+    openingValue.title = "Click to edit 2026 opening cash";
+    openingValue.classList.add("editable-cash-value");
+    openingValue.addEventListener("click", () => {
+      const current = (STATE.cashFlow && (STATE.cashFlow.openingCashByYear?.y2026 || STATE.cashFlow.openingCash)) || "$100k";
+      const next = prompt("Enter 2026 opening cash:", current);
+      if (next === null || !String(next).trim()) return;
+      if (!STATE.cashFlow) STATE.cashFlow = {};
+      if (!STATE.cashFlow.openingCashByYear) STATE.cashFlow.openingCashByYear = {};
+      STATE.cashFlow.openingCashByYear.y2026 = String(next).trim();
+      STATE.cashFlow.openingCash = String(next).trim();
+      renderCommercialCashFlow();
+      scheduleSave();
+    });
+  }
   netTable.innerHTML = `<thead><tr><th>Net Cash Flow</th>${years.map(y => `<th>${yearLabel(y)}</th>`).join("")}</tr></thead>`;
   const tbody = el("tbody");
   [
+    ["OPENING CASH", y => totals[y].opening],
     ["TOTAL CASH IN", y => totals[y].cashIn],
     ["TOTAL CASH OUT", y => -totals[y].cashOut],
     ["NET CASH FLOW", y => totals[y].net],
@@ -2075,6 +2105,17 @@ function applyActualsToState(corroBundle, cavaliBundle) {
     }
   };
 
+  const latestCorroKpi = (corroBundle.kpis || []).slice().sort((a, b) => String(a.period || "").localeCompare(String(b.period || ""))).pop();
+  if (latestCorroKpi) {
+    STATE.actuals.latestKpis = {
+      checkoutAbandonmentRate: latestCorroKpi.checkout_abandonment_rate,
+      conversionRate: latestCorroKpi.conversion_rate,
+      sessions: latestCorroKpi.sessions,
+      uniqueVisitors: latestCorroKpi.unique_visitors,
+      pageviews: latestCorroKpi.pageviews
+    };
+  }
+
   const acq = getBlock(STATE.commercial, "Acquisition");
   const retention = getBlock(STATE.commercial, "Retention");
   const market = getBlock(STATE.commercial, "Market Growth");
@@ -2342,6 +2383,27 @@ function carryCurrentToForecast(rows, driver, fallback = "—") {
   row.y2029 = value;
 }
 
+function applyFutureEditableDefaults() {
+  if (!STATE.cashFlow) STATE.cashFlow = {};
+  if (!STATE.cashFlow.openingCashByYear) STATE.cashFlow.openingCashByYear = {};
+  const currentOpening = parseMoney(STATE.cashFlow.openingCashByYear.y2026 || STATE.cashFlow.openingCash || 0);
+  if (!currentOpening) {
+    STATE.cashFlow.openingCash = "$100k";
+    STATE.cashFlow.openingCashByYear.y2026 = "$100k";
+  }
+  const blocks = [...(STATE.commercial || []), ...(STATE.growthEngines || [])];
+  const futureYears = ["y2027", "y2028", "y2029"];
+  const countDrivers = new Set(["Orders", "Active Clients", "Signature Active Members", "Premium Active Members"]);
+  blocks.forEach(block => (block.rows || []).forEach(row => {
+    if (!countDrivers.has(String(row.driver || ""))) return;
+    futureYears.forEach(year => {
+      if (isBlankLike(row[year]) || /editable|manual forecast|calculated \/ manual/i.test(String(row[year] || ""))) {
+        row[year] = "100";
+      }
+    });
+  }));
+}
+
 function setCavaliForecastFields(cavaliEngine, cavali, cavaliAds) {
   if (!cavaliEngine || !Array.isArray(cavaliEngine.rows)) return;
   // Counts: actual/current + 10/20/30/40 placeholders, still editable.
@@ -2420,6 +2482,7 @@ async function refreshActualsFromSheets({ silent = false } = {}) {
     const cavaliBundle = overlay.cavaliBundle;
 
     applyActualsToState(corroBundle, cavaliBundle);
+    applyFutureEditableDefaults();
     if (STATE.actuals) {
       STATE.actuals.actualsSource = overlay.source;
       STATE.actuals.shopifySync = shopifyJson ? {
@@ -2470,6 +2533,7 @@ function initThemeToggle() {
 async function boot() {
   initThemeToggle();
   STATE = await DataService.load();
+  applyFutureEditableDefaults();
   renderAll();
   refreshActualsFromSheets({ silent: true });
   initTabs();
