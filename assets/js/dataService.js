@@ -1,11 +1,12 @@
 /**
  * DataService
  * -----------
- * Única puerta de entrada/salida de datos del modelo.
- * Hoy: localStorage (edición local) + data/assumptions.json (dataset base).
- * Mañana: reemplazar SOLO el contenido de load()/save() por llamadas a
- * Supabase / Firebase (ambos con free tier) para persistencia multiusuario,
- * sin tocar una sola línea de app.js.
+ * Single data input/output gateway for the model.
+ * Current implementation: localStorage for local edits plus
+ * data/assumptions.json as the baseline dataset.
+ * Future implementation: replace only the internals of load() and save()
+ * with Supabase or Firebase calls for multi-user persistence without
+ * changing app.js.
  */
 const DataService = (() => {
   const STORAGE_KEY = "som_assumptions_v32";
@@ -34,7 +35,7 @@ const DataService = (() => {
       }
     }
     const res = await fetch("data/assumptions.json?v=32", { cache: "no-store" });
-    if (!res.ok) throw new Error("No se pudo cargar data/assumptions.json");
+    if (!res.ok) throw new Error("Failed to load data/assumptions.json");
     return res.json();
   }
 

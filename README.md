@@ -84,3 +84,11 @@ Corro channel splits are derived from Shopify order/product tags: Drop ship, Sho
 
 ## v37 Cavali Section 3 fill
 Cavali Section 3 now fills all baseline/2026 fields, not only Orders. Shopify sync counts Cavali orders; 2026 count placeholders use actual + 10. Member counts also use current + 10, while boxes/year, prices, GM1, ad spend and CAC carry current/default values so formulas can run and future years remain editable.
+
+## Language standard
+
+- All client-facing interface text is written in English.
+- Source code identifiers, comments, console messages, validation messages, and runtime errors are written in English.
+- Internal team instructions may be maintained in Spanish outside the client-facing application and production source code.
+- New contributions must preserve this standard.
+
