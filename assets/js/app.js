@@ -964,8 +964,10 @@ function ecommerceBuild(year) {
       paid = adSpend * roas;
       total = prePaidRevenue + paid;
     } else {
-      // If target percentage is blank/zero, use the funding/base spend fallback.
-      adSpend = baseAdSpendByYear(year) + incrementalAdSpendByYear(year);
+      // Easy Numbers Test / manual override: when the target percentage is blank,
+      // use an explicitly entered Total Ad Spend before falling back to base + funding spend.
+      const manualSpend = totalAdSpendManualOrEditable(year);
+      adSpend = manualSpend || (baseAdSpendByYear(year) + incrementalAdSpendByYear(year));
       paid = adSpend * roas;
       total = prePaidRevenue + paid;
     }
@@ -1017,9 +1019,9 @@ function renderEcommerceRevenueBuild() {
   const years = yearKeys();
   const rows = [
     ["Base Ecommerce Revenue", y => ecommerceBuild(y).base],
-    ["+ Organic Growth", y => ecommerceBuild(y).organic],
-    ["+ Paid Growth Revenue", y => ecommerceBuild(y).paid],
-    ["+ Net Dover Capture", y => ecommerceBuild(y).dover],
+    ["Organic Growth", y => ecommerceBuild(y).organic],
+    ["Paid Growth", y => ecommerceBuild(y).paid],
+    ["Net Dover Capture", y => ecommerceBuild(y).dover],
     ["Total Ecommerce Gross Sales", y => ecommerceBuild(y).total, true]
   ];
   table.innerHTML = `<thead><tr><th>Revenue Components</th>${years.map(y => `<th>${yearLabel(y)}</th>`).join("")}</tr></thead>`;
@@ -1137,9 +1139,9 @@ function renderFinancialSnapshot(year = "y2026") {
     { label: "Gross Sales", value: formatMoney(m.grossSales), sub: yearLabel(year) },
     { label: "Net Sales", value: formatMoney(m.netSales), sub: "After Discounts & Returns" },
     { label: "Net-to-Gross", value: m.grossSales ? formatPercent(m.netSales / m.grossSales) : "—", sub: "Net Sales / Gross Sales" },
-    { label: "Gross Profit 1", value: formatMoney(m.gp1), sub: m.netSales ? `${formatPercent(m.gp1 / m.netSales)} of Net Sales` : "GP1 / Net Sales" },
-    { label: "Gross Profit 2", value: formatMoney(m.gp2), sub: m.netSales ? `${formatPercent(m.gp2 / m.netSales)} of Net Sales` : "GP2 / Net Sales" },
-    { label: "Gross Profit 3", value: formatMoney(m.gp3), sub: m.netSales ? `${formatPercent(m.gp3 / m.netSales)} of Net Sales` : "GP3 / Net Sales" },
+    { label: "GP1", value: formatMoney(m.gp1), sub: m.netSales ? `${formatPercent(m.gp1 / m.netSales)} of Net Sales` : "GP1 / Net Sales" },
+    { label: "GP2", value: formatMoney(m.gp2), sub: m.netSales ? `${formatPercent(m.gp2 / m.netSales)} of Net Sales` : "GP2 / Net Sales" },
+    { label: "GP3", value: formatMoney(m.gp3), sub: m.netSales ? `${formatPercent(m.gp3 / m.netSales)} of Net Sales` : "GP3 / Net Sales" },
   ]);
 }
 
@@ -1237,20 +1239,20 @@ function renderSheet2MarginBridge(year = "y2026") {
     ["Discounts & Returns", m => -m.discountsReturns],
     ["Net Sales", m => m.netSales],
     ["COGS", m => -(m.netSales - m.gp1)],
-    ["Gross Profit 1", m => m.gp1],
+    ["GP1", m => m.gp1],
     ["Outbound Shipping", m => -m.outboundShipping],
     ["Packaging", m => -m.packaging],
     ["Shipping Revenue", m => m.shippingRevenue],
-    ["Gross Profit 2", m => m.gp2],
+    ["GP2", m => m.gp2],
     ["Ad Spend", m => -m.adSpend],
-    ["Gross Profit 3", m => m.gp3],
+    ["GP3", m => m.gp3],
   ];
   const bridges = Object.fromEntries(years.map(y => [y, marginBridge(y)]));
   table.innerHTML = `<thead><tr><th>Stage</th>${years.map(y => `<th>${yearLabel(y)}</th>`).join("")}</tr></thead>`;
   const tbody = el("tbody");
   stages.forEach(([stage, fn]) => {
     const tr = el("tr");
-    const isTotal = ["Net Sales", "Gross Profit 1", "Gross Profit 2", "Gross Profit 3"].includes(stage);
+    const isTotal = ["Net Sales", "GP1", "GP2", "GP3"].includes(stage);
     tr.appendChild(el("td", { class: "label-cell" + (isTotal ? " total-row-label" : "") }, stage));
     years.forEach(y => tr.appendChild(makeCalcCell(formatMoney(fn(bridges[y])))));
     tbody.appendChild(tr);
@@ -1413,7 +1415,30 @@ function loadEasyNumberInputs() {
     const target = getRow(acq.rows, "Target Ad Spend % of Ecommerce Gross Sales"); if (target) { target.y2026="—"; target.y2027="—"; target.y2028="—"; target.y2029="—"; }
     const reinvest = getRow(acq.rows, "2029 Reinvestment %"); if (reinvest) { reinvest.y2029="20%"; }
     const total = getRow(acq.rows, "Total Ad Spend"); if (total) { total.y2026="$100"; total.y2027="$100"; total.y2028="$100"; total.y2029="Calculated"; }
+    const newMix = getRow(acq.rows, "New Customer Mix %"); if (newMix) { newMix.y2026="50%"; }
   }
+  const ecommerce = getBlock(STATE.growthEngines, "Ecommerce");
+  if (ecommerce) {
+    const orders = getRow(ecommerce.rows, "Orders"); if (orders) orders.y2026 = "10";
+    const aov = getRow(ecommerce.rows, "AOV"); if (aov) aov.y2026 = "$100";
+    const gm1 = getRow(ecommerce.rows, "GM1 %"); if (gm1) gm1.y2026 = "50%";
+  }
+  ["Concierge", "Wellington", "Embroidery"].forEach(name => {
+    const engine = getBlock(STATE.growthEngines, name);
+    if (!engine) return;
+    const orders = getRow(engine.rows, name === "Concierge" ? "Active Clients" : "Orders");
+    if (orders) orders.y2026 = "0";
+  });
+  const cavali = getBlock(STATE.growthEngines, "Cavali");
+  if (cavali) {
+    ["Signature Active Members", "Premium Active Members"].forEach(driver => { const row = getRow(cavali.rows, driver); if (row) row.y2026 = "0"; });
+  }
+  const privateLabel = getBlock(STATE.growthEngines, "Private Label");
+  if (privateLabel) { const units = getRow(privateLabel.rows, "Units Sold"); if (units) units.y2026 = "0"; }
+  const dnr = getRow((STATE.purchasing || {}).commercialTerms || [], "Discounts & Returns %"); if (dnr) dnr.y2026 = "10%";
+  const outbound = getRow(STATE.operations || [], "Outbound Shipping Cost %"); if (outbound) outbound.y2026 = "10%";
+  const shippingRevenue = getRow(STATE.operations || [], "Shipping Revenue %"); if (shippingRevenue) shippingRevenue.y2026 = "2%";
+  const packaging = getRow(STATE.operations || [], "Packaging Cost %"); if (packaging) packaging.y2026 = "5%";
   renderAll();
   saveNow();
 }
@@ -1568,7 +1593,7 @@ function renderFinancialSummary() {
     { label: "ROAS", value: `${roasForYear("y2026").toFixed(1)}x`, sub: "Scenario assumption" },
     { label: "Ad Spend", value: formatFinancialMoney(totalAdSpendByYear("y2026"), {dashZero:true}), sub: "Advertising" },
     { label: "Net / Gross Ratio", value: formatPercent(b.grossSales ? b.netSales / b.grossSales : 0), sub: "Net Sales / Gross Sales" },
-    { label: "Checkout Abandonment Rate", value: checkoutAbandonmentRateForYear("y2026") === null ? "Data unavailable" : formatPercent(checkoutAbandonmentRateForYear("y2026")), sub: checkoutAbandonmentRateForYear("y2026") === null ? "Connect Shopify analytics or set the model assumption" : "Shopify KPI" }
+    { label: "Annual GP per Customer", value: computedCommercialValue({ driver: "Annual GP per Customer" }, "y2026") || "—", sub: "AOV × Purchase Frequency × GM1" }
   ].forEach(card => opsWrap.appendChild(el("div", { class: "kpi-card" }, [
     el("div", { class: "kpi-label" }, card.label), el("div", { class: "kpi-value " + moneyClass(card.value, "") }, card.value), el("div", { class: "kpi-sub" }, card.sub)
   ])));
@@ -1662,8 +1687,7 @@ function openingCashForYear(yearKey, totalsSoFar = {}) {
 function renderCommercialCashFlow() {
   const kpis = document.getElementById("tab4CashKpis");
   const netTable = document.getElementById("tab4NetCashTable");
-  const waterfall = document.getElementById("tab4Waterfall");
-  if (!kpis || !netTable || !waterfall) return;
+  if (!kpis || !netTable) return;
   const years = yearKeys();
   const flow = Object.fromEntries(years.map(y => [y, cashFlowRows(y)]));
   const cashInRows = Object.fromEntries(years.map(y => [y, flow[y].cashIn]));
@@ -1782,30 +1806,6 @@ function renderCommercialCashFlow() {
     tbody.appendChild(tr);
   });
   netTable.appendChild(tbody);
-  const y = totals.y2026;
-  waterfall.className = "cash-bridge";
-  waterfall.innerHTML = "";
-  const bridgeHead = el("div", { class: "cash-bridge-head" }, [
-    el("div", { class: "cash-bridge-title" }, "2026 Cash Bridge"),
-    el("div", { class: "cash-bridge-subtitle" }, "Compact reconciliation")
-  ]);
-  const bridgeGrid = el("div", { class: "cash-bridge-grid" });
-  [
-    ["Opening", opening, "neutral", true],
-    ["Cash In", y.cashIn, "positive"],
-    ["Funding", flow.y2026.cashIn["Funding"] || 0, "positive"],
-    ["Cash Out", -y.cashOutExCapex, "negative"],
-    ["CapEx", -(flow.y2026.cashOut["CapEx"] || 0), (flow.y2026.cashOut["CapEx"] || 0) ? "negative" : "zero"],
-    ["Ending", y.ending, y.ending < 0 ? "negative" : "positive"]
-  ].forEach(([label, value, tone, showZero]) => {
-    const chip = el("div", { class: `cash-bridge-chip ${tone}` }, [
-      el("span", { class: "cash-bridge-chip-label" }, label),
-      el("strong", { class: moneyClass(formatFinancialMoney(value, {dashZero:!showZero}), "cash-bridge-chip-value") }, formatFinancialMoney(value, {dashZero:!showZero}))
-    ]);
-    bridgeGrid.appendChild(chip);
-  });
-  waterfall.appendChild(bridgeHead);
-  waterfall.appendChild(bridgeGrid);
 }
 
 function initTabs() {

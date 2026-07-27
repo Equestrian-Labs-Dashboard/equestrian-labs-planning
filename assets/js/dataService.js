@@ -9,8 +9,16 @@
  * changing app.js.
  */
 const DataService = (() => {
-  const STORAGE_KEY = "som_assumptions_v32";
+  const STORAGE_KEY = "som_assumptions_v41";
   const LEGACY_KEYS = [
+    "som_assumptions_v40",
+    "som_assumptions_v39",
+    "som_assumptions_v38",
+    "som_assumptions_v37",
+    "som_assumptions_v36",
+    "som_assumptions_v35",
+    "som_assumptions_v34",
+    "som_assumptions_v33",
     "som_assumptions_v31",
     "som_assumptions_v30",
     "som_assumptions_v29",
@@ -34,7 +42,7 @@ const DataService = (() => {
         } catch (e) { /* try next key */ }
       }
     }
-    const res = await fetch("data/assumptions.json?v=32", { cache: "no-store" });
+    const res = await fetch("data/assumptions.json?v=41", { cache: "no-store" });
     if (!res.ok) throw new Error("Failed to load data/assumptions.json");
     return res.json();
   }

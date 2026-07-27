@@ -380,7 +380,7 @@ td.total-row-label { font-weight: 800; color: var(--navy); }
 #tab3PnlTable th:first-child, #tab3PnlTable td:first-child,
 #tab4CashInTable th:first-child, #tab4CashInTable td:first-child,
 #tab4CashOutTable th:first-child, #tab4CashOutTable td:first-child,
-#tab4NetCashTable th:first-child, #tab4NetCashTable td:first-child { width: 36%; }
+#tab4NetCashTable th:first-child, #tab4NetCashTable td:first-child { width: 31%; }
 #tab3PnlTable td.calc-cell, #tab4CashInTable td.calc-cell, #tab4CashOutTable td.calc-cell, #tab4NetCashTable td.calc-cell { font-style: normal; }
 .section[data-accent="commercial"] .section-header { border-left-color: #548235; }
 .section[data-accent="margin"] .section-header { border-left-color: #7030A0; }
@@ -1065,3 +1065,15 @@ body[data-theme="dark"] .cash-pattern {
 
 .editable-cash-value { cursor: pointer; border-bottom: 1px dashed currentColor; }
 .editable-cash-value:hover { opacity: .8; }
+
+
+/* V41 final freeze — compact concept/year spacing (approximately 15% tighter) */
+#commercialBlocks table.grid th:first-child, #commercialBlocks table.grid td:first-child,
+#engineBlocks table.grid th:first-child, #engineBlocks table.grid td:first-child,
+#ecommerceBuildTable th:first-child, #ecommerceBuildTable td:first-child,
+#sheet2ExecSummaryTable th:first-child, #sheet2ExecSummaryTable td:first-child,
+#sheet2MarginBridgeTable th:first-child, #sheet2MarginBridgeTable td:first-child,
+#tab3PnlTable th:first-child, #tab3PnlTable td:first-child,
+#tab4CashInTable th:first-child, #tab4CashInTable td:first-child,
+#tab4CashOutTable th:first-child, #tab4CashOutTable td:first-child,
+#tab4NetCashTable th:first-child, #tab4NetCashTable td:first-child { width: 31%; }
