@@ -1385,62 +1385,131 @@ function renderFormulaQA() {
   const load = document.getElementById("loadEasyNumbers");
   if (load) load.onclick = loadEasyNumberInputs;
   const restore = document.getElementById("restoreScenarioValues");
-  if (restore) restore.onclick = () => { alert("Scenario values remain saved by Model Status. Use Save/Publish To… after reviewing QA results."); };
+  if (restore) restore.onclick = restoreEasyNumberInputs;
 }
 
 function loadEasyNumberInputs() {
-  if (!confirm("Load simple Easy Numbers Test inputs into Draft? Save your current scenario first if needed.")) return;
+  const message = [
+    "Load Easy Numbers Test assumptions for 2027–2029?",
+    "",
+    "2026 will NOT be changed. Shopify actuals and the current 2026 forecast remain intact.",
+    "All loaded values stay editable in the model."
+  ].join("\n");
+  if (!confirm(message)) return;
   if (!STATE || !STATE.meta) return;
+
+  // Keep a complete in-browser backup so the user can restore the scenario after QA.
+  try {
+    localStorage.setItem("strategicModelEasyTestBackup", JSON.stringify(STATE));
+  } catch (error) {
+    console.warn("Could not save Easy Test backup:", error);
+  }
+
   saveScenarioInputs(STATE.meta.modelStatus || "Draft");
   STATE.meta.modelStatus = "Draft";
-  STATE.meta.baseEcommerceMonthly = "$100";
-  STATE.meta.fundingScenario = "Base";
-  STATE.meta.fundingDate = "Jul-26";
-  STATE.meta.doverCapture = "10%";
-  STATE.meta.roas = "3.0x";
+
+  const testYears = ["y2027", "y2028", "y2029"];
+  const setYears = (row, values) => {
+    if (!row) return;
+    testYears.forEach((year, index) => {
+      row[year] = Array.isArray(values) ? values[index] : values;
+    });
+  };
+
   const market = getBlock(STATE.commercial, "Market Growth");
   if (market) {
-    const og = getRow(market.rows, "Organic Growth %"); if (og) yearKeys().forEach(y => og[y] = "10%");
-    const opp = getRow(market.rows, "Dover Market Opportunity (Gross)"); if (opp) { opp.current = "$1k"; yearKeys().forEach(y => opp[y] = "$1k"); }
-    const cap = getRow(market.rows, "Dover Target Capture %"); if (cap) yearKeys().forEach(y => cap[y] = "10%");
-    const over = getRow(market.rows, "Paid Ads Overlap %"); if (over) yearKeys().forEach(y => over[y] = "20%");
-    market.doverRamp = { y2026:"100%", y2027:"0%", y2028:"0%", y2029:"0%" };
+    setYears(getRow(market.rows, "Organic Growth %"), "10%");
+    setYears(getRow(market.rows, "Dover Market Opportunity (Gross)"), "$1k");
+    setYears(getRow(market.rows, "Dover Target Capture %"), "10%");
+    setYears(getRow(market.rows, "Dover Target Capture % (Gross)"), "10%");
+    setYears(getRow(market.rows, "Paid Ads Overlap %"), "20%");
+    if (!market.doverRamp) market.doverRamp = {};
+    market.doverRamp.y2027 = "100%";
+    market.doverRamp.y2028 = "0%";
+    market.doverRamp.y2029 = "0%";
   }
-  const ret = getBlock(STATE.commercial, "Retention");
-  if (ret) {
-    const c = getRow(ret.rows, "Incremental Revenue Carryover %"); if (c) { c.y2026="0%"; c.y2027="50%"; c.y2028="50%"; c.y2029="—"; }
+
+  const retention = getBlock(STATE.commercial, "Retention");
+  if (retention) {
+    const carryover = getRow(retention.rows, "Incremental Revenue Carryover %");
+    if (carryover) {
+      carryover.y2027 = "50%";
+      carryover.y2028 = "50%";
+      carryover.y2029 = "—";
+    }
+    setYears(getRow(retention.rows, "Purchase Frequency"), ["1.2", "1.2", "1.2"]);
   }
-  const acq = getBlock(STATE.commercial, "Acquisition");
-  if (acq) {
-    const target = getRow(acq.rows, "Target Ad Spend % of Ecommerce Gross Sales"); if (target) { target.y2026="—"; target.y2027="—"; target.y2028="—"; target.y2029="—"; }
-    const reinvest = getRow(acq.rows, "2029 Reinvestment %"); if (reinvest) { reinvest.y2029="20%"; }
-    const total = getRow(acq.rows, "Total Ad Spend"); if (total) { total.y2026="$100"; total.y2027="$100"; total.y2028="$100"; total.y2029="Calculated"; }
-    const newMix = getRow(acq.rows, "New Customer Mix %"); if (newMix) { newMix.y2026="50%"; }
+
+  const acquisition = getBlock(STATE.commercial, "Acquisition");
+  if (acquisition) {
+    setYears(getRow(acquisition.rows, "ROAS"), "3.0x");
+    setYears(getRow(acquisition.rows, "Target Ad Spend % of Ecommerce Gross Sales"), "—");
+    const totalAdSpend = getRow(acquisition.rows, "Total Ad Spend");
+    if (totalAdSpend) {
+      totalAdSpend.y2027 = "$100";
+      totalAdSpend.y2028 = "$100";
+      totalAdSpend.y2029 = "$100";
+    }
+    setYears(getRow(acquisition.rows, "New Customer Mix %"), "50%");
+    const reinvestment = getRow(acquisition.rows, "2029 Reinvestment %");
+    if (reinvestment) reinvestment.y2029 = "20%";
   }
+
   const ecommerce = getBlock(STATE.growthEngines, "Ecommerce");
   if (ecommerce) {
-    const orders = getRow(ecommerce.rows, "Orders"); if (orders) orders.y2026 = "10";
-    const aov = getRow(ecommerce.rows, "AOV"); if (aov) aov.y2026 = "$100";
-    const gm1 = getRow(ecommerce.rows, "GM1 %"); if (gm1) gm1.y2026 = "50%";
+    setYears(getRow(ecommerce.rows, "Orders"), "10");
+    setYears(getRow(ecommerce.rows, "AOV"), "$100");
+    setYears(getRow(ecommerce.rows, "GM1 %"), "50%");
   }
+
   ["Concierge", "Wellington", "Embroidery"].forEach(name => {
     const engine = getBlock(STATE.growthEngines, name);
     if (!engine) return;
-    const orders = getRow(engine.rows, name === "Concierge" ? "Active Clients" : "Orders");
-    if (orders) orders.y2026 = "0";
+    const volumeDriver = name === "Concierge" ? "Active Clients" : "Orders";
+    setYears(getRow(engine.rows, volumeDriver), "0");
   });
+
   const cavali = getBlock(STATE.growthEngines, "Cavali");
   if (cavali) {
-    ["Signature Active Members", "Premium Active Members"].forEach(driver => { const row = getRow(cavali.rows, driver); if (row) row.y2026 = "0"; });
+    setYears(getRow(cavali.rows, "Signature Active Members"), "0");
+    setYears(getRow(cavali.rows, "Premium Active Members"), "0");
   }
+
   const privateLabel = getBlock(STATE.growthEngines, "Private Label");
-  if (privateLabel) { const units = getRow(privateLabel.rows, "Units Sold"); if (units) units.y2026 = "0"; }
-  const dnr = getRow((STATE.purchasing || {}).commercialTerms || [], "Discounts & Returns %"); if (dnr) dnr.y2026 = "10%";
-  const outbound = getRow(STATE.operations || [], "Outbound Shipping Cost %"); if (outbound) outbound.y2026 = "10%";
-  const shippingRevenue = getRow(STATE.operations || [], "Shipping Revenue %"); if (shippingRevenue) shippingRevenue.y2026 = "2%";
-  const packaging = getRow(STATE.operations || [], "Packaging Cost %"); if (packaging) packaging.y2026 = "5%";
+  if (privateLabel) setYears(getRow(privateLabel.rows, "Units Sold"), "0");
+
+  setYears(getRow((STATE.purchasing || {}).commercialTerms || [], "Discounts & Returns %"), "10%");
+  setYears(getRow(STATE.operations || [], "Outbound Shipping Cost %"), "10%");
+  setYears(getRow(STATE.operations || [], "Shipping Revenue %"), "2%");
+  setYears(getRow(STATE.operations || [], "Packaging Cost %"), "5%");
+
   renderAll();
   saveNow();
+  alert("Easy Numbers Test loaded for 2027–2029. 2026 Shopify actuals were preserved. All test inputs remain editable.");
+}
+
+function restoreEasyNumberInputs() {
+  let backup = null;
+  try {
+    backup = localStorage.getItem("strategicModelEasyTestBackup");
+  } catch (error) {
+    console.warn("Could not read Easy Test backup:", error);
+  }
+  if (!backup) {
+    alert("No Easy Test backup was found. The current scenario has not been changed.");
+    return;
+  }
+  if (!confirm("Restore the scenario values saved immediately before loading the Easy Test?")) return;
+  try {
+    STATE = JSON.parse(backup);
+    localStorage.removeItem("strategicModelEasyTestBackup");
+    renderAll();
+    saveNow();
+    alert("Scenario values restored successfully.");
+  } catch (error) {
+    console.error("Could not restore Easy Test backup:", error);
+    alert("The saved backup could not be restored.");
+  }
 }
 
 function parseTriggerAmount(trigger) {

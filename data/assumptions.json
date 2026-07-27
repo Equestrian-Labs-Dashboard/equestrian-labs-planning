@@ -1,14 +1,14 @@
 {
   "meta": {
     "modelStatus": "Draft",
-    "fundingScenario": "Base $0",
-    "fundingDate": "Aug-26",
-    "version": "v4.1 Easy Test",
+    "fundingScenario": "$3M",
+    "fundingDate": "Oct-26",
+    "version": "v4.2",
     "lastUpdate": "2026-07-26",
     "organicGrowth": "10%",
-    "doverCapture": "10%",
-    "roas": "3.0x",
-    "baseEcommerceMonthly": "$100",
+    "doverCapture": "20%",
+    "roas": "4.0x",
+    "baseEcommerceMonthly": "$70k",
     "actualsThroughMonth": 6
   },
   "lists": {
@@ -148,7 +148,7 @@
         {
           "driver": "Total Ad Spend",
           "current": "Calculated / editable 2029",
-          "y2026": "$100",
+          "y2026": "Calculated",
           "y2027": "Calculated",
           "y2028": "Calculated",
           "y2029": "Calculated",
@@ -172,7 +172,7 @@
         {
           "driver": "ROAS",
           "current": "YTD avg pending",
-          "y2026": "3.0x",
+          "y2026": "4.0x",
           "y2027": "",
           "y2028": "",
           "y2029": ""
@@ -180,7 +180,7 @@
         {
           "driver": "Target Ad Spend % of Ecommerce Gross Sales",
           "current": "20%",
-          "y2026": "—",
+          "y2026": "20%",
           "y2027": "20%",
           "y2028": "20%",
           "y2029": "—",
@@ -221,7 +221,7 @@
         {
           "driver": "New Customer Mix %",
           "current": "YTD avg pending",
-          "y2026": "50%",
+          "y2026": "",
           "y2027": "",
           "y2028": "",
           "y2029": ""
@@ -296,37 +296,37 @@
         },
         {
           "driver": "Dover Market Opportunity (Gross)",
-          "current": "$1k",
-          "y2026": "$1k",
-          "y2027": "$1k",
-          "y2028": "$1k",
-          "y2029": "$1k",
+          "current": "$130M",
+          "y2026": "$130M",
+          "y2027": "$130M",
+          "y2028": "$130M",
+          "y2029": "$130M",
           "note": "Gross market opportunity before paid ads overlap."
         },
         {
           "driver": "Dover Target Capture % (Gross)",
           "current": "N/A",
-          "y2026": "10%",
-          "y2027": "10%",
-          "y2028": "10%",
-          "y2029": "10%",
+          "y2026": "20%",
+          "y2027": "20%",
+          "y2028": "20%",
+          "y2029": "20%",
           "note": "Scenario target capture applied across forecast years; dollar output is gross before overlap."
         },
         {
           "driver": "Paid Ads Overlap %",
           "current": "N/A",
-          "y2026": "20%",
-          "y2027": "20%",
-          "y2028": "20%",
-          "y2029": "20%",
+          "y2026": "30%",
+          "y2027": "30%",
+          "y2028": "30%",
+          "y2029": "30%",
           "note": "Prevents double counting Dover revenue that is already influenced by paid ads."
         }
       ],
       "doverRamp": {
-        "y2026": "100%",
-        "y2027": "0%",
-        "y2028": "0%",
-        "y2029": "0%"
+        "y2026": "5%",
+        "y2027": "55%",
+        "y2028": "25%",
+        "y2029": "15%"
       }
     }
   ],
@@ -338,7 +338,7 @@
         {
           "driver": "Orders",
           "current": "Actuals pending",
-          "y2026": "10",
+          "y2026": "Forecast from Shopify/Stacks",
           "y2027": "Calculated / manual",
           "y2028": "Calculated / manual",
           "y2029": "Calculated / manual",
@@ -347,7 +347,7 @@
         {
           "driver": "AOV",
           "current": "Actuals pending",
-          "y2026": "$100",
+          "y2026": "Forecast from Shopify",
           "y2027": "Manual forecast",
           "y2028": "Manual forecast",
           "y2029": "Manual forecast",
@@ -356,7 +356,7 @@
         {
           "driver": "GM1 %",
           "current": "Actuals pending",
-          "y2026": "50%",
+          "y2026": "30.5%",
           "y2027": "30.5%",
           "y2028": "30.5%",
           "y2029": "30.5%",
@@ -370,7 +370,7 @@
         {
           "driver": "Active Clients",
           "current": "Actuals pending",
-          "y2026": "0",
+          "y2026": "10",
           "y2027": "12",
           "y2028": "15",
           "y2029": "18"
@@ -417,7 +417,7 @@
         {
           "driver": "Signature Active Members",
           "current": "84",
-          "y2026": "0",
+          "y2026": "100",
           "y2027": "200",
           "y2028": "300",
           "y2029": "400",
@@ -442,7 +442,7 @@
         {
           "driver": "Premium Active Members",
           "current": "—",
-          "y2026": "0",
+          "y2026": "10",
           "y2027": "20",
           "y2028": "30",
           "y2029": "40"
@@ -503,7 +503,7 @@
         {
           "driver": "Orders",
           "current": "Actuals pending",
-          "y2026": "0",
+          "y2026": "10",
           "y2027": "12",
           "y2028": "14",
           "y2029": "16"
@@ -533,7 +533,7 @@
         {
           "driver": "Orders",
           "current": "—",
-          "y2026": "0",
+          "y2026": "10",
           "y2027": "10",
           "y2028": "10",
           "y2029": "10"
@@ -617,7 +617,7 @@
       {
         "driver": "Discounts & Returns %",
         "current": "17%",
-        "y2026": "10%",
+        "y2026": "16%",
         "y2027": "16%",
         "y2028": "16%",
         "y2029": "16%",
@@ -645,7 +645,7 @@
     {
       "driver": "Outbound Shipping Cost %",
       "current": "Manual / ShipStation or QuickBooks pending",
-      "y2026": "10%",
+      "y2026": "0%",
       "y2027": "0%",
       "y2028": "0%",
       "y2029": "0%",
@@ -654,7 +654,7 @@
     {
       "driver": "Shipping Revenue %",
       "current": "Manual / Shopify pending",
-      "y2026": "2%",
+      "y2026": "0%",
       "y2027": "0%",
       "y2028": "0%",
       "y2029": "0%"
@@ -662,7 +662,7 @@
     {
       "driver": "Packaging Cost %",
       "current": "Manual pending",
-      "y2026": "5%",
+      "y2026": "0%",
       "y2027": "0%",
       "y2028": "0%",
       "y2029": "0%"
@@ -1071,14 +1071,8 @@
     "note": "Base Ecommerce Revenue = Monthly Ecommerce Run Rate × 12 months. Organic Growth applies only to Base Ecommerce Revenue in V1."
   },
   "cashFlow": {
-    "openingCash": "$100k",
-    "minimumCashBuffer": "$250k",
-    "openingCashByYear": {
-      "y2026": "$100k",
-      "y2027": "Prior year ending cash",
-      "y2028": "Prior year ending cash",
-      "y2029": "Prior year ending cash"
-    }
+    "openingCash": "$0",
+    "minimumCashBuffer": "$250k"
   },
   "smartrr": {
     "status": "API structure planned",
@@ -1132,29 +1126,12 @@
     ],
     "shopifySync": "connected via GitHub Actions to data/shopify_actuals.json when workflow runs"
   },
-  "operatingKpis": {
-    "checkoutAbandonmentRate": ""
-  },
   "easyNumbersTest": {
     "status": "READY FOR MONDAY REVIEW",
-    "savedWithoutResultOverrides": true,
-    "expected2026": {
-      "baseEcommerceRevenue": 1200,
-      "organicGrowthRevenue": 120,
-      "paidGrowthRevenue": 300,
-      "netDoverCapture": 80,
-      "totalEcommerceGrossSales": 1700,
-      "discountsAndReturns": 170,
-      "netSales": 1530,
-      "cogs": 765,
-      "gp1": 765,
-      "outboundShipping": 153,
-      "packaging": 76.5,
-      "shippingRevenue": 30.6,
-      "gp2": 566.1,
-      "adSpend": 100,
-      "gp3": 466.1,
-      "annualGpPerCustomer": 60
-    }
+    "scope": "2027-2029 only",
+    "preserve2026ShopifyActuals": true,
+    "editableInputs": true,
+    "backupAndRestoreEnabled": true,
+    "note": "The Load Easy Test button applies simple assumptions only to 2027-2029. It does not overwrite 2026 actuals or the current Shopify-based 2026 forecast."
   }
 }
