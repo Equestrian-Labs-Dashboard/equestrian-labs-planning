@@ -105,19 +105,75 @@ query OrdersForActuals($cursor: String, $query: String!) {
   }
 }`;
 
-async function graphql(store, token, query, variables) {
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function retryDelayMs(attempt, retryAfterHeader = "") {
+  const retryAfter = Number(retryAfterHeader);
+  if (Number.isFinite(retryAfter) && retryAfter > 0) return retryAfter * 1000;
+  const exponential = Math.min(60000, 1000 * (2 ** attempt));
+  const jitter = Math.floor(Math.random() * 750);
+  return exponential + jitter;
+}
+
+function isRetryableNetworkError(error) {
+  const code = error?.cause?.code || error?.code || "";
+  return ["ECONNRESET", "ETIMEDOUT", "ECONNREFUSED", "EAI_AGAIN", "ENOTFOUND", "UND_ERR_CONNECT_TIMEOUT", "UND_ERR_HEADERS_TIMEOUT", "UND_ERR_SOCKET"].includes(code)
+    || /fetch failed|network|socket|timeout/i.test(String(error?.message || ""));
+}
+
+async function graphql(store, token, query, variables, options = {}) {
   const endpoint = `https://${normalizeStore(store)}/admin/api/${API_VERSION}/graphql.json`;
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
-    body: JSON.stringify({ query, variables }),
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || json.errors) {
-    const detail = JSON.stringify(json.errors || json, null, 2).slice(0, 2000);
-    throw new Error(`Shopify GraphQL failed for ${store}: HTTP ${res.status}. ${detail}`);
+  const maxRetries = Number(options.maxRetries ?? 8);
+  const timeoutMs = Number(options.timeoutMs ?? 90000);
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Access-Token": token,
+          "User-Agent": "Equestrian-Labs-Strategic-Model/1.0",
+        },
+        body: JSON.stringify({ query, variables }),
+        signal: controller.signal,
+      });
+
+      const json = await res.json().catch(() => ({}));
+      const retryableStatus = res.status === 429 || [500, 502, 503, 504].includes(res.status);
+
+      if (retryableStatus && attempt < maxRetries) {
+        const waitMs = retryDelayMs(attempt, res.headers.get("retry-after") || "");
+        console.warn(`Shopify GraphQL HTTP ${res.status} for ${store}. Retry ${attempt + 1}/${maxRetries} in ${(waitMs / 1000).toFixed(1)}s.`);
+        await sleep(waitMs);
+        continue;
+      }
+
+      if (!res.ok || json.errors) {
+        const detail = JSON.stringify(json.errors || json, null, 2).slice(0, 2000);
+        throw new Error(`Shopify GraphQL failed for ${store}: HTTP ${res.status}. ${detail}`);
+      }
+
+      return json.data;
+    } catch (error) {
+      lastError = error;
+      const retryable = error?.name === "AbortError" || isRetryableNetworkError(error);
+      if (!retryable || attempt >= maxRetries) throw error;
+
+      const waitMs = retryDelayMs(attempt);
+      const code = error?.cause?.code || error?.code || error?.name || "NETWORK_ERROR";
+      console.warn(`Shopify GraphQL ${code} for ${store}. Retry ${attempt + 1}/${maxRetries} in ${(waitMs / 1000).toFixed(1)}s.`);
+      await sleep(waitMs);
+    } finally {
+      clearTimeout(timeout);
+    }
   }
-  return json.data;
+
+  throw lastError || new Error(`Shopify GraphQL failed for ${store} after retries.`);
 }
 
 async function fetchOrdersForStore(storeConfig) {
@@ -137,6 +193,10 @@ async function fetchOrdersForStore(storeConfig) {
     orders.push(...(conn.nodes || []));
     cursor = conn.pageInfo.hasNextPage ? conn.pageInfo.endCursor : null;
     console.log(`${label}: fetched page ${page}, total orders ${orders.length}`);
+
+    // Small pause reduces the chance of long-running syncs being disconnected
+    // after dozens of consecutive GraphQL requests.
+    if (cursor) await sleep(page % 20 === 0 ? 1500 : 200);
   } while (cursor);
   return orders;
 }
