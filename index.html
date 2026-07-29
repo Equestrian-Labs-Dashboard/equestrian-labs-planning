@@ -6,7 +6,7 @@
 <title>Equestrian Labs · Strategic Operating Model</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/styles.css?v=100" />
+<link rel="stylesheet" href="assets/css/styles.css?v=110" />
 </head>
 <body>
 
@@ -42,12 +42,17 @@
 
 <main class="wrap">
   <section class="tab-panel active" id="tab-01">
-    <section class="dashboard-display" aria-label="Dashboard Display">
-      <div class="dashboard-display-title">Dashboard Display</div>
-      <div class="dashboard-display-field"><label for="modelStatus">Scenario</label><select id="modelStatus"></select></div>
-      <div class="dashboard-display-field"><label for="displayYear">Display Year</label><select id="displayYear"></select></div>
-      <div class="dashboard-display-note">All KPI Cards show the closing forecast for the selected year.</div>
-      <div class="dashboard-inputs" aria-label="Magic Page model inputs">
+    <section class="magic-control-panel" aria-label="Magic Page controls">
+      <div class="display-control-row">
+        <div class="display-control-heading">
+          <span class="display-control-kicker">Dashboard Display</span>
+          <span class="display-control-note">All KPI Cards show the closing forecast for the selected year.</span>
+        </div>
+        <div class="dashboard-display-field compact-field"><label for="modelStatus">Scenario</label><select id="modelStatus"></select></div>
+        <div class="dashboard-display-field compact-field"><label for="displayYear">Display Year</label><select id="displayYear"></select></div>
+      </div>
+
+      <div class="assumption-control-row" aria-label="Magic Page model inputs">
         <div class="dashboard-display-field"><label for="fundingScenario">Funding Scenario</label><select id="fundingScenario"></select></div>
         <div class="dashboard-display-field"><label for="fundingDate">Funding Date</label><select id="fundingDate"></select></div>
         <div class="dashboard-display-field"><label for="baseEcommerce">Base Ecommerce</label><input id="baseEcommerce" /></div>
@@ -55,12 +60,15 @@
         <div class="dashboard-display-field"><label for="roas">ROAS</label><select id="roas"></select></div>
         <div class="dashboard-display-field"><label for="lastUpdate">Last Updated</label><input id="lastUpdate" /></div>
       </div>
+
       <details class="validation-tools">
         <summary>Validation tools</summary>
-        <p>Loads simple editable assumptions for 2027–2029 only. Shopify actuals and the 2026 forecast are preserved.</p>
-        <div class="qa-actions">
-          <button class="action-btn primary" id="loadEasyNumbers">Load Easy Test (2027–2029)</button>
-          <button class="action-btn" id="restoreScenarioValues">Restore Previous Values</button>
+        <div class="validation-tools-body">
+          <p>Loads simple editable assumptions for 2027–2029 only. Shopify actuals and the 2026 forecast are preserved.</p>
+          <div class="qa-actions">
+            <button class="action-btn primary" id="loadEasyNumbers">Load Easy Test (2027–2029)</button>
+            <button class="action-btn" id="restoreScenarioValues">Restore Previous Values</button>
+          </div>
         </div>
       </details>
     </section>
@@ -196,10 +204,9 @@
     </section>
   </section>
 
-  </section>
 </main>
 
-<script src="assets/js/dataService.js?v=100"></script>
-<script src="assets/js/app.js?v=100"></script>
+<script src="assets/js/dataService.js?v=110"></script>
+<script src="assets/js/app.js?v=110"></script>
 </body>
 </html>

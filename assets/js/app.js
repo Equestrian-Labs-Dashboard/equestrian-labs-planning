@@ -265,7 +265,8 @@ function renderHeader() {
   document.getElementById("doverCapture").innerHTML = optionList(lists.doverCapture || ["5%", "10%", "15%", "20%", "30%"], meta.doverCapture);
   document.getElementById("roas").innerHTML = optionList(lists.roas || ["3.0x", "3.5x", "4.0x"], meta.roas);
   document.getElementById("lastUpdate").value = meta.lastUpdate;
-  document.getElementById("versionBadge").textContent = String(meta.version || "1.0").startsWith("v") ? String(meta.version || "v1.0") : `v${meta.version || "1.0"}`;
+  meta.version = "1.0";
+  document.getElementById("versionBadge").textContent = "v1.0";
 
   document.getElementById("modelStatus").onchange = e => switchModelStatus(e.target.value);
   document.getElementById("displayYear").onchange = e => {

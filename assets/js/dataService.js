@@ -42,7 +42,7 @@ const DataService = (() => {
         } catch (e) { /* try next key */ }
       }
     }
-    const res = await fetch("data/assumptions.json?v=41", { cache: "no-store" });
+    const res = await fetch("data/assumptions.json?v=110", { cache: "no-store" });
     if (!res.ok) throw new Error("Failed to load data/assumptions.json");
     return res.json();
   }
