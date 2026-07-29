@@ -3,13 +3,14 @@
     "modelStatus": "Draft",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "v4.2",
-    "lastUpdate": "2026-07-26",
+    "version": "1.0",
+    "lastUpdate": "2026-07-28",
     "organicGrowth": "10%",
     "doverCapture": "20%",
     "roas": "4.0x",
     "baseEcommerceMonthly": "$70k",
-    "actualsThroughMonth": 6
+    "actualsThroughMonth": 6,
+    "displayYear": "2026"
   },
   "lists": {
     "modelStatus": [
@@ -42,6 +43,12 @@
       "3.0x",
       "3.5x",
       "4.0x"
+    ],
+    "displayYear": [
+      "2026",
+      "2027",
+      "2028",
+      "2029"
     ]
   },
   "funding": [
@@ -114,7 +121,7 @@
   ],
   "commercial": [
     {
-      "title": "Acquisition Strategy — Emma",
+      "title": "Acquisition Strategy \u2014 Emma",
       "rows": [
         {
           "driver": "Base Ad Spend",
@@ -136,7 +143,7 @@
           "y2026": "Calculated",
           "y2027": "Calculated",
           "y2028": "Calculated",
-          "y2029": "—",
+          "y2029": "\u2014",
           "calculated": [
             "y2026",
             "y2027",
@@ -158,16 +165,16 @@
             "y2028",
             "y2029"
           ],
-          "note": "2026–2028 calculated from Target Ad Spend % of Ecommerce Gross Sales. 2029 default uses prior-year Ecommerce Gross Sales × Reinvestment %. "
+          "note": "2026\u20132028 calculated from Target Ad Spend % of Ecommerce Gross Sales. 2029 default uses prior-year Ecommerce Gross Sales \u00d7 Reinvestment %. "
         },
         {
           "driver": "2029 Reinvestment %",
           "current": "Management input",
-          "y2026": "—",
-          "y2027": "—",
-          "y2028": "—",
+          "y2026": "\u2014",
+          "y2027": "\u2014",
+          "y2028": "\u2014",
           "y2029": "20%",
-          "note": "Default Logic (2029 onwards): Prior Year Ecommerce Gross Sales × Reinvestment %."
+          "note": "Default Logic (2029 onwards): Prior Year Ecommerce Gross Sales \u00d7 Reinvestment %."
         },
         {
           "driver": "ROAS",
@@ -183,11 +190,11 @@
           "y2026": "20%",
           "y2027": "20%",
           "y2028": "20%",
-          "y2029": "—",
+          "y2029": "\u2014",
           "calculated": [
             "y2029"
           ],
-          "note": "Input for 2026–2028. Formula solves the circular relationship: Ecommerce Gross Sales = pre-paid revenue / (1 - Ad Spend % × ROAS). 2029 is calculated from editable Total Ad Spend."
+          "note": "Input for 2026\u20132028. Formula solves the circular relationship: Ecommerce Gross Sales = pre-paid revenue / (1 - Ad Spend % \u00d7 ROAS). 2029 is calculated from editable Total Ad Spend."
         },
         {
           "driver": "Ad Spend % of Ecommerce Gross Sales",
@@ -229,7 +236,7 @@
       ]
     },
     {
-      "title": "Retention Strategy — Berna",
+      "title": "Retention Strategy \u2014 Berna",
       "rows": [
         {
           "driver": "Returning Customers %",
@@ -241,12 +248,12 @@
         },
         {
           "driver": "Incremental Revenue Carryover %",
-          "current": "—",
+          "current": "\u2014",
           "y2026": "0%",
           "y2027": "50%",
           "y2028": "50%",
-          "y2029": "—",
-          "note": "Carryover applies only once when calculating the following year’s Base Ecommerce Revenue. Applies to Organic Growth + Paid Growth Revenue + Net Dover Capture."
+          "y2029": "\u2014",
+          "note": "Carryover applies only once when calculating the following year\u2019s Base Ecommerce Revenue. Applies to Organic Growth + Paid Growth Revenue + Net Dover Capture."
         },
         {
           "driver": "Purchase Frequency",
@@ -278,7 +285,7 @@
             "y2028",
             "y2029"
           ],
-          "note": "AOV × Purchase Frequency × GM1%, all from the same business population."
+          "note": "AOV \u00d7 Purchase Frequency \u00d7 GM1%, all from the same business population."
         }
       ]
     },
@@ -332,7 +339,7 @@
   ],
   "growthEngines": [
     {
-      "title": "Ecommerce — Emma",
+      "title": "Ecommerce \u2014 Emma",
       "note": "Revenue = Base + Organic + Paid + Dover",
       "rows": [
         {
@@ -365,7 +372,7 @@
       ]
     },
     {
-      "title": "Concierge — Nicole",
+      "title": "Concierge \u2014 Nicole",
       "rows": [
         {
           "driver": "Active Clients",
@@ -402,7 +409,7 @@
       ]
     },
     {
-      "title": "Cavali — Angela",
+      "title": "Cavali \u2014 Angela",
       "note": "",
       "rows": [
         {
@@ -441,7 +448,7 @@
         },
         {
           "driver": "Premium Active Members",
-          "current": "—",
+          "current": "\u2014",
           "y2026": "10",
           "y2027": "20",
           "y2028": "30",
@@ -449,7 +456,7 @@
         },
         {
           "driver": "Premium Boxes per Year",
-          "current": "—",
+          "current": "\u2014",
           "y2026": "2",
           "y2027": "2",
           "y2028": "2",
@@ -498,7 +505,7 @@
       ]
     },
     {
-      "title": "Wellington — Nicole",
+      "title": "Wellington \u2014 Nicole",
       "rows": [
         {
           "driver": "Orders",
@@ -527,12 +534,12 @@
       ]
     },
     {
-      "title": "Embroidery — Tatum",
-      "status": "🔒 Locked below $1M funding",
+      "title": "Embroidery \u2014 Tatum",
+      "status": "\ud83d\udd12 Locked below $1M funding",
       "rows": [
         {
           "driver": "Orders",
-          "current": "—",
+          "current": "\u2014",
           "y2026": "10",
           "y2027": "10",
           "y2028": "10",
@@ -540,7 +547,7 @@
         },
         {
           "driver": "AOV",
-          "current": "—",
+          "current": "\u2014",
           "y2026": "$0",
           "y2027": "$15",
           "y2028": "$20",
@@ -548,7 +555,7 @@
         },
         {
           "driver": "GM1 %",
-          "current": "—",
+          "current": "\u2014",
           "y2026": "60%",
           "y2027": "60%",
           "y2028": "60%",
@@ -557,12 +564,12 @@
       ]
     },
     {
-      "title": "Private Label — Tatum",
-      "status": "🔒 Locked below $3M funding",
+      "title": "Private Label \u2014 Tatum",
+      "status": "\ud83d\udd12 Locked below $3M funding",
       "rows": [
         {
           "driver": "Units Sold",
-          "current": "—",
+          "current": "\u2014",
           "y2026": "0",
           "y2027": "100",
           "y2028": "1,000",
@@ -571,7 +578,7 @@
         },
         {
           "driver": "Average Selling Price",
-          "current": "—",
+          "current": "\u2014",
           "y2026": "$0",
           "y2027": "$10",
           "y2028": "$10",
@@ -579,7 +586,7 @@
         },
         {
           "driver": "GM1 %",
-          "current": "—",
+          "current": "\u2014",
           "y2026": "70%",
           "y2027": "70%",
           "y2028": "70%",
@@ -621,7 +628,7 @@
         "y2027": "16%",
         "y2028": "16%",
         "y2029": "16%",
-        "note": "Commercial Economics — authorized by Tatum"
+        "note": "Commercial Economics \u2014 authorized by Tatum"
       }
     ],
     "vendorMix": {
@@ -697,7 +704,7 @@
     {
       "initiative": "Cavali Paid Growth",
       "owner": "Angela / Marketing",
-      "trigger": "≥$1M",
+      "trigger": "\u2265$1M",
       "status": "Active",
       "launch": "Oct-26",
       "investment": "Scenario"
@@ -705,7 +712,7 @@
     {
       "initiative": "Embroidery",
       "owner": "Tatum",
-      "trigger": "≥$1M",
+      "trigger": "\u2265$1M",
       "status": "Active",
       "launch": "Oct-26",
       "investment": "$50k"
@@ -713,7 +720,7 @@
     {
       "initiative": "Private Label",
       "owner": "Tatum",
-      "trigger": "≥$3M",
+      "trigger": "\u2265$3M",
       "status": "Active",
       "launch": "Oct-27",
       "investment": "Phased / TBD"
@@ -721,7 +728,7 @@
     {
       "initiative": "Market Expansion",
       "owner": "Leadership",
-      "trigger": "≥$5M",
+      "trigger": "\u2265$5M",
       "status": "Locked",
       "launch": "Jan-27",
       "investment": "TBD"
@@ -776,7 +783,7 @@
       },
       {
         "line": "Net Sales",
-        "source": "Gross Sales − Discounts & Returns",
+        "source": "Gross Sales \u2212 Discounts & Returns",
         "current": "",
         "y2026": "",
         "y2027": "",
@@ -794,7 +801,7 @@
       },
       {
         "line": "GM1",
-        "source": "Net Sales − COGS",
+        "source": "Net Sales \u2212 COGS",
         "current": "",
         "y2026": "",
         "y2027": "",
@@ -812,7 +819,7 @@
       },
       {
         "line": "GM2",
-        "source": "GM1 − Total Shipping Expenses",
+        "source": "GM1 \u2212 Total Shipping Expenses",
         "current": "",
         "y2026": "",
         "y2027": "",
@@ -830,7 +837,7 @@
       },
       {
         "line": "GM3",
-        "source": "GM2 − Ad Spend",
+        "source": "GM2 \u2212 Ad Spend",
         "current": "",
         "y2026": "",
         "y2027": "",
@@ -839,7 +846,7 @@
       },
       {
         "line": "EBITDA",
-        "source": "GM3 − Operating Costs",
+        "source": "GM3 \u2212 Operating Costs",
         "current": "",
         "y2026": "",
         "y2027": "",
@@ -870,7 +877,7 @@
       },
       {
         "item": "GP1 by engine",
-        "status": "connected using Engine Net Sales × GM1%",
+        "status": "connected using Engine Net Sales \u00d7 GM1%",
         "needed": "Discounts & Returns % applied before GM1; later can vary by engine if needed"
       },
       {
@@ -901,7 +908,7 @@
       {
         "item": "V16 Paid Growth Revenue",
         "status": "connected",
-        "needed": "Paid growth now uses Base Ad Spend + Incremental Ad Spend × ROAS, so revenue is not zero in years without funding-driven incremental spend."
+        "needed": "Paid growth now uses Base Ad Spend + Incremental Ad Spend \u00d7 ROAS, so revenue is not zero in years without funding-driven incremental spend."
       }
     ]
   },
@@ -1029,7 +1036,7 @@
     },
     {
       "item": "GP1 by engine",
-      "status": "connected using Gross Sales × GM1%",
+      "status": "connected using Gross Sales \u00d7 GM1%",
       "needed": "Approved GM1% per engine"
     },
     {
@@ -1068,7 +1075,7 @@
   ],
   "ecommerceBuild": {
     "normalizedMonthlyRunRate": "$70k",
-    "note": "Base Ecommerce Revenue = Monthly Ecommerce Run Rate × 12 months. Organic Growth applies only to Base Ecommerce Revenue in V1."
+    "note": "Base Ecommerce Revenue = Monthly Ecommerce Run Rate \u00d7 12 months. Organic Growth applies only to Base Ecommerce Revenue in V1."
   },
   "cashFlow": {
     "openingCash": "$0",
@@ -1098,7 +1105,7 @@
     "Carryover applies only once when calculating the following year Base Ecommerce Revenue; do not re-add prior carryover downstream.",
     "GM1 must always be defined on Net Sales, not Gross Sales.",
     "Annual GP per Customer uses AOV, Purchase Frequency and GM1 from the same business population.",
-    "2029 Default Logic onwards: Prior Year Ecommerce Gross Sales × Reinvestment %.",
+    "2029 Default Logic onwards: Prior Year Ecommerce Gross Sales \u00d7 Reinvestment %.",
     "Paid Growth Revenue: Revenue influenced by paid media. Assumes constant ROAS during selected fiscal year."
   ],
   "dataConnections": {

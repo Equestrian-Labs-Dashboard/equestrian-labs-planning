@@ -1,3 +1,14 @@
+# Strategic Operating Model v1.0 Freeze Candidate (v4.3)
+
+## Freeze implementation — 2026-07-28
+- Magic Page contains the only Dashboard Display controls: Scenario and Display Year.
+- Display Year supports 2026–2029 and controls every KPI-card block in Tabs 1–4.
+- Every KPI card states its period as `Forecast YYYY`; years are never mixed in one card block.
+- Returning Customers % and Incremental Revenue Carryover % are read directly from the Magic Page Retention Strategy rows. They are not hardcoded in output cards.
+- Tabs 2–4 remain calculated outputs with no manual inputs.
+- Tabs 5–6 are hidden for this freeze and remain next-phase scope.
+- Shopify actuals continue to populate 2026; changing Display Year only changes the view and never overwrites 2026 actuals.
+
 # Strategic Operating Model v3.6
 
 Includes Page 1 Magic Page + Page 2 Growth & Margin Engine with Easy Numbers Test formula alignment.
