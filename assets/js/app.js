@@ -553,6 +553,26 @@ function addMonths(dateObj, monthsToAdd) {
   return { year: d.getFullYear(), month: d.getMonth() };
 }
 
+function selectedFundingDate() {
+  const row = selectedFundingRow() || {};
+  return monthIndexFromFundingDate(STATE.meta.fundingDate || row.date || "");
+}
+function yearFromKey(yearKey) { return Number(String(yearKey || "").replace("y", "")); }
+function activeMonthsInYear(startDate, yearKey) {
+  const year = yearFromKey(yearKey);
+  if (!startDate || !year || year < startDate.year) return 0;
+  if (year > startDate.year) return 12;
+  return Math.max(0, 12 - startDate.month);
+}
+function annualLaunchFactor(startDate, yearKey) { return activeMonthsInYear(startDate, yearKey) / 12; }
+function embroideryLaunchStart() { const d = selectedFundingDate(); return d ? addMonths(d, 3) : null; }
+function privateLabelLaunchStart() { const d = selectedFundingDate(); return d ? addMonths(d, 15) : null; }
+function launchFactorForEngine(title, yearKey) {
+  if (String(title || "").startsWith("Embroidery")) return annualLaunchFactor(embroideryLaunchStart(), yearKey);
+  if (String(title || "").startsWith("Private Label")) return annualLaunchFactor(privateLabelLaunchStart(), yearKey);
+  return 1;
+}
+
 function monthsBetweenInclusive(start, end) {
   if (!start || !end) return [];
   const out = [];
@@ -622,24 +642,10 @@ function roasForYear(yearKey) {
   return parseMultiple(val(acq ? acq.rows : [], "ROAS", yearKey) || STATE.meta.roas || "0x");
 }
 
-function totalAdSpendByYear(yearKey) {
-  // 2029 is intentionally editable. In the current $3M scenario, funding-driven
-  // incremental marketing ends in 2028, so management chooses reinvestment for 2029.
-  // 2026–2028 are calculated from Target Ad Spend % of Ecommerce Gross Sales.
-  if (yearKey === "y2029") return totalAdSpendManualOrEditable(yearKey);
-  return ecommerceBuild(yearKey).adSpend;
-}
-
-function privateLabelLaunchStart() {
-  const fundingDate = monthIndexFromFundingDate(STATE.meta.fundingDate || (selectedFundingRow() || {}).date);
-  return fundingDate ? addMonths(fundingDate, 12) : null;
-}
+function totalAdSpendByYear(yearKey) { return ecommerceBuild(yearKey).adSpend; }
 
 function privateLabelRevenueActiveForYear(yearKey) {
-  const year = Number(String(yearKey).replace("y", ""));
-  const launch = privateLabelLaunchStart();
-  if (!year || !launch) return false;
-  return year > launch.year || (year === launch.year && launch.month <= 11);
+  return launchFactorForEngine("Private Label", yearKey) > 0;
 }
 
 function computedCommercialValue(row, key) {
@@ -763,6 +769,8 @@ function engineGrossAndGp(engine, year) {
   if (title.startsWith("Private Label") && active && !privateLabelRevenueActiveForYear(year)) return { gross: 0, gp1: 0, gm1: 0, active: true, note: "Active gate; pending launch" };
 
   if (!active) return { gross: 0, gp1: 0, gm1: 0, active: false, note: "Locked by funding gate" };
+  const launchFactor = launchFactorForEngine(title, year);
+  if ((title.startsWith("Embroidery") || title.startsWith("Private Label")) && launchFactor <= 0) return { gross: 0, gp1: 0, gm1: 0, active: true, note: "Pending funding-driven launch" };
 
   if (title.startsWith("Ecommerce")) {
     const build = ecommerceBuild(year);
@@ -777,7 +785,7 @@ function engineGrossAndGp(engine, year) {
     const orders = parseNumber(val(rows, "Orders", year));
     const aov = parseMoney(val(rows, "AOV", year));
     const gm1 = parsePercent(val(rows, "GM1 %", year));
-    gross = orders * aov;
+    gross = orders * aov * launchFactor;
     gp1 = engineGp1FromGross(gross, gm1, year);
     note = "Orders × AOV";
     if (!gross) { const fallback = actualEngineFallback(title, active); if (fallback) return fallback; }
@@ -821,7 +829,7 @@ function engineGrossAndGp(engine, year) {
     const units = parseNumber(val(rows, "Units Sold", year));
     const asp = parseMoney(val(rows, "Average Selling Price", year));
     const gm1 = parsePercent(val(rows, "GM1 %", year));
-    gross = units * asp;
+    gross = units * asp * launchFactor;
     gp1 = engineGp1FromGross(gross, gm1, year);
     note = "Units × ASP";
     if (!gross) { const fallback = actualEngineFallback(title, active); if (fallback) return fallback; }
@@ -891,10 +899,23 @@ function currentDoverTargetPct(year) {
   return parsePercent(v || STATE.meta.doverCapture || "20%");
 }
 
-function doverRampPct(year) {
+function doverRampPct(yearKey) {
   const market = getBlock(STATE.commercial, "Market Growth");
-  const ramp = market && market.doverRamp ? market.doverRamp[year] : "0%";
-  return parsePercent(ramp);
+  const configured = market && market.doverRamp ? market.doverRamp : {};
+  const selected = selectedFundingDate();
+  const baseline = { year: 2026, month: 9 };
+  const targetYear = yearFromKey(yearKey);
+  if (!selected || !targetYear) return parsePercent(configured[yearKey] || "0%");
+  const shift = (selected.year - baseline.year) * 12 + selected.month - baseline.month;
+  let total = 0;
+  yearKeys().forEach(sourceKey => {
+    const sourceYear = yearFromKey(sourceKey), pct = parsePercent(configured[sourceKey] || "0%");
+    for (let month = 0; month < 12; month += 1) {
+      const shifted = addMonths({year: sourceYear, month}, shift);
+      if (shifted.year === targetYear) total += pct / 12;
+    }
+  });
+  return total;
 }
 
 function paidAdsOverlapPct(year) {
@@ -973,36 +994,14 @@ function ecommerceBuild(year) {
   let total = prePaidRevenue;
   let warning = "";
 
-  if (year === "y2029") {
-    // 2029 Default Logic onwards: prior-year Ecommerce Gross Sales × Reinvestment %, then ROAS creates paid growth revenue.
-    adSpend = totalAdSpendManualOrEditable(year);
-    paid = adSpend * roas;
-    total = prePaidRevenue + paid;
-  } else {
-    // 2026–2028: solve the circular relationship exactly.
-    // Total Ecommerce Gross Sales = prePaidRevenue + (Total Ecommerce Gross Sales × Ad Spend % × ROAS)
-    // => Total Ecommerce Gross Sales = prePaidRevenue / (1 - Ad Spend % × ROAS)
-    const pct = targetAdSpendPct(year);
-    const multiplier = pct * roas;
-    if (pct > 0 && multiplier < 1) {
-      total = prePaidRevenue / (1 - multiplier);
-      adSpend = total * pct;
-      paid = adSpend * roas;
-    } else if (pct > 0 && multiplier >= 1) {
-      warning = "Ad Spend % × ROAS must be below 100%";
-      // Conservative fallback so the page never breaks.
-      adSpend = baseAdSpendByYear(year) + incrementalAdSpendByYear(year);
-      paid = adSpend * roas;
-      total = prePaidRevenue + paid;
-    } else {
-      // Easy Numbers Test / manual override: when the target percentage is blank,
-      // use an explicitly entered Total Ad Spend before falling back to base + funding spend.
-      const manualSpend = totalAdSpendManualOrEditable(year);
-      adSpend = manualSpend || (baseAdSpendByYear(year) + incrementalAdSpendByYear(year));
-      paid = adSpend * roas;
-      total = prePaidRevenue + paid;
-    }
+  const manualSpend = totalAdSpendManualOrEditable(year);
+  if (year === "y2029" && manualSpend > 0) adSpend = manualSpend;
+  else {
+    adSpend = baseAdSpendByYear(year) + incrementalAdSpendByYear(year);
+    if (manualSpend > 0) adSpend = manualSpend;
   }
+  paid = adSpend * roas;
+  total = prePaidRevenue + paid;
 
   return { base, organic, paid, dover, total, adSpend, roas, warning };
 }
@@ -1101,6 +1100,8 @@ function engineGrossAndGp(engine, year) {
   if (title.startsWith("Private Label") && fundingAmountSelected() < 3000000) active = false;
   if (title.startsWith("Private Label") && active && !privateLabelRevenueActiveForYear(year)) return { gross: 0, gp1: 0, gm1: 0, active: true, note: "Active gate; pending launch" };
   if (!active) return { gross: 0, gp1: 0, gm1: 0, active: false, note: "Locked by funding gate" };
+  const launchFactor = launchFactorForEngine(title, year);
+  if ((title.startsWith("Embroidery") || title.startsWith("Private Label")) && launchFactor <= 0) return { gross: 0, gp1: 0, gm1: 0, active: true, note: "Pending funding-driven launch" };
 
   if (title.startsWith("Ecommerce")) {
     gross = ecommerceBuild(year).total;
@@ -1110,8 +1111,8 @@ function engineGrossAndGp(engine, year) {
     const orders = parseNumber(val(rows, "Orders", year));
     const aov = parseMoney(val(rows, "AOV", year));
     gm1 = parsePercent(val(rows, "GM1 %", year));
-    gross = orders * aov;
-    note = "Orders × AOV";
+    gross = orders * aov * launchFactor;
+    note = launchFactor < 1 ? `Orders × AOV × ${Math.round(launchFactor * 12)}/12 active months` : "Orders × AOV";
   } else if (title.startsWith("Concierge")) {
     const clients = parseNumber(val(rows, "Active Clients", year));
     const ordersPerClient = parseNumber(val(rows, "Orders per Client", year));
@@ -1141,8 +1142,8 @@ function engineGrossAndGp(engine, year) {
     const units = parseNumber(val(rows, "Units Sold", year));
     const asp = parseMoney(val(rows, "Average Selling Price", year));
     gm1 = parsePercent(val(rows, "GM1 %", year));
-    gross = units * asp;
-    note = "Units × ASP";
+    gross = units * asp * launchFactor;
+    note = launchFactor < 1 ? `Units × ASP × ${Math.round(launchFactor * 12)}/12 active months` : "Units × ASP";
   }
 
   if (!gross) {
@@ -1706,8 +1707,8 @@ function renderFinancialSummary() {
 function cashFlowRows(yearKey) {
   const outputs = engineOutputs(yearKey);
   const fundingRow = selectedFundingRow();
-  const fundingDate = String(fundingRow.date || STATE.meta.fundingDate || "");
-  const fundingYear = fundingDate.includes("27") ? "y2027" : "y2026";
+  const fundingDateObj = selectedFundingDate();
+  const fundingYear = fundingDateObj ? `y${fundingDateObj.year}` : "y2026";
   const funding = yearKey === fundingYear ? fundingAmountSelected() : 0;
   const ecommerce = (outputs.find(x => x.engine === "Ecommerce") || {}).gross || 0;
   const concierge = (outputs.find(x => x.engine === "Concierge") || {}).gross || 0;
@@ -2105,7 +2106,8 @@ function latestRowsByPeriodStart(rows) {
 
 function smartrrMembershipActuals(rows) {
   const latestRows = latestRowsByPeriodStart(rows);
-  const out = { signatureActive: 0, premiumActive: 0, signatureNew: 0, premiumNew: 0 };
+  const out = { signatureActive: 0, premiumActive: 0, signatureNew: 0, premiumNew: 0, legacyMembershipActive: 0 };
+  const migrationEffective = new Date() >= new Date("2026-08-01T00:00:00Z");
   latestRows.forEach(r => {
     const key = normalizeProductKey(r.product_variant || r.product || "");
     const active = parseNumber(r.active_subscribers_current);
@@ -2116,6 +2118,9 @@ function smartrrMembershipActuals(rows) {
     } else if (key === "premium") {
       out.premiumActive += active;
       out.premiumNew += newer;
+    } else if (/membership/i.test(String(r.product_variant || r.product || ""))) {
+      out.legacyMembershipActive += active;
+      if (migrationEffective) { out.signatureActive += active; out.signatureNew += newer; }
     }
   });
   return out;
