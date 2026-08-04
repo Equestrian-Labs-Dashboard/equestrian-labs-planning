@@ -300,7 +300,7 @@ function renderHeader() {
   document.getElementById("roas").innerHTML = optionList(lists.roas || ["3.0x", "3.5x", "4.0x"], meta.roas);
   document.getElementById("lastUpdate").value = meta.lastUpdate;
   meta.version = "1.2";
-  document.getElementById("versionBadge").textContent = "v1.2";
+  document.getElementById("versionBadge").textContent = "v2.0";
 
   document.getElementById("modelStatus").onchange = e => switchModelStatus(e.target.value);
   document.getElementById("displayYear").onchange = e => {
@@ -1670,7 +1670,8 @@ function renderFinancialSummary() {
     { label: "ROAS", value: `${roasForYear(year).toFixed(1)}x`, sub: forecastPeriod("Scenario assumption") },
     { label: "Ad Spend", value: formatFinancialMoney(totalAdSpendByYear(year), {dashZero:true}), sub: forecastPeriod("Advertising") },
     { label: "Net / Gross Ratio", value: formatPercent(b.grossSales ? b.netSales / b.grossSales : 0), sub: forecastPeriod("Net Sales / Gross Sales") },
-    { label: "Annual GP per Customer", value: computedCommercialValue({ driver: "Annual GP per Customer" }, year) || "—", sub: forecastPeriod("AOV × Purchase Frequency × GM1") }
+    { label: "Annual GP per Customer", value: computedCommercialValue({ driver: "Annual GP per Customer" }, year) || "—", sub: forecastPeriod("AOV × Purchase Frequency × GM1") },
+    { label: "Checkout Abandonment Rate", value: checkoutAbandonmentRateForYear(year) === null ? "Data unavailable" : formatPercent(checkoutAbandonmentRateForYear(year)), sub: forecastPeriod("100% − Checkout Conversion Rate") }
   ].forEach(card => opsWrap.appendChild(el("div", { class: "kpi-card" }, [
     el("div", { class: "kpi-label" }, card.label), el("div", { class: "kpi-value " + moneyClass(card.value, "") }, card.value), el("div", { class: "kpi-sub" }, card.sub)
   ])));
@@ -1724,9 +1725,9 @@ function renderCashTable(id, title, rowsByYear, sign = 1) {
   const years = yearKeys();
   table.innerHTML = `<thead><tr><th>${title}</th>${years.map(y => `<th>${yearLabel(y)}</th>`).join("")}</tr></thead>`;
   const tbody = el("tbody");
-  const rowNames = Object.keys(rowsByYear.y2026 || {});
+  const rowNames = Object.keys(rowsByYear.y2026 || {}).filter(name => name !== "Operating Cash Out");
   rowNames.forEach(name => {
-    const isSubtotal = name === "Operating Cash Out";
+    const isSubtotal = false;
     const tr = el("tr", { class: isSubtotal ? "important-row" : "" });
     tr.appendChild(el("td", { class: "label-cell" + (isSubtotal ? " total-row-label" : "") }, name));
     years.forEach(y => tr.appendChild(makeCalcCell(formatFinancialMoney((rowsByYear[y][name] || 0) * sign, {dashZero:true}))));
@@ -1738,7 +1739,9 @@ function renderCashTable(id, title, rowsByYear, sign = 1) {
     let totalValue;
     if (title.startsWith("Cash Out")) {
       const r = rowsByYear[y];
-      totalValue = (r["Operating Cash Out"] || 0) + (r["Growth Investments"] || 0) + (r["CapEx"] || 0) + (r["Other Cash Out"] || 0);
+      totalValue = Object.entries(r)
+        .filter(([name]) => name !== "Operating Cash Out")
+        .reduce((sum, [, value]) => sum + Number(value || 0), 0);
     } else {
       totalValue = Object.values(rowsByYear[y]).reduce((s, v) => s + Number(v || 0), 0);
     }
@@ -2255,8 +2258,10 @@ function alignForecastDefaultsToActuals() {
 
   if (STATE.purchasing) {
     seedForecastYearsFromCurrent(STATE.purchasing.commercialTerms || [], "Markup %");
+    const markup = getRow(STATE.purchasing.commercialTerms || [], "Markup %");
+    if (markup && !isBlankLike(markup.current) && (isBlankLike(markup.y2026) || String(markup.y2026).trim() === "10%")) markup.y2026 = markup.current;
     const turns = getRow(STATE.purchasing.capitalEfficiency || [], "Inventory Turns");
-    if (turns && !isBlankLike(turns.current) && (isBlankLike(turns.y2026) || String(turns.y2026).trim() === "0.20x")) turns.y2026 = turns.current;
+    if (turns && !isBlankLike(turns.current) && (isBlankLike(turns.y2026) || ["0.20x", "0.2x"].includes(String(turns.y2026).trim()))) turns.y2026 = turns.current;
   }
 }
 
@@ -2686,7 +2691,7 @@ function setCavaliForecastFields(cavaliEngine, cavali, cavaliAds) {
   if (cavali) setCurrentInRows(cavaliEngine.rows, "Orders", Math.round(cavali.orders || 0).toLocaleString("en-US"));
   if (cavaliAds) {
     setCurrentInRows(cavaliEngine.rows, "Cavali Ad Spend", formatMoney(cavaliAds.spend || 0));
-    setCurrentInRows(cavaliEngine.rows, "Cavali CAC", cavaliAds.cac ? formatMoney(cavaliAds.cac) : "—");
+    setCurrentInRows(cavaliEngine.rows, "Cavali CAC", cavaliAds.cac ? formatMoney(cavaliAds.cac) : "Data unavailable");
   }
 }
 
@@ -2772,7 +2777,7 @@ async function refreshActualsFromSheets({ silent = false } = {}) {
 function applyTheme(theme) {
   const next = theme === "dark" ? "dark" : "light";
   document.body.setAttribute("data-theme", next);
-  localStorage.setItem("som_theme_v90", next);
+  localStorage.setItem("som_theme_v200", next);
   const icon = document.getElementById("themeIcon");
   const btn = document.getElementById("themeToggle");
   if (icon) icon.textContent = next === "dark" ? "☾" : "☀";
@@ -2780,7 +2785,7 @@ function applyTheme(theme) {
 }
 
 function initThemeToggle() {
-  const saved = localStorage.getItem("som_theme_v90") || "light";
+  const saved = localStorage.getItem("som_theme_v200") || "light";
   applyTheme(saved);
   const btn = document.getElementById("themeToggle");
   if (btn) btn.addEventListener("click", () => {

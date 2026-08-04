@@ -1259,3 +1259,6 @@ body[data-theme="dark"] .magic-control-panel .dashboard-display-field input,
 body[data-theme="dark"] .magic-control-panel .dashboard-display-field select {
   background: var(--white);
 }
+
+.assumption-explainer { margin: 12px 0 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.55); color: var(--muted); font-size: 11px; line-height: 1.55; }
+.assumption-explainer strong { color: var(--text); }

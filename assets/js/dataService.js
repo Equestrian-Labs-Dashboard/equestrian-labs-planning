@@ -9,8 +9,10 @@
  * changing app.js.
  */
 const DataService = (() => {
-  const STORAGE_KEY = "som_assumptions_v80";
+  const STORAGE_KEY = "som_assumptions_v200";
   const LEGACY_KEYS = [
+    "som_assumptions_v90",
+    "som_assumptions_v80",
     "som_assumptions_v70",
     "som_assumptions_v60",
     "som_assumptions_v40",
@@ -33,13 +35,13 @@ const DataService = (() => {
   ];
 
   async function load() {
-    // v80 starts from the corrected baseline once, preventing stale local copies
+    // v200 starts from the fully audited baseline once, preventing stale local copies
     // with blank 2026 forecasts or old placeholder values from being restored.
     const local = localStorage.getItem(STORAGE_KEY);
     if (local) {
       try { return JSON.parse(local); } catch (e) { localStorage.removeItem(STORAGE_KEY); }
     }
-    const res = await fetch("data/assumptions.json?v=180", { cache: "no-store" });
+    const res = await fetch("data/assumptions.json?v=200", { cache: "no-store" });
     if (!res.ok) throw new Error("Failed to load data/assumptions.json");
     return res.json();
   }
