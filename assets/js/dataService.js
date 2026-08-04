@@ -9,7 +9,7 @@
  * changing app.js.
  */
 const DataService = (() => {
-  const STORAGE_KEY = "som_assumptions_v41";
+  const STORAGE_KEY = "som_assumptions_v60";
   const LEGACY_KEYS = [
     "som_assumptions_v40",
     "som_assumptions_v39",
@@ -42,13 +42,19 @@ const DataService = (() => {
         } catch (e) { /* try next key */ }
       }
     }
-    const res = await fetch("data/assumptions.json?v=110", { cache: "no-store" });
+    const res = await fetch("data/assumptions.json?v=140", { cache: "no-store" });
     if (!res.ok) throw new Error("Failed to load data/assumptions.json");
     return res.json();
   }
 
   function save(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    const payload = JSON.stringify(data);
+    localStorage.setItem(STORAGE_KEY, payload);
+    // Read-after-write verification catches browser storage failures instead
+    // of showing a false Saved state.
+    if (localStorage.getItem(STORAGE_KEY) !== payload) {
+      throw new Error("The model could not verify the saved changes in browser storage.");
+    }
   }
 
   function reset() {

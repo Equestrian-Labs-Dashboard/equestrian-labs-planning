@@ -124,3 +124,14 @@ The Shopify sync also requests session metrics through ShopifyQL. When available
 `Checkout Abandonment Rate = 100% - Checkout Conversion Rate`
 
 The GitHub repository must keep the existing Shopify store and access-token secrets configured for the scheduled workflow.
+
+
+## v1.2 review corrections
+- 2026 Ecommerce forecast = Shopify actuals YTD + remaining months x editable monthly run rate.
+- Organic Growth starts in 2027; it is not added again to 2026.
+- Refresh Actuals updates current/baseline fields only and preserves saved forecast inputs.
+- Concierge and Wellington use their own channel GM1 when revenue_share provides channel gross profit/net sales.
+- Current revenue carryover uses returning revenue / total customer revenue.
+- CAC uses Marketing Stats Purchases when available; new customers are an explicit fallback.
+- S&M OPEX is separate from Advertising and defaults to $210k (2026), then $300k annually (2027-2029), editable in assumptions.
+- Membership-to-Signature migration is applied from 2026-08-01 when Smartrr product rows identify legacy Membership.

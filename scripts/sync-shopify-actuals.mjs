@@ -58,10 +58,10 @@ function emptyAgg(period, source = "shopify_admin_graphql") {
     period_end: monthEnd(period),
     gross_sales: 0,
     net_sales: 0,
-    gross_profit: "",
+    gross_profit: 0,
     total_discounts: 0,
     total_returns: 0,
-    cogs: "",
+    cogs: 0,
     shipping_income: 0,
     taxes: 0,
     nb_orders: 0,
@@ -92,6 +92,11 @@ query OrdersForActuals($cursor: String, $query: String!) {
           sku
           originalUnitPriceSet { shopMoney { amount currencyCode } }
           discountedTotalSet { shopMoney { amount currencyCode } }
+          variant {
+            inventoryItem {
+              unitCost { amount currencyCode }
+            }
+          }
           product {
             id
             title
@@ -202,13 +207,15 @@ async function fetchOrdersForStore(storeConfig) {
 }
 
 function addOrderToAgg(agg, order, lineItems) {
-  let gross = 0, net = 0, units = 0;
+  let gross = 0, net = 0, units = 0, cogs = 0;
   for (const line of lineItems) {
     const qty = Number(line.quantity || 0);
     const originalUnit = money(line.originalUnitPriceSet);
     const discountedTotal = money(line.discountedTotalSet);
+    const unitCost = Number(line.variant?.inventoryItem?.unitCost?.amount || 0);
     gross += originalUnit * qty;
     net += discountedTotal;
+    cogs += unitCost * qty;
     units += qty;
   }
   const discount = Math.max(0, gross - net);
@@ -218,6 +225,8 @@ function addOrderToAgg(agg, order, lineItems) {
   agg.gross_sales += gross;
   agg.net_sales += net;
   agg.total_discounts += discount;
+  agg.cogs += cogs;
+  agg.gross_profit += net - cogs;
   agg.shipping_income += shipping;
   agg.taxes += taxes;
   agg.nb_orders += 1;
@@ -237,13 +246,13 @@ function finalizeKpiRows(map) {
         period_end: r.period_end,
         gross_sales: round2(r.gross_sales),
         net_sales: round2(r.net_sales),
-        gross_profit: r.gross_profit,
+        gross_profit: round2(r.gross_profit),
         total_discounts: round2(r.total_discounts),
         total_returns: round2(r.total_returns),
-        cogs: r.cogs,
+        cogs: round2(r.cogs),
         pct_discount: r.gross_sales ? round2((r.total_discounts / r.gross_sales) * 100) : 0,
         pct_returns: 0,
-        pct_gm: "",
+        pct_gm: r.net_sales ? round2((r.gross_profit / r.net_sales) * 100) : 0,
         nb_orders: r.nb_orders,
         nb_units: r.nb_units,
         aov: r.nb_orders ? round2(r.gross_sales / r.nb_orders) : 0,
@@ -290,6 +299,10 @@ function aggregateOrders(orders) {
       amount: round2(r.gross_sales),
       gross_sales: round2(r.gross_sales),
       net_sales: round2(r.net_sales),
+      cogs: round2(r.cogs),
+      gross_profit: round2(r.gross_profit),
+      gross_margin: r.net_sales ? round2((r.gross_profit / r.net_sales) * 100) : 0,
+      pct_gm: r.net_sales ? round2((r.gross_profit / r.net_sales) * 100) : 0,
       nb_orders: r.nb_orders,
       nb_units: r.nb_units,
       aov: r.nb_orders ? round2(r.gross_sales / r.nb_orders) : 0,
@@ -409,7 +422,7 @@ async function main() {
         "Shopify sync provides sales, orders, units, AOV, discounts, shipping, taxes, sessions, conversion rate, and checkout abandonment rate when ShopifyQL exposes checkout_conversion_rate.",
         "Corro channels are classified from order/product tags: Drop ship, Shopify Collective, Concierge, Wellington, Legacy, e-commerce.",
         "Cavali orders are counted directly from Shopify; membership fields still depend on Smartrr until Smartrr API is connected.",
-        "COGS/GM1 are not overwritten unless a product-cost pipeline is added.",
+        "COGS/GM1 are calculated from Shopify variant inventoryItem.unitCost when available; missing unit costs remain zero and should be reviewed in Shopify.",
         "Inventory turns should continue coming from SKU/Savy or product-cost inventory source.",
         "QuickBooks/ShipStation remain preferred source for cash timing, shipping cost, packaging, and OPEX."
       ],
