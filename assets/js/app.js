@@ -1967,6 +1967,17 @@ function latestYearAndMonth(rows) {
   return { year, month };
 }
 
+
+function effectiveThroughMonth(latest) {
+  if (!latest) return 0;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  // Do not annualize from an incomplete current month. Use the latest closed month.
+  if (latest.year === currentYear && latest.month >= currentMonth) return Math.max(1, currentMonth - 1);
+  return latest.month;
+}
+
 function rowsForYtd(rows, year, throughMonth) {
   return monthlyRows(rows).filter(r => {
     const [y, m] = String(r.period).split("-").map(Number);
@@ -1993,7 +2004,7 @@ function weightedGm1(rows) {
 function dashboardActuals(rows) {
   const latest = latestYearAndMonth(rows);
   if (!latest) return null;
-  const throughMonth = Math.min(latest.month, (STATE && STATE.meta && STATE.meta.actualsThroughMonth) || 6);
+  const throughMonth = effectiveThroughMonth(latest);
   const ytd = rowsForYtd(rows, latest.year, throughMonth);
   const prevYtd = rowsForYtd(rows, latest.year - 1, throughMonth);
   const gross = sumField(ytd, "gross_sales");
@@ -2025,7 +2036,7 @@ function dashboardActuals(rows) {
 
 function adSpendActuals(rows, kpiActuals) {
   if (!rows || !rows.length || !kpiActuals || !kpiActuals.latest) return null;
-  const throughMonth = Math.min(kpiActuals.latest.month, (STATE && STATE.meta && STATE.meta.actualsThroughMonth) || 6);
+  const throughMonth = effectiveThroughMonth(kpiActuals.latest);
   const ytd = rowsForYtd(rows, kpiActuals.latest.year, throughMonth);
   const spend = sumField(ytd, "ad_spend") || sumField(ytd, "spend");
   const purchases = sumField(ytd, "purchases");
@@ -2044,7 +2055,7 @@ function adSpendActuals(rows, kpiActuals) {
 
 function channelRevenueYtd(rows, channel, latest) {
   if (!rows || !rows.length || !latest) return 0;
-  const throughMonth = Math.min(latest.month, (STATE && STATE.meta && STATE.meta.actualsThroughMonth) || 6);
+  const throughMonth = effectiveThroughMonth(latest);
   const ytd = rowsForYtd(rows, latest.year, throughMonth);
   return ytd
     .filter(r => String(r.channel || "").toLowerCase().includes(String(channel).toLowerCase()))
@@ -2073,7 +2084,16 @@ function smartrrMembershipActuals(rows) {
   const out = { signatureActive: 0, premiumActive: 0, signatureNew: 0, premiumNew: 0, legacyMembershipActive: 0 };
   const migrationEffective = new Date() >= new Date("2026-08-01T00:00:00Z");
   latestRows.forEach(r => {
-    const key = normalizeProductKey(r.product_variant || r.product || "");
+    // smartrr_subscribers aggregate row support
+    const aggregateSignature = parseNumber(r.signature);
+    const aggregatePremium = parseNumber(r.premier || r.premium);
+    if (aggregateSignature || aggregatePremium) {
+      out.signatureActive += aggregateSignature;
+      out.premiumActive += aggregatePremium;
+      return;
+    }
+    const label = String(r.product_variant || r.product || r.plan_name || "");
+    const key = normalizeProductKey(label);
     const active = parseNumber(r.active_subscribers_current);
     const newer = parseNumber(r.new_subscribers);
     if (key === "signature") {
@@ -2082,7 +2102,7 @@ function smartrrMembershipActuals(rows) {
     } else if (key === "premium") {
       out.premiumActive += active;
       out.premiumNew += newer;
-    } else if (/membership/i.test(String(r.product_variant || r.product || ""))) {
+    } else if (/membership/i.test(label)) {
       out.legacyMembershipActive += active;
       if (migrationEffective) { out.signatureActive += active; out.signatureNew += newer; }
     }
@@ -2152,12 +2172,52 @@ function setCurrentInRows(rows, driver, value) {
   if (row && Object.keys(row).length) row.current = value;
 }
 
+function annualizeYtd(value, throughMonth) {
+  const months = Math.max(1, Number(throughMonth || 0));
+  return Number(value || 0) * 12 / months;
+}
+
+function seed2026ForecastsOnce({ corro, cavali, ecommerceMetrics, conciergeMetrics, wellingtonMetrics, cavaliMembers }) {
+  STATE.meta = STATE.meta || {};
+  if (STATE.meta.actualForecastSeedVersion === 3) return;
+  const ecommerce = getBlock(STATE.growthEngines, "Ecommerce");
+  const concierge = getBlock(STATE.growthEngines, "Concierge");
+  const wellington = getBlock(STATE.growthEngines, "Wellington");
+  const cavaliEngine = getBlock(STATE.growthEngines, "Cavali");
+
+  if (corro && ecommerce) {
+    setYearInRows(ecommerce.rows, "Orders", "y2026", Math.round(annualizeYtd(ecommerceMetrics.orders || corro.orders, corro.throughMonth)).toLocaleString("en-US"));
+    setYearInRows(ecommerce.rows, "AOV", "y2026", formatMoney(ecommerceMetrics.aov || corro.aov));
+    setYearInRows(ecommerce.rows, "GM1 %", "y2026", formatPercent(ecommerceMetrics.gm1 || corro.gm1));
+  }
+  if (corro && concierge) {
+    const annualClients = annualizeYtd(conciergeMetrics.customers || 0, corro.throughMonth);
+    const opc = conciergeMetrics.customers ? conciergeMetrics.orders / conciergeMetrics.customers : 0;
+    setYearInRows(concierge.rows, "Active Clients", "y2026", Math.round(annualClients).toLocaleString("en-US"));
+    setYearInRows(concierge.rows, "Orders per Client", "y2026", opc ? opc.toFixed(2) : "0");
+    setYearInRows(concierge.rows, "AOV", "y2026", formatMoney(conciergeMetrics.aov || 0));
+    setYearInRows(concierge.rows, "GM1 %", "y2026", formatPercent(conciergeMetrics.gm1 || 0));
+  }
+  if (corro && wellington) {
+    setYearInRows(wellington.rows, "Orders", "y2026", Math.round(annualizeYtd(wellingtonMetrics.orders || 0, corro.throughMonth)).toLocaleString("en-US"));
+    setYearInRows(wellington.rows, "AOV", "y2026", formatMoney(wellingtonMetrics.aov || 0));
+    setYearInRows(wellington.rows, "GM1 %", "y2026", formatPercent(wellingtonMetrics.gm1 || 0));
+  }
+  if (cavali && cavaliEngine) {
+    setYearInRows(cavaliEngine.rows, "Orders", "y2026", Math.round(annualizeYtd(cavali.orders, cavali.throughMonth)).toLocaleString("en-US"));
+    setYearInRows(cavaliEngine.rows, "GM1 %", "y2026", formatPercent(cavali.gm1 || 0));
+    if (cavaliMembers.signatureActive) setYearInRows(cavaliEngine.rows, "Signature Active Members", "y2026", Math.round(cavaliMembers.signatureActive).toLocaleString("en-US"));
+    if (cavaliMembers.premiumActive) setYearInRows(cavaliEngine.rows, "Premium Active Members", "y2026", Math.round(cavaliMembers.premiumActive).toLocaleString("en-US"));
+  }
+  STATE.meta.actualForecastSeedVersion = 3;
+}
+
 function applyActualsToState(corroBundle, cavaliBundle) {
   const corro = dashboardActuals(corroBundle.kpis);
   const cavali = dashboardActuals(cavaliBundle.kpis);
   const corroAds = adSpendActuals(corroBundle.adSpend, corro);
   const cavaliAds = adSpendActuals(cavaliBundle.adSpend, cavali);
-  const cavaliMembers = smartrrMembershipActuals(cavaliBundle.smartrrProductVolume);
+  const cavaliMembers = smartrrMembershipActuals((cavaliBundle.smartrrProductVolume || []).length ? cavaliBundle.smartrrProductVolume : (cavaliBundle.smartrrSubscribers || []));
 
   if (!STATE.actuals) STATE.actuals = {};
   STATE.actuals.lastRefresh = new Date().toISOString();
@@ -2177,6 +2237,7 @@ function applyActualsToState(corroBundle, cavaliBundle) {
       new_vs_returning: (cavaliBundle.newVsReturning || []).length,
       ad_spend: (cavaliBundle.adSpend || []).length,
       smartrr_product_volume: (cavaliBundle.smartrrProductVolume || []).length,
+      smartrr_subscribers: (cavaliBundle.smartrrSubscribers || []).length,
       products_q1_2026: (cavaliBundle.productsQ1 || []).length
     }
   };
@@ -2229,6 +2290,7 @@ function applyActualsToState(corroBundle, cavaliBundle) {
     Wellington: wellingtonMetrics.gm1 || 0,
     Cavali: cavali ? cavali.gm1 : 0
   };
+  seed2026ForecastsOnce({ corro, cavali, ecommerceMetrics, conciergeMetrics, wellingtonMetrics, cavaliMembers });
   if (corro) {
     STATE.actuals.corroGrossSalesYtd = corro.grossSales;
     STATE.actuals.actualsThroughMonth = corro.throughMonth || 0;
@@ -2417,6 +2479,7 @@ function connectedBundle(json, brand) {
     newVsReturning: b.new_vs_returning || [],
     adSpend: b.ad_spend || [],
     smartrrProductVolume: b.smartrr_product_volume || [],
+    smartrrSubscribers: b.smartrr_subscribers || [],
     productsQ1: (b.products_q1_2026 || []).concat(skuProducts),
     _source: "connected_actuals_json",
     _generatedAt: json.generated_at || ""
@@ -2432,6 +2495,7 @@ function shopifyJsonToBundle(json, brand) {
     newVsReturning: [],
     adSpend: [],
     smartrrProductVolume: [],
+    smartrrSubscribers: [],
     productsQ1: [],
     _source: "shopify_actuals_json",
     _store: b.store || "",
@@ -2441,7 +2505,7 @@ function shopifyJsonToBundle(json, brand) {
 
 function channelMetricsYtd(rows, channel, latest) {
   if (!rows || !rows.length || !latest) return { grossSales:0, netSales:0, grossProfit:0, gm1:0, orders:0, units:0, customers:0, aov:0 };
-  const throughMonth = Math.min(latest.month, (STATE && STATE.meta && STATE.meta.actualsThroughMonth) || 6);
+  const throughMonth = effectiveThroughMonth(latest);
   const ytd = rowsForYtd(rows, latest.year, throughMonth)
     .filter(r => String(r.channel || "").toLowerCase().includes(String(channel).toLowerCase()));
   const grossSales = sumField(ytd, "gross_sales") || sumField(ytd, "amount");
@@ -2493,6 +2557,9 @@ function carryCurrentToForecast(rows, driver, fallback = "—") {
 }
 
 function applyFutureEditableDefaults() {
+  // Keep only the agreed opening-cash safety default. Do not inject artificial
+  // values into editable forecast cells. Future assumptions must come from the
+  // scenario data or explicit user input and must remain blank when undefined.
   if (!STATE.cashFlow) STATE.cashFlow = {};
   if (!STATE.cashFlow.openingCashByYear) STATE.cashFlow.openingCashByYear = {};
   const currentOpening = parseMoney(STATE.cashFlow.openingCashByYear.y2026 || STATE.cashFlow.openingCash || 0);
@@ -2500,17 +2567,6 @@ function applyFutureEditableDefaults() {
     STATE.cashFlow.openingCash = "$100k";
     STATE.cashFlow.openingCashByYear.y2026 = "$100k";
   }
-  const blocks = [...(STATE.commercial || []), ...(STATE.growthEngines || [])];
-  const futureYears = ["y2027", "y2028", "y2029"];
-  const countDrivers = new Set(["Orders", "Active Clients", "Signature Active Members", "Premium Active Members"]);
-  blocks.forEach(block => (block.rows || []).forEach(row => {
-    if (!countDrivers.has(String(row.driver || ""))) return;
-    futureYears.forEach(year => {
-      if (isBlankLike(row[year]) || /editable|manual forecast|calculated \/ manual/i.test(String(row[year] || ""))) {
-        row[year] = "100";
-      }
-    });
-  }));
 }
 
 function setCavaliForecastFields(cavaliEngine, cavali, cavaliAds) {
@@ -2531,11 +2587,11 @@ function ensureCavaliOrdersRow(cavaliEngine) {
     cavaliEngine.rows.unshift({
       driver: "Orders",
       current: "Actuals pending",
-      y2026: "Actuals + 10",
-      y2027: "Editable",
-      y2028: "Editable",
-      y2029: "Editable",
-      note: "Shopify Cavali order count; future years remain editable."
+      y2026: "—",
+      y2027: "—",
+      y2028: "—",
+      y2029: "—",
+      note: "Current and 2026 forecast are seeded from Shopify Cavali actuals after refresh; later years remain user-editable."
     });
   }
 }
@@ -2552,8 +2608,8 @@ async function refreshActualsFromSheets({ silent = false } = {}) {
       fetchShopifyActualsJson(),
       fetchConnectedActualsJson()
     ]);
-    let baseCorroBundle = connectedBundle(connectedJson, "corro") || { kpis: [], revenueShare: [], newVsReturning: [], adSpend: [], smartrrProductVolume: [], productsQ1: [] };
-    let baseCavaliBundle = connectedBundle(connectedJson, "cavali") || { kpis: [], revenueShare: [], newVsReturning: [], adSpend: [], smartrrProductVolume: [], productsQ1: [] };
+    let baseCorroBundle = connectedBundle(connectedJson, "corro") || { kpis: [], revenueShare: [], newVsReturning: [], adSpend: [], smartrrProductVolume: [], smartrrSubscribers: [], productsQ1: [] };
+    let baseCavaliBundle = connectedBundle(connectedJson, "cavali") || { kpis: [], revenueShare: [], newVsReturning: [], adSpend: [], smartrrProductVolume: [], smartrrSubscribers: [], productsQ1: [] };
 
     if (!connectedJson && corroSource && cavaliSource) {
       try {

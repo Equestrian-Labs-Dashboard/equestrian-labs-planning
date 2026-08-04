@@ -40,13 +40,16 @@ function tagText(tags) { return (tags || []).join(" ").toLowerCase(); }
 
 function classifyOrder(order, lineItems) {
   const orderTags = tagText(order.tags);
+  const sourceName = String(order.sourceName || "").toLowerCase();
   const productTags = tagText(lineItems.flatMap(li => li.product?.tags || []));
-  const combined = `${orderTags} ${productTags}`;
+  const combined = `${orderTags} ${productTags} ${sourceName}`;
 
+  // Match the same channel logic used by the reporting pipeline:
+  // POS/Wellington tags => Wellington, concierge tag/source => Concierge.
   if (/drop\s*ship|dropship/.test(combined)) return "Drop ship";
   if (/shopify\s*collective/.test(combined)) return "Shopify Collective";
   if (/concierge/.test(combined)) return "Concierge";
-  if (/wellington/.test(combined)) return "Wellington";
+  if (sourceName === "pos" || /wellington|point of sale|\bpos\b/.test(combined)) return "Wellington";
   if (/legacy/.test(combined)) return "Legacy";
   return "e-commerce";
 }
@@ -82,6 +85,7 @@ query OrdersForActuals($cursor: String, $query: String!) {
       createdAt
       cancelledAt
       tags
+      sourceName
       totalShippingPriceSet { shopMoney { amount currencyCode } }
       currentTotalTaxSet { shopMoney { amount currencyCode } }
       customer { id email }
