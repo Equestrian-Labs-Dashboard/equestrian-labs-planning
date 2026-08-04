@@ -2177,39 +2177,76 @@ function annualizeYtd(value, throughMonth) {
   return Number(value || 0) * 12 / months;
 }
 
-function seed2026ForecastsOnce({ corro, cavali, ecommerceMetrics, conciergeMetrics, wellingtonMetrics, cavaliMembers }) {
-  STATE.meta = STATE.meta || {};
-  if (STATE.meta.actualForecastSeedVersion === 3) return;
+function isUnseededForecastValue(value) {
+  const text = String(value ?? "").trim().toLowerCase();
+  return !text || ["—", "-", "actuals pending", "calculated", "editable", "actuals + 10"].includes(text);
+}
+
+function seedYearIfBlank(rows, driver, year, value) {
+  const row = getRow(rows, driver);
+  if (!row || !Object.keys(row).length) return;
+  if (isUnseededForecastValue(row[year])) row[year] = value;
+}
+
+function seed2026ForecastsFromActuals({ corro, cavali, ecommerceMetrics, conciergeMetrics, wellingtonMetrics, cavaliMembers }) {
   const ecommerce = getBlock(STATE.growthEngines, "Ecommerce");
   const concierge = getBlock(STATE.growthEngines, "Concierge");
   const wellington = getBlock(STATE.growthEngines, "Wellington");
   const cavaliEngine = getBlock(STATE.growthEngines, "Cavali");
 
+  // 2026 is the current full-year forecast. It must never render blank when
+  // actuals are available. We seed only blank/uninitialized cells so a value
+  // explicitly edited and saved by the user is preserved on future refreshes.
   if (corro && ecommerce) {
-    setYearInRows(ecommerce.rows, "Orders", "y2026", Math.round(annualizeYtd(ecommerceMetrics.orders || corro.orders, corro.throughMonth)).toLocaleString("en-US"));
-    setYearInRows(ecommerce.rows, "AOV", "y2026", formatMoney(ecommerceMetrics.aov || corro.aov));
-    setYearInRows(ecommerce.rows, "GM1 %", "y2026", formatPercent(ecommerceMetrics.gm1 || corro.gm1));
+    const orders = ecommerceMetrics.orders || corro.orders || 0;
+    const aov = ecommerceMetrics.aov || corro.aov || 0;
+    const gm1 = ecommerceMetrics.gm1 || corro.gm1 || 0;
+    seedYearIfBlank(ecommerce.rows, "Orders", "y2026", Math.round(annualizeYtd(orders, corro.throughMonth)).toLocaleString("en-US"));
+    seedYearIfBlank(ecommerce.rows, "AOV", "y2026", formatMoney(aov));
+    seedYearIfBlank(ecommerce.rows, "GM1 %", "y2026", formatPercent(gm1));
   }
+
   if (corro && concierge) {
-    const annualClients = annualizeYtd(conciergeMetrics.customers || 0, corro.throughMonth);
-    const opc = conciergeMetrics.customers ? conciergeMetrics.orders / conciergeMetrics.customers : 0;
-    setYearInRows(concierge.rows, "Active Clients", "y2026", Math.round(annualClients).toLocaleString("en-US"));
-    setYearInRows(concierge.rows, "Orders per Client", "y2026", opc ? opc.toFixed(2) : "0");
-    setYearInRows(concierge.rows, "AOV", "y2026", formatMoney(conciergeMetrics.aov || 0));
-    setYearInRows(concierge.rows, "GM1 %", "y2026", formatPercent(conciergeMetrics.gm1 || 0));
+    const clientsYtd = conciergeMetrics.customers || 0;
+    const annualClients = annualizeYtd(clientsYtd, corro.throughMonth);
+    const ordersPerClient = clientsYtd ? (conciergeMetrics.orders || 0) / clientsYtd : 0;
+    seedYearIfBlank(concierge.rows, "Active Clients", "y2026", annualClients ? Math.round(annualClients).toLocaleString("en-US") : "0");
+    seedYearIfBlank(concierge.rows, "Orders per Client", "y2026", ordersPerClient ? ordersPerClient.toFixed(2) : "0");
+    seedYearIfBlank(concierge.rows, "AOV", "y2026", formatMoney(conciergeMetrics.aov || 0));
+    seedYearIfBlank(concierge.rows, "GM1 %", "y2026", formatPercent(conciergeMetrics.gm1 || 0));
   }
+
   if (corro && wellington) {
-    setYearInRows(wellington.rows, "Orders", "y2026", Math.round(annualizeYtd(wellingtonMetrics.orders || 0, corro.throughMonth)).toLocaleString("en-US"));
-    setYearInRows(wellington.rows, "AOV", "y2026", formatMoney(wellingtonMetrics.aov || 0));
-    setYearInRows(wellington.rows, "GM1 %", "y2026", formatPercent(wellingtonMetrics.gm1 || 0));
+    seedYearIfBlank(wellington.rows, "Orders", "y2026", Math.round(annualizeYtd(wellingtonMetrics.orders || 0, corro.throughMonth)).toLocaleString("en-US"));
+    seedYearIfBlank(wellington.rows, "AOV", "y2026", formatMoney(wellingtonMetrics.aov || 0));
+    seedYearIfBlank(wellington.rows, "GM1 %", "y2026", formatPercent(wellingtonMetrics.gm1 || 0));
   }
+
   if (cavali && cavaliEngine) {
-    setYearInRows(cavaliEngine.rows, "Orders", "y2026", Math.round(annualizeYtd(cavali.orders, cavali.throughMonth)).toLocaleString("en-US"));
-    setYearInRows(cavaliEngine.rows, "GM1 %", "y2026", formatPercent(cavali.gm1 || 0));
-    if (cavaliMembers.signatureActive) setYearInRows(cavaliEngine.rows, "Signature Active Members", "y2026", Math.round(cavaliMembers.signatureActive).toLocaleString("en-US"));
-    if (cavaliMembers.premiumActive) setYearInRows(cavaliEngine.rows, "Premium Active Members", "y2026", Math.round(cavaliMembers.premiumActive).toLocaleString("en-US"));
+    seedYearIfBlank(cavaliEngine.rows, "Orders", "y2026", Math.round(annualizeYtd(cavali.orders || 0, cavali.throughMonth)).toLocaleString("en-US"));
+    seedYearIfBlank(cavaliEngine.rows, "GM1 %", "y2026", formatPercent(cavali.gm1 || 0));
+
+    // Membership forecasts start from the latest Smartrr actual population.
+    // This also captures Membership -> Signature after the source refresh.
+    if (cavaliMembers.signatureActive) {
+      seedYearIfBlank(cavaliEngine.rows, "Signature Active Members", "y2026", Math.round(cavaliMembers.signatureActive).toLocaleString("en-US"));
+    }
+    if (cavaliMembers.premiumActive) {
+      seedYearIfBlank(cavaliEngine.rows, "Premium Active Members", "y2026", Math.round(cavaliMembers.premiumActive).toLocaleString("en-US"));
+    }
+
+    const sigBoxes = getRow(cavaliEngine.rows, "Signature Boxes per Year");
+    const sigPrice = getRow(cavaliEngine.rows, "Signature Price");
+    const premBoxes = getRow(cavaliEngine.rows, "Premium Boxes per Year");
+    const premPrice = getRow(cavaliEngine.rows, "Premium Price");
+    if (sigBoxes) seedYearIfBlank(cavaliEngine.rows, "Signature Boxes per Year", "y2026", sigBoxes.current || "0");
+    if (sigPrice) seedYearIfBlank(cavaliEngine.rows, "Signature Price", "y2026", sigPrice.current || "$0");
+    if (premBoxes) seedYearIfBlank(cavaliEngine.rows, "Premium Boxes per Year", "y2026", premBoxes.current || "0");
+    if (premPrice) seedYearIfBlank(cavaliEngine.rows, "Premium Price", "y2026", premPrice.current || "$0");
   }
-  STATE.meta.actualForecastSeedVersion = 3;
+
+  STATE.meta = STATE.meta || {};
+  STATE.meta.actualForecastSeedVersion = 4;
 }
 
 function applyActualsToState(corroBundle, cavaliBundle) {
@@ -2290,7 +2327,7 @@ function applyActualsToState(corroBundle, cavaliBundle) {
     Wellington: wellingtonMetrics.gm1 || 0,
     Cavali: cavali ? cavali.gm1 : 0
   };
-  seed2026ForecastsOnce({ corro, cavali, ecommerceMetrics, conciergeMetrics, wellingtonMetrics, cavaliMembers });
+  seed2026ForecastsFromActuals({ corro, cavali, ecommerceMetrics, conciergeMetrics, wellingtonMetrics, cavaliMembers });
   if (corro) {
     STATE.actuals.corroGrossSalesYtd = corro.grossSales;
     STATE.actuals.actualsThroughMonth = corro.throughMonth || 0;
