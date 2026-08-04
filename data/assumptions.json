@@ -3,15 +3,13 @@
     "modelStatus": "Draft",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "2.2",
-    "lastUpdate": "2026-08-04",
+    "version": "2.3",
+    "lastUpdate": "2026-07-11",
     "organicGrowth": "10%",
     "doverCapture": "20%",
     "roas": "4.0x",
     "baseEcommerceMonthly": "$70k",
-    "actualsThroughMonth": 0,
-    "displayYear": "2026",
-    "actualForecastSeedVersion": 0
+    "actualsThroughMonth": 6
   },
   "lists": {
     "modelStatus": [
@@ -44,12 +42,6 @@
       "3.0x",
       "3.5x",
       "4.0x"
-    ],
-    "displayYear": [
-      "2026",
-      "2027",
-      "2028",
-      "2029"
     ]
   },
   "funding": [
@@ -191,11 +183,9 @@
           "y2026": "20%",
           "y2027": "20%",
           "y2028": "20%",
-          "y2029": "\u2014",
-          "calculated": [
-            "y2029"
-          ],
-          "note": "Input for 2026\u20132028. Formula solves the circular relationship: Ecommerce Gross Sales = pre-paid revenue / (1 - Ad Spend % \u00d7 ROAS). 2029 is calculated from editable Total Ad Spend."
+          "y2029": "20%",
+          "calculated": [],
+          "note": "Editable target by year. Ad Spend % below is the calculated actual ratio: Total Ad Spend \u00f7 Ecommerce Gross Sales."
         },
         {
           "driver": "Ad Spend % of Ecommerce Gross Sales",
@@ -214,12 +204,18 @@
         },
         {
           "driver": "CAC",
-          "current": "Actuals pending",
-          "y2026": "\u2014",
-          "y2027": "\u2014",
-          "y2028": "\u2014",
-          "y2029": "\u2014",
-          "note": "Current CAC = Marketing Stats Spend / Attributed Purchases. If Purchases is unavailable, Spend / New Customers is used and clearly labeled as fallback. Forecast years are editable."
+          "current": "Calculated pending",
+          "y2026": "Calculated",
+          "y2027": "Calculated",
+          "y2028": "Calculated",
+          "y2029": "Calculated",
+          "calculated": [
+            "y2026",
+            "y2027",
+            "y2028",
+            "y2029"
+          ],
+          "note": "Current CAC comes from Marketing Stats Spend \u00f7 Attributed Purchases. Forecast CAC is Total Ad Spend \u00f7 forecast attributed purchases, where attributed purchases = Paid Revenue \u00f7 AOV."
         },
         {
           "driver": "New Customer Mix %",
@@ -245,20 +241,20 @@
         {
           "driver": "Incremental Revenue Carryover %",
           "current": "\u2014",
-          "y2026": "\u2014",
+          "y2026": "0%",
           "y2027": "50%",
           "y2028": "50%",
           "y2029": "\u2014",
-          "note": "Current = Returning Revenue / Total Customer Revenue from new_vs_returning. Applied once to Organic Growth + Paid Growth + Net Dover Capture when calculating the following year base."
+          "note": "Carryover applies only once when calculating the following year\u2019s Base Ecommerce Revenue. Applies to Organic Growth + Paid Growth Revenue + Net Dover Capture."
         },
         {
           "driver": "Purchase Frequency",
           "current": "1.01",
-          "y2026": "\u2014",
+          "y2026": "1.2",
           "y2027": "1.5",
           "y2028": "1.8",
           "y2029": "2.0",
-          "note": "Current and 2026 seed = Shopify Orders / Unique Customers for the same ecommerce population used by AOV and GM1."
+          "note": "Must use same ecommerce population as AOV and GM1."
         },
         {
           "driver": "Email Revenue %",
@@ -341,29 +337,29 @@
         {
           "driver": "Orders",
           "current": "Actuals pending",
-          "y2026": "\u2014",
-          "y2027": "1,600",
-          "y2028": "2,500",
-          "y2029": "3,000",
+          "y2026": "Forecast from Shopify/Stacks",
+          "y2027": "Calculated / manual",
+          "y2028": "Calculated / manual",
+          "y2029": "Calculated / manual",
           "note": "Baseline/current should feed from Shopify/Stacks ecommerce-only orders, excluding HITS, Wellington and Concierge."
         },
         {
           "driver": "AOV",
           "current": "Actuals pending",
-          "y2026": "\u2014",
-          "y2027": "$210",
-          "y2028": "$230",
-          "y2029": "$250",
+          "y2026": "Forecast from Shopify",
+          "y2027": "Manual forecast",
+          "y2028": "Manual forecast",
+          "y2029": "Manual forecast",
           "note": "Use ecommerce-only AOV."
         },
         {
           "driver": "GM1 %",
           "current": "Actuals pending",
-          "y2026": "\u2014",
-          "y2027": "32.5%",
-          "y2028": "35.5%",
-          "y2029": "38.5%",
-          "note": "Current GM1 is channel-specific: Gross Profit / Net Sales using Shopify orders classified to this channel and Shopify variant unit costs. Forecast years remain editable."
+          "y2026": "30.5%",
+          "y2027": "30.5%",
+          "y2028": "30.5%",
+          "y2029": "30.5%",
+          "note": "GM1 must be defined on Net Sales."
         }
       ]
     },
@@ -373,15 +369,15 @@
         {
           "driver": "Active Clients",
           "current": "Actuals pending",
-          "y2026": "\u2014",
-          "y2027": "400",
-          "y2028": "600",
-          "y2029": "800"
+          "y2026": "10",
+          "y2027": "12",
+          "y2028": "15",
+          "y2029": "18"
         },
         {
           "driver": "Orders per Client",
           "current": "Actuals pending",
-          "y2026": "\u2014",
+          "y2026": "1.2",
           "y2027": "1.5",
           "y2028": "1.8",
           "y2029": "2.0"
@@ -389,19 +385,18 @@
         {
           "driver": "AOV",
           "current": "Actuals pending",
-          "y2026": "\u2014",
-          "y2027": "$450",
-          "y2028": "$480",
-          "y2029": "$500"
+          "y2026": "$100",
+          "y2027": "$110",
+          "y2028": "$120",
+          "y2029": "$130"
         },
         {
           "driver": "GM1 %",
           "current": "Actuals pending",
-          "y2026": "\u2014",
-          "y2027": "35.5%",
-          "y2028": "40.5%",
-          "y2029": "45.5%",
-          "note": "Current GM1 is channel-specific: Gross Profit / Net Sales using Shopify orders classified to this channel and Shopify variant unit costs. Forecast years remain editable."
+          "y2026": "30.5%",
+          "y2027": "30.5%",
+          "y2028": "30.5%",
+          "y2029": "30.5%"
         }
       ]
     },
@@ -416,30 +411,29 @@
           "y2027": "\u2014",
           "y2028": "\u2014",
           "y2029": "\u2014",
-          "note": "Current and 2026 are sourced from Shopify/Smartrr where available. 2027\u20132029 are independent management inputs and are never overwritten by Refresh Actuals."
+          "note": "Shopify Cavali order count; future years remain editable."
         },
         {
           "driver": "Signature Active Members",
           "current": "84",
-          "y2026": "\u2014",
-          "y2027": "350",
-          "y2028": "500",
-          "y2029": "800",
-          "note": "Current and 2026 are sourced from Shopify/Smartrr where available. 2027\u20132029 are independent management inputs and are never overwritten by Refresh Actuals."
+          "y2026": "100",
+          "y2027": "200",
+          "y2028": "300",
+          "y2029": "400",
+          "note": "Current to be validated from Smartrr API."
         },
         {
           "driver": "Signature Boxes per Year",
           "current": "1.9",
-          "y2026": "\u2014",
-          "y2027": "1.9",
-          "y2028": "1.9",
-          "y2029": "1.9",
-          "note": "Current and 2026 are sourced from Shopify/Smartrr where available. 2027\u20132029 are independent management inputs and are never overwritten by Refresh Actuals."
+          "y2026": "2",
+          "y2027": "2",
+          "y2028": "2",
+          "y2029": "2"
         },
         {
           "driver": "Signature Price",
           "current": "$99",
-          "y2026": "\u2014",
+          "y2026": "$99",
           "y2027": "$99",
           "y2028": "$99",
           "y2029": "$99"
@@ -447,25 +441,24 @@
         {
           "driver": "Premium Active Members",
           "current": "\u2014",
-          "y2026": "\u2014",
-          "y2027": "31",
-          "y2028": "41",
-          "y2029": "51",
-          "note": "Current and 2026 are sourced from Shopify/Smartrr where available. 2027\u20132029 are independent management inputs and are never overwritten by Refresh Actuals."
+          "y2026": "10",
+          "y2027": "20",
+          "y2028": "30",
+          "y2029": "40"
         },
         {
           "driver": "Premium Boxes per Year",
           "current": "\u2014",
-          "y2026": "\u2014",
+          "y2026": "2",
           "y2027": "2",
           "y2028": "2",
           "y2029": "2",
-          "note": "Current and 2026 are sourced from Shopify/Smartrr where available. 2027\u20132029 are independent management inputs and are never overwritten by Refresh Actuals."
+          "note": "2026 should be sourced from actual Premium boxes delivered \u00f7 active Premium members. Future years are editable assumptions."
         },
         {
           "driver": "Premium Price",
           "current": "$199",
-          "y2026": "\u2014",
+          "y2026": "$199",
           "y2027": "$199",
           "y2028": "$199",
           "y2029": "$199"
@@ -473,11 +466,11 @@
         {
           "driver": "GM1 %",
           "current": "32.1%",
-          "y2026": "\u2014",
-          "y2027": "\u2014",
-          "y2028": "\u2014",
-          "y2029": "\u2014",
-          "note": "Current and 2026 are sourced from Shopify/Smartrr where available. 2027\u20132029 are independent management inputs and are never overwritten by Refresh Actuals."
+          "y2026": "32.1%",
+          "y2027": "32.1%",
+          "y2028": "32.1%",
+          "y2029": "32.1%",
+          "note": "Seeded from validated Cavali actual GM1; each forecast year remains editable."
         },
         {
           "driver": "Organic Member Growth",
@@ -494,7 +487,7 @@
           "y2027": "\u2014",
           "y2028": "\u2014",
           "y2029": "\u2014",
-          "note": "Requires a validated Cavali advertising source. Do not treat zero as an actual."
+          "note": "Enter Cavali paid-media spend by year when available."
         },
         {
           "driver": "Cavali CAC",
@@ -503,7 +496,16 @@
           "y2027": "\u2014",
           "y2028": "\u2014",
           "y2029": "\u2014",
-          "note": "Requires Cavali ad spend and paid-acquisition denominator. Forecast remains editable once management defines the assumption."
+          "note": "Calculated only when Cavali attributed purchases are available; not used to calculate paid revenue."
+        },
+        {
+          "driver": "Cavali ROAS",
+          "current": "\u2014",
+          "y2026": "4.0x",
+          "y2027": "4.0x",
+          "y2028": "4.0x",
+          "y2029": "4.0x",
+          "note": "Paid growth revenue = Cavali Ad Spend \u00d7 Cavali ROAS."
         }
       ]
     },
@@ -513,29 +515,26 @@
         {
           "driver": "Orders",
           "current": "Actuals pending",
-          "y2026": "\u2014",
-          "y2027": "\u2014",
-          "y2028": "\u2014",
-          "y2029": "\u2014",
-          "note": "Current and 2026 are sourced from Wellington/POS Shopify actuals. Blank future years seed once from 2026 and remain editable and saved by scenario."
+          "y2026": "10",
+          "y2027": "12",
+          "y2028": "14",
+          "y2029": "16"
         },
         {
           "driver": "AOV",
           "current": "Actuals pending",
-          "y2026": "\u2014",
-          "y2027": "\u2014",
-          "y2028": "\u2014",
-          "y2029": "\u2014",
-          "note": "Current and 2026 are sourced from Wellington/POS Shopify actuals. Blank future years seed once from 2026 and remain editable and saved by scenario."
+          "y2026": "$100",
+          "y2027": "$110",
+          "y2028": "$120",
+          "y2029": "$130"
         },
         {
           "driver": "GM1 %",
           "current": "Actuals pending",
-          "y2026": "\u2014",
-          "y2027": "\u2014",
-          "y2028": "\u2014",
-          "y2029": "\u2014",
-          "note": "Current and 2026 are sourced from Wellington/POS Shopify actuals. Blank future years seed once from 2026 and remain editable and saved by scenario."
+          "y2026": "30.5%",
+          "y2027": "30.5%",
+          "y2028": "30.5%",
+          "y2029": "30.5%"
         }
       ]
     },
@@ -606,11 +605,10 @@
       {
         "driver": "Markup %",
         "current": "Actuals pending",
-        "y2026": "\u2014",
+        "y2026": "10%",
         "y2027": "10%",
         "y2028": "10%",
-        "y2029": "10%",
-        "note": "2026 starts from the current weighted markup calculated from SKU/Shopify product cost and retail price, then remains editable by scenario."
+        "y2029": "10%"
       },
       {
         "driver": "Booking Amount",
@@ -635,7 +633,7 @@
         "y2027": "16%",
         "y2028": "16%",
         "y2029": "16%",
-        "note": "Management assumption for forecast years; Baseline/Current is calculated from actual discounts and returns."
+        "note": "Commercial Economics \u2014 authorized by Tatum"
       }
     ],
     "vendorMix": {
@@ -647,11 +645,11 @@
       {
         "driver": "Inventory Turns",
         "current": "0.17x",
-        "y2026": "\u2014",
+        "y2026": "0.20x",
         "y2027": "0.30x",
         "y2028": "0.50x",
         "y2029": "0.80x",
-        "note": "2026 starts from the current SKU Savvy inventory-turn result. Later years are editable management targets."
+        "note": "Current source conflict resolved to SKU/Savy 0.17x until Shopify/SKU source is confirmed."
       }
     ]
   },
@@ -736,8 +734,8 @@
       "initiative": "Market Expansion",
       "owner": "Leadership",
       "trigger": "\u2265$5M",
-      "status": "Planning",
-      "launch": "TBD",
+      "status": "Locked",
+      "launch": "Jan-27",
       "investment": "TBD"
     }
   ],
@@ -1028,15 +1026,6 @@
         "smartrrProductVolume": "smartrr_product_volume",
         "products": "products_q1_2026"
       }
-    },
-    "marketingStats": {
-      "label": "Marketing Stats Google Sheet",
-      "spreadsheetId": "1ROTaII-_S_0VntYvOZj8GFCoUnkQVcr1rPES0p-14mI",
-      "tabs": {
-        "googleAds": "Google Ads",
-        "meta": "META",
-        "total": "Total Google+META"
-      }
     }
   },
   "adminDataMap": [
@@ -1091,12 +1080,11 @@
   ],
   "ecommerceBuild": {
     "normalizedMonthlyRunRate": "$70k",
-    "note": "2026 Base Ecommerce Revenue = Shopify actuals through the latest closed month + remaining months \u00d7 editable monthly run rate. Organic Growth starts in 2027 using the prior-year assumption."
+    "note": "Base Ecommerce Revenue = Monthly Ecommerce Run Rate \u00d7 12 months. Organic Growth applies only to Base Ecommerce Revenue in V1."
   },
   "cashFlow": {
-    "openingCash": "$100k",
-    "minimumCashBuffer": "$250k",
-    "openingCashSource": "Management planning assumption pending QuickBooks or bank integration"
+    "openingCash": "$0",
+    "minimumCashBuffer": "$250k"
   },
   "smartrr": {
     "status": "API structure planned",
@@ -1149,161 +1137,5 @@
       "SHOPIFY_CAVALI_TOKEN"
     ],
     "shopifySync": "connected via GitHub Actions to data/shopify_actuals.json when workflow runs"
-  },
-  "easyNumbersTest": {
-    "status": "READY FOR MONDAY REVIEW",
-    "scope": "2027-2029 only",
-    "preserve2026ShopifyActuals": true,
-    "editableInputs": true,
-    "backupAndRestoreEnabled": true,
-    "note": "The Load Easy Test button applies simple assumptions only to 2027-2029. It does not overwrite 2026 actuals or the current Shopify-based 2026 forecast."
-  },
-  "financialAssumptions": {
-    "salesMarketingOpexByYear": {
-      "y2026": "$210k",
-      "y2027": "$300k",
-      "y2028": "$300k",
-      "y2029": "$300k"
-    },
-    "otherOperatingExpensesByYear": {
-      "y2026": "$0",
-      "y2027": "$0",
-      "y2028": "$0",
-      "y2029": "$0"
-    },
-    "salesMarketingExplanation": "Fixed annual management assumption: $210k in 2026 and $300k per year from 2027 through 2029. Advertising is excluded because it is already deducted in GP3.",
-    "gaExplanation": "Fixed annual management assumption of $1.0M per year. It is not calculated as a percentage of revenue.",
-    "cashFlowExplanation": "Shopify deposits are used as a simplified cash-in proxy. Opening cash and actual payment timing remain pending QuickBooks or bank integration."
-  },
-  "version": "v2.2",
-  "ceciLatestMeetingChecklist": [
-    {
-      "item": "Other Sales Channels \u2192 Smartrr link",
-      "status": "done"
-    },
-    {
-      "item": "CAC formula and Stats validation",
-      "status": "done"
-    },
-    {
-      "item": "CAC explanatory note",
-      "status": "done"
-    },
-    {
-      "item": "Revenue Carryover formula and connection",
-      "status": "done"
-    },
-    {
-      "item": "Retention logic",
-      "status": "done"
-    },
-    {
-      "item": "Purchase Frequency from Shopify",
-      "status": "done"
-    },
-    {
-      "item": "Baseline / Current from actuals",
-      "status": "done-when-workflow-sources-available"
-    },
-    {
-      "item": "Channel GM1: Ecommerce",
-      "status": "done"
-    },
-    {
-      "item": "Channel GM1: Concierge",
-      "status": "done"
-    },
-    {
-      "item": "Channel GM1: Wellington",
-      "status": "done"
-    },
-    {
-      "item": "Channel GM1: Cavali",
-      "status": "done"
-    },
-    {
-      "item": "Private Label GM1 editable assumption",
-      "status": "done"
-    },
-    {
-      "item": "Organic Growth timing 2026/2027",
-      "status": "done"
-    },
-    {
-      "item": "2026 actuals + forecast",
-      "status": "done"
-    },
-    {
-      "item": "Base Ecommerce formula",
-      "status": "done"
-    },
-    {
-      "item": "Paid Growth formula",
-      "status": "done"
-    },
-    {
-      "item": "Dover Capture",
-      "status": "done"
-    },
-    {
-      "item": "Growth Engine Portfolio",
-      "status": "done"
-    },
-    {
-      "item": "Wellington calculations and persistence",
-      "status": "done"
-    },
-    {
-      "item": "Cavali calculations and persistence",
-      "status": "done"
-    },
-    {
-      "item": "Save + Refresh persistence all editable inputs",
-      "status": "done-local-browser"
-    },
-    {
-      "item": "Signature/Premium members",
-      "status": "done"
-    },
-    {
-      "item": "Boxes per Year actuals",
-      "status": "done-where-smartrr-provides-field"
-    },
-    {
-      "item": "Embroidery zero-AOV behavior",
-      "status": "done"
-    },
-    {
-      "item": "Concierge calculations",
-      "status": "done"
-    },
-    {
-      "item": "Financial Summary reconciliation",
-      "status": "done"
-    },
-    {
-      "item": "S&M and G&A assumptions and notes",
-      "status": "done"
-    },
-    {
-      "item": "Commercial Cash Flow reconciliation",
-      "status": "done"
-    },
-    {
-      "item": "Opening Cash from QuickBooks/Bill",
-      "status": "pending-external-credentials-and-account-map"
-    },
-    {
-      "item": "Inventory Turns",
-      "status": "done-where-skusavvy-export-provides-field"
-    },
-    {
-      "item": "Purchasing actuals",
-      "status": "partial-external-booking-data-pending"
-    },
-    {
-      "item": "Publish updated model",
-      "status": "ready-for-github-deploy"
-    }
-  ]
+  }
 }

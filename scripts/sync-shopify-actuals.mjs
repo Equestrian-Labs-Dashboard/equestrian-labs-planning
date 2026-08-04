@@ -40,16 +40,13 @@ function tagText(tags) { return (tags || []).join(" ").toLowerCase(); }
 
 function classifyOrder(order, lineItems) {
   const orderTags = tagText(order.tags);
-  const sourceName = String(order.sourceName || "").toLowerCase();
   const productTags = tagText(lineItems.flatMap(li => li.product?.tags || []));
-  const combined = `${orderTags} ${productTags} ${sourceName}`;
+  const combined = `${orderTags} ${productTags}`;
 
-  // Match the same channel logic used by the reporting pipeline:
-  // POS/Wellington tags => Wellington, concierge tag/source => Concierge.
   if (/drop\s*ship|dropship/.test(combined)) return "Drop ship";
   if (/shopify\s*collective/.test(combined)) return "Shopify Collective";
   if (/concierge/.test(combined)) return "Concierge";
-  if (sourceName === "pos" || /wellington|point of sale|\bpos\b/.test(combined)) return "Wellington";
+  if (/wellington/.test(combined)) return "Wellington";
   if (/legacy/.test(combined)) return "Legacy";
   return "e-commerce";
 }
@@ -61,10 +58,10 @@ function emptyAgg(period, source = "shopify_admin_graphql") {
     period_end: monthEnd(period),
     gross_sales: 0,
     net_sales: 0,
-    gross_profit: 0,
+    gross_profit: "",
     total_discounts: 0,
     total_returns: 0,
-    cogs: 0,
+    cogs: "",
     shipping_income: 0,
     taxes: 0,
     nb_orders: 0,
@@ -85,7 +82,6 @@ query OrdersForActuals($cursor: String, $query: String!) {
       createdAt
       cancelledAt
       tags
-      sourceName
       totalShippingPriceSet { shopMoney { amount currencyCode } }
       currentTotalTaxSet { shopMoney { amount currencyCode } }
       customer { id email }
@@ -96,11 +92,6 @@ query OrdersForActuals($cursor: String, $query: String!) {
           sku
           originalUnitPriceSet { shopMoney { amount currencyCode } }
           discountedTotalSet { shopMoney { amount currencyCode } }
-          variant {
-            inventoryItem {
-              unitCost { amount currencyCode }
-            }
-          }
           product {
             id
             title
@@ -114,75 +105,19 @@ query OrdersForActuals($cursor: String, $query: String!) {
   }
 }`;
 
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-function retryDelayMs(attempt, retryAfterHeader = "") {
-  const retryAfter = Number(retryAfterHeader);
-  if (Number.isFinite(retryAfter) && retryAfter > 0) return retryAfter * 1000;
-  const exponential = Math.min(60000, 1000 * (2 ** attempt));
-  const jitter = Math.floor(Math.random() * 750);
-  return exponential + jitter;
-}
-
-function isRetryableNetworkError(error) {
-  const code = error?.cause?.code || error?.code || "";
-  return ["ECONNRESET", "ETIMEDOUT", "ECONNREFUSED", "EAI_AGAIN", "ENOTFOUND", "UND_ERR_CONNECT_TIMEOUT", "UND_ERR_HEADERS_TIMEOUT", "UND_ERR_SOCKET"].includes(code)
-    || /fetch failed|network|socket|timeout/i.test(String(error?.message || ""));
-}
-
-async function graphql(store, token, query, variables, options = {}) {
+async function graphql(store, token, query, variables) {
   const endpoint = `https://${normalizeStore(store)}/admin/api/${API_VERSION}/graphql.json`;
-  const maxRetries = Number(options.maxRetries ?? 8);
-  const timeoutMs = Number(options.timeoutMs ?? 90000);
-  let lastError = null;
-
-  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Shopify-Access-Token": token,
-          "User-Agent": "Equestrian-Labs-Strategic-Model/1.0",
-        },
-        body: JSON.stringify({ query, variables }),
-        signal: controller.signal,
-      });
-
-      const json = await res.json().catch(() => ({}));
-      const retryableStatus = res.status === 429 || [500, 502, 503, 504].includes(res.status);
-
-      if (retryableStatus && attempt < maxRetries) {
-        const waitMs = retryDelayMs(attempt, res.headers.get("retry-after") || "");
-        console.warn(`Shopify GraphQL HTTP ${res.status} for ${store}. Retry ${attempt + 1}/${maxRetries} in ${(waitMs / 1000).toFixed(1)}s.`);
-        await sleep(waitMs);
-        continue;
-      }
-
-      if (!res.ok || json.errors) {
-        const detail = JSON.stringify(json.errors || json, null, 2).slice(0, 2000);
-        throw new Error(`Shopify GraphQL failed for ${store}: HTTP ${res.status}. ${detail}`);
-      }
-
-      return json.data;
-    } catch (error) {
-      lastError = error;
-      const retryable = error?.name === "AbortError" || isRetryableNetworkError(error);
-      if (!retryable || attempt >= maxRetries) throw error;
-
-      const waitMs = retryDelayMs(attempt);
-      const code = error?.cause?.code || error?.code || error?.name || "NETWORK_ERROR";
-      console.warn(`Shopify GraphQL ${code} for ${store}. Retry ${attempt + 1}/${maxRetries} in ${(waitMs / 1000).toFixed(1)}s.`);
-      await sleep(waitMs);
-    } finally {
-      clearTimeout(timeout);
-    }
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
+    body: JSON.stringify({ query, variables }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.errors) {
+    const detail = JSON.stringify(json.errors || json, null, 2).slice(0, 2000);
+    throw new Error(`Shopify GraphQL failed for ${store}: HTTP ${res.status}. ${detail}`);
   }
-
-  throw lastError || new Error(`Shopify GraphQL failed for ${store} after retries.`);
+  return json.data;
 }
 
 async function fetchOrdersForStore(storeConfig) {
@@ -202,24 +137,18 @@ async function fetchOrdersForStore(storeConfig) {
     orders.push(...(conn.nodes || []));
     cursor = conn.pageInfo.hasNextPage ? conn.pageInfo.endCursor : null;
     console.log(`${label}: fetched page ${page}, total orders ${orders.length}`);
-
-    // Small pause reduces the chance of long-running syncs being disconnected
-    // after dozens of consecutive GraphQL requests.
-    if (cursor) await sleep(page % 20 === 0 ? 1500 : 200);
   } while (cursor);
   return orders;
 }
 
 function addOrderToAgg(agg, order, lineItems) {
-  let gross = 0, net = 0, units = 0, cogs = 0;
+  let gross = 0, net = 0, units = 0;
   for (const line of lineItems) {
     const qty = Number(line.quantity || 0);
     const originalUnit = money(line.originalUnitPriceSet);
     const discountedTotal = money(line.discountedTotalSet);
-    const unitCost = Number(line.variant?.inventoryItem?.unitCost?.amount || 0);
     gross += originalUnit * qty;
     net += discountedTotal;
-    cogs += unitCost * qty;
     units += qty;
   }
   const discount = Math.max(0, gross - net);
@@ -229,8 +158,6 @@ function addOrderToAgg(agg, order, lineItems) {
   agg.gross_sales += gross;
   agg.net_sales += net;
   agg.total_discounts += discount;
-  agg.cogs += cogs;
-  agg.gross_profit += net - cogs;
   agg.shipping_income += shipping;
   agg.taxes += taxes;
   agg.nb_orders += 1;
@@ -250,13 +177,13 @@ function finalizeKpiRows(map) {
         period_end: r.period_end,
         gross_sales: round2(r.gross_sales),
         net_sales: round2(r.net_sales),
-        gross_profit: round2(r.gross_profit),
+        gross_profit: r.gross_profit,
         total_discounts: round2(r.total_discounts),
         total_returns: round2(r.total_returns),
-        cogs: round2(r.cogs),
+        cogs: r.cogs,
         pct_discount: r.gross_sales ? round2((r.total_discounts / r.gross_sales) * 100) : 0,
         pct_returns: 0,
-        pct_gm: r.net_sales ? round2((r.gross_profit / r.net_sales) * 100) : 0,
+        pct_gm: "",
         nb_orders: r.nb_orders,
         nb_units: r.nb_units,
         aov: r.nb_orders ? round2(r.gross_sales / r.nb_orders) : 0,
@@ -303,10 +230,6 @@ function aggregateOrders(orders) {
       amount: round2(r.gross_sales),
       gross_sales: round2(r.gross_sales),
       net_sales: round2(r.net_sales),
-      cogs: round2(r.cogs),
-      gross_profit: round2(r.gross_profit),
-      gross_margin: r.net_sales ? round2((r.gross_profit / r.net_sales) * 100) : 0,
-      pct_gm: r.net_sales ? round2((r.gross_profit / r.net_sales) * 100) : 0,
       nb_orders: r.nb_orders,
       nb_units: r.nb_units,
       aov: r.nb_orders ? round2(r.gross_sales / r.nb_orders) : 0,
@@ -315,83 +238,6 @@ function aggregateOrders(orders) {
     }));
 
   return { kpis_daily, revenue_share };
-}
-
-
-function parsePercentMetric(value) {
-  if (value === null || value === undefined || value === "") return null;
-  const numeric = Number(String(value).replace("%", "").replaceAll(",", "").trim());
-  if (!Number.isFinite(numeric)) return null;
-  return Math.abs(numeric) <= 1 ? numeric * 100 : numeric;
-}
-
-async function runShopifyQl(store, token, shopifyQl) {
-  const escaped = shopifyQl.replaceAll("\\", "\\\\").replaceAll('"', '\"');
-  const query = `{ shopifyqlQuery(query: "${escaped}") { tableData { rows } parseErrors } }`;
-  const data = await graphql(store, token, query, {});
-  const result = data?.shopifyqlQuery;
-  if (!result || (result.parseErrors || []).length || !result.tableData) return [];
-  const rows = result.tableData.rows;
-  if (Array.isArray(rows)) return rows;
-  if (typeof rows === "string") {
-    try { return JSON.parse(rows); } catch { return []; }
-  }
-  return [];
-}
-
-async function fetchSessionMetrics(storeConfig, period) {
-  const { store, token, label } = storeConfig;
-  if (!store || !token) return null;
-  const start = monthStart(period);
-  const endExclusive = new Date(`${monthEnd(period)}T00:00:00Z`);
-  endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
-  const until = endExclusive.toISOString().slice(0, 10);
-
-  let rows = await runShopifyQl(store, token,
-    `FROM sessions SHOW online_store_visitors, sessions, pageviews, conversion_rate WHERE human_or_bot_session != 'human_bot' SINCE ${start} UNTIL ${until}`
-  );
-  if (!rows.length) {
-    rows = await runShopifyQl(store, token,
-      `FROM sessions SHOW online_store_visitors, sessions, pageviews, conversion_rate SINCE ${start} UNTIL ${until}`
-    );
-  }
-  const base = rows.at(-1) || {};
-
-  let checkoutRows = await runShopifyQl(store, token,
-    `FROM sessions SHOW checkout_conversion_rate WHERE human_or_bot_session != 'human_bot' SINCE ${start} UNTIL ${until}`
-  );
-  if (!checkoutRows.length) {
-    checkoutRows = await runShopifyQl(store, token,
-      `FROM sessions SHOW checkout_conversion_rate SINCE ${start} UNTIL ${until}`
-    );
-  }
-  const checkout = checkoutRows.at(-1) || {};
-  const checkoutConversion = parsePercentMetric(
-    checkout.checkout_conversion_rate ?? checkout.checkoutConversionRate ?? checkout["checkout conversion rate"]
-  );
-  const abandonment = checkoutConversion === null ? "" : round2(Math.max(0, Math.min(100, 100 - checkoutConversion)));
-
-  console.log(`${label} ${period}: sessions=${Number(base.sessions || 0)}, checkout abandonment=${abandonment === "" ? "unavailable" : `${abandonment}%`}`);
-  return {
-    sessions: Number(base.sessions || 0),
-    unique_visitors: Number(base.online_store_visitors || 0),
-    pageviews: Number(base.pageviews || 0),
-    conversion_rate: parsePercentMetric(base.conversion_rate) ?? 0,
-    checkout_abandonment_rate: abandonment,
-  };
-}
-
-async function enrichKpisWithSessionMetrics(storeConfig, rows) {
-  for (const row of rows) {
-    try {
-      const metrics = await fetchSessionMetrics(storeConfig, row.period);
-      if (metrics) Object.assign(row, metrics);
-    } catch (error) {
-      console.warn(`${storeConfig.label} ${row.period}: session metrics unavailable.`, error.message);
-      Object.assign(row, { sessions: 0, unique_visitors: 0, pageviews: 0, conversion_rate: 0, checkout_abandonment_rate: "" });
-    }
-  }
-  return rows;
 }
 
 function totals(rows) {
@@ -412,7 +258,6 @@ async function main() {
   for (const storeConfig of stores) {
     const orders = await fetchOrdersForStore(storeConfig);
     const { kpis_daily, revenue_share } = aggregateOrders(orders);
-    await enrichKpisWithSessionMetrics(storeConfig, kpis_daily);
     brands[storeConfig.brand] = {
       label: storeConfig.label,
       store: normalizeStore(storeConfig.store),
@@ -423,10 +268,10 @@ async function main() {
       revenue_share,
       totals: totals(kpis_daily),
       notes: [
-        "Shopify sync provides sales, orders, units, AOV, discounts, shipping, taxes, sessions, conversion rate, and checkout abandonment rate when ShopifyQL exposes checkout_conversion_rate.",
+        "Shopify sync provides sales/orders/units/AOV/discounts/shipping/taxes.",
         "Corro channels are classified from order/product tags: Drop ship, Shopify Collective, Concierge, Wellington, Legacy, e-commerce.",
         "Cavali orders are counted directly from Shopify; membership fields still depend on Smartrr until Smartrr API is connected.",
-        "COGS/GM1 are calculated from Shopify variant inventoryItem.unitCost when available; missing unit costs remain zero and should be reviewed in Shopify.",
+        "COGS/GM1 are not overwritten unless a product-cost pipeline is added.",
         "Inventory turns should continue coming from SKU/Savy or product-cost inventory source.",
         "QuickBooks/ShipStation remain preferred source for cash timing, shipping cost, packaging, and OPEX."
       ],
