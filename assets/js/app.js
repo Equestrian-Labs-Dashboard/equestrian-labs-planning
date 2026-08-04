@@ -703,11 +703,11 @@ function computedCommercialValue(row, key) {
     return gross ? formatPercent(totalAdSpendByYear(key) / gross) : "—";
   }
   if (row.driver === "CAC") {
-    const ecommerce = getBlock(STATE.growthEngines, "Ecommerce");
-    const orders = parseNumber(val(ecommerce ? ecommerce.rows : [], "Orders", key));
-    const newPct = parsePercent(val((getBlock(STATE.commercial, "Acquisition") || {}).rows, "New Customer Mix %", key));
-    const newCustomers = orders * (newPct || 0);
-    return newCustomers ? formatMoney(totalAdSpendByYear(key) / newCustomers) : "—";
+    // CAC is a management/marketing efficiency assumption for forecast years.
+    // Current CAC is sourced from Stats as Spend / Purchases. Forecast CAC must
+    // remain editable; using total forecast orders as the denominator produced
+    // unrealistic values ($700–$2k) and did not match the source methodology.
+    return null;
   }
   if (row.driver === "Annual GP per Customer") {
     const ecommerce = getBlock(STATE.growthEngines, "Ecommerce");
@@ -1512,6 +1512,23 @@ function statusForTrigger(trigger) {
   return { text: active ? "ACTIVE ✓" : "LOCKED 🔒", cls: active ? "active" : "locked" };
 }
 
+function formatMonthYear(dateObj) {
+  if (!dateObj) return "—";
+  const names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${names[dateObj.month]}-${String(dateObj.year).slice(-2)}`;
+}
+
+function initiativeLaunchValue(row) {
+  const name = String(row.initiative || "").toLowerCase();
+  const funding = selectedFundingDate();
+  if (!funding) return row.launch || "—";
+  if (name.includes("embroidery")) return formatMonthYear(addMonths(funding, 3));
+  if (name.includes("private label")) return formatMonthYear(addMonths(funding, 15));
+  if (name.includes("cavali paid growth")) return formatMonthYear(funding);
+  if (name.includes("market expansion")) return formatMonthYear(funding);
+  return row.launch || "—";
+}
+
 function renderGrowth() {
   const table = document.getElementById("growthTable");
   table.innerHTML = `<thead><tr><th>Initiative</th><th>Owner</th><th>Funding Trigger</th><th>Status</th><th>Launch Date</th><th>Investment</th></tr></thead>`;
@@ -1521,7 +1538,8 @@ function renderGrowth() {
     ["initiative", "owner", "trigger"].forEach(k => tr.appendChild(makeEditableCell(row, k, () => { renderGrowth(); scheduleSave(); })));
     const st = statusForTrigger(row.trigger);
     tr.appendChild(el("td", { class: "calc-cell" }, el("span", { class: `status-pill ${st.cls} inline` }, st.text)));
-    ["launch", "investment"].forEach(k => tr.appendChild(makeEditableCell(row, k, () => scheduleSave())));
+    tr.appendChild(el("td", { class: "calc-cell", title: "Calculated from Funding Date for funding-dependent initiatives" }, initiativeLaunchValue(row)));
+    tr.appendChild(makeEditableCell(row, "investment", () => scheduleSave()));
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
@@ -2188,6 +2206,60 @@ function seedYearIfBlank(rows, driver, year, value) {
   if (isUnseededForecastValue(row[year])) row[year] = value;
 }
 
+function isDefaultForecastPlaceholder(value) {
+  const s = String(value ?? "").trim();
+  return isBlankLike(s) || s === "30.5%" || s === "10%" || s === "0.20x" || /^Calculated$/i.test(s);
+}
+
+function seedForecastYearsFromCurrent(rows, driver, { preserveHigher = false } = {}) {
+  const row = getRow(rows, driver);
+  if (!row || isBlankLike(row.current)) return;
+  const currentNum = parseNumber(row.current) || parseMoney(row.current) || parsePercent(row.current);
+  let prior = row.y2026 && !isBlankLike(row.y2026) ? row.y2026 : row.current;
+  ["y2026", "y2027", "y2028", "y2029"].forEach((key, idx) => {
+    const existing = row[key];
+    const existingNum = parseNumber(existing) || parseMoney(existing) || parsePercent(existing);
+    const priorNum = parseNumber(prior) || parseMoney(prior) || parsePercent(prior);
+    const clearlyTooLow = preserveHigher && priorNum > 0 && existingNum >= 0 && existingNum < priorNum * 0.5;
+    if (isDefaultForecastPlaceholder(existing) || clearlyTooLow) row[key] = prior;
+    prior = row[key] || prior;
+  });
+}
+
+function alignForecastDefaultsToActuals() {
+  const acq = getBlock(STATE.commercial, "Acquisition");
+  if (acq) seedForecastYearsFromCurrent(acq.rows, "CAC");
+
+  const ecommerce = getBlock(STATE.growthEngines, "Ecommerce");
+  if (ecommerce) seedForecastYearsFromCurrent(ecommerce.rows, "GM1 %");
+
+  const concierge = getBlock(STATE.growthEngines, "Concierge");
+  if (concierge) {
+    ["Active Clients", "Orders per Client", "AOV"].forEach(d => seedForecastYearsFromCurrent(concierge.rows, d, { preserveHigher: true }));
+    seedForecastYearsFromCurrent(concierge.rows, "GM1 %");
+  }
+
+  const wellington = getBlock(STATE.growthEngines, "Wellington");
+  if (wellington) {
+    ["Orders", "AOV"].forEach(d => seedForecastYearsFromCurrent(wellington.rows, d, { preserveHigher: true }));
+    seedForecastYearsFromCurrent(wellington.rows, "GM1 %");
+  }
+
+  const cavali = getBlock(STATE.growthEngines, "Cavali");
+  if (cavali) {
+    ["Orders", "Signature Active Members", "Signature Boxes per Year", "Signature Price",
+     "Premium Active Members", "Premium Boxes per Year", "Premium Price", "GM1 %"].forEach(d =>
+      seedForecastYearsFromCurrent(cavali.rows, d, { preserveHigher: true })
+    );
+  }
+
+  if (STATE.purchasing) {
+    seedForecastYearsFromCurrent(STATE.purchasing.commercialTerms || [], "Markup %");
+    const turns = getRow(STATE.purchasing.capitalEfficiency || [], "Inventory Turns");
+    if (turns && !isBlankLike(turns.current) && (isBlankLike(turns.y2026) || String(turns.y2026).trim() === "0.20x")) turns.y2026 = turns.current;
+  }
+}
+
 function seed2026ForecastsFromActuals({ corro, cavali, ecommerceMetrics, conciergeMetrics, wellingtonMetrics, cavaliMembers }) {
   const ecommerce = getBlock(STATE.growthEngines, "Ecommerce");
   const concierge = getBlock(STATE.growthEngines, "Concierge");
@@ -2328,6 +2400,7 @@ function applyActualsToState(corroBundle, cavaliBundle) {
     Cavali: cavali ? cavali.gm1 : 0
   };
   seed2026ForecastsFromActuals({ corro, cavali, ecommerceMetrics, conciergeMetrics, wellingtonMetrics, cavaliMembers });
+  alignForecastDefaultsToActuals();
   if (corro) {
     STATE.actuals.corroGrossSalesYtd = corro.grossSales;
     STATE.actuals.actualsThroughMonth = corro.throughMonth || 0;
@@ -2699,7 +2772,7 @@ async function refreshActualsFromSheets({ silent = false } = {}) {
 function applyTheme(theme) {
   const next = theme === "dark" ? "dark" : "light";
   document.body.setAttribute("data-theme", next);
-  localStorage.setItem("som_theme_v32", next);
+  localStorage.setItem("som_theme_v90", next);
   const icon = document.getElementById("themeIcon");
   const btn = document.getElementById("themeToggle");
   if (icon) icon.textContent = next === "dark" ? "☾" : "☀";
@@ -2707,7 +2780,7 @@ function applyTheme(theme) {
 }
 
 function initThemeToggle() {
-  const saved = localStorage.getItem("som_theme_v32") || "light";
+  const saved = localStorage.getItem("som_theme_v90") || "light";
   applyTheme(saved);
   const btn = document.getElementById("themeToggle");
   if (btn) btn.addEventListener("click", () => {
