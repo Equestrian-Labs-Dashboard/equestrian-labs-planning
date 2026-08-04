@@ -31,7 +31,7 @@ console.log('PASS: persistence, scenario save, channel GM1, Shopify unit-cost CO
 
 assert.match(app, /Checkout Abandonment Rate/, 'Financial Summary must include Checkout Abandonment Rate');
 assert.match(app, /filter\(name => name !== "Operating Cash Out"\)/, 'Cash Out detail must not visually duplicate Operating Cash Out subtotal');
-assert.match(app, /versionBadge"\)\.textContent = "v2\.0"/, 'Visible model version must be v2.0');
+assert.match(app, /versionBadge"\)\.textContent = "v2\.2"/, 'Visible model version must be v2.2');
 const cavali = assumptions.growthEngines.find(b => b.title.startsWith('Cavali'));
 assert.equal(cavali.rows.find(r=>r.driver==='Cavali CAC').y2026, '—', 'Cavali CAC must not default to a fake $100');
 assert.equal(cavali.rows.find(r=>r.driver==='Cavali Ad Spend').y2026, '—', 'Cavali Ad Spend must not default to fake zero');

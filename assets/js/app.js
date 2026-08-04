@@ -299,8 +299,8 @@ function renderHeader() {
   document.getElementById("doverCapture").innerHTML = optionList(lists.doverCapture || ["5%", "10%", "15%", "20%", "30%"], meta.doverCapture);
   document.getElementById("roas").innerHTML = optionList(lists.roas || ["3.0x", "3.5x", "4.0x"], meta.roas);
   document.getElementById("lastUpdate").value = meta.lastUpdate;
-  meta.version = "1.2";
-  document.getElementById("versionBadge").textContent = "v2.0";
+  meta.version = "2.2";
+  document.getElementById("versionBadge").textContent = "v2.2";
 
   document.getElementById("modelStatus").onchange = e => switchModelStatus(e.target.value);
   document.getElementById("displayYear").onchange = e => {
@@ -455,6 +455,13 @@ function renderCommercial() {
     renderDriverTable(card.querySelector("table"), block.rows);
     if (block.title && block.title.includes("Market Growth")) {
       card.appendChild(renderDoverRamp(block));
+    }
+    if (block.title && block.title.includes("Acquisition Strategy")) {
+      const source = (STATE.actuals && STATE.actuals.cacSource) || "Stats Spend / Purchases";
+      card.appendChild(el("p", { class: "source-note" }, `CAC source: ${source}. Formula: Marketing Spend / Attributed Purchases. Forecast CAC values remain editable assumptions seeded from the latest actual.`));
+    }
+    if (block.title && block.title.includes("Retention Strategy")) {
+      card.appendChild(el("p", { class: "source-note" }, "Returning Customers % is customer-based. Revenue Carryover % is returning revenue divided by total customer revenue and is applied once to the following year's base. Purchase Frequency is Shopify orders divided by unique customers."));
     }
     wrap.appendChild(card);
   });
@@ -736,13 +743,17 @@ function isBlankLike(v) {
   const s = String(v ?? "").trim();
   if (!s || s === "$" || s === "-" || s === "—") return true;
   if (/^calculated$/i.test(s) || /^kpi \/ calculated$/i.test(s)) return true;
+  if (/^actuals?( pending)?$/i.test(s) || /^calculated from stats/i.test(s)) return true;
   if (/^no ad_spend/i.test(s) || /^needs /i.test(s) || /^revenue share/i.test(s)) return true;
+  if (/^channel margin unavailable/i.test(s) || /^data unavailable/i.test(s)) return true;
   return false;
 }
 function val(rows, driver, year) {
   const row = getRow(rows, driver);
   const requested = row[year];
-  if (year !== "current" && isBlankLike(requested) && !isBlankLike(row.current)) return row.current;
+  // Current actuals may seed the closing 2026 forecast, but must never leak
+  // automatically into 2027–2029. Future years are management assumptions.
+  if (year === "y2026" && isBlankLike(requested) && !isBlankLike(row.current)) return row.current;
   return requested || "";
 }
 
@@ -1008,10 +1019,14 @@ function baseEcommerceRevenue(year) {
 }
 
 function organicGrowthRevenue(year) {
-  // 2026 already contains actuals + run-rate forecast. The selected organic
-  // growth assumption begins in 2027 and is not double-counted in 2026.
+  // 2026 already contains actuals + remaining-month run rate, so no organic
+  // growth is added again. Each later year uses the assumption entered in the
+  // prior-year column (2026 assumption drives 2027 growth, etc.).
   if (year === "y2026") return 0;
-  return baseEcommerceRevenue(year) * organicGrowthPct(year);
+  const years = yearKeys();
+  const idx = years.indexOf(year);
+  const priorKey = idx > 0 ? years[idx - 1] : "y2026";
+  return baseEcommerceRevenue(year) * organicGrowthPct(priorKey);
 }
 
 function incrementalPaidGrowth(year) {
@@ -1663,6 +1678,14 @@ function renderFinancialSummary() {
   });
   table.appendChild(tbody);
 
+  let pnlNote = document.getElementById("tab3AssumptionNote");
+  if (!pnlNote) {
+    pnlNote = el("div", { id: "tab3AssumptionNote", class: "source-note financial-assumption-note" });
+    table.insertAdjacentElement("afterend", pnlNote);
+  }
+  const fa = STATE.financialAssumptions || {};
+  pnlNote.innerHTML = `<strong>Sales & Marketing assumption:</strong> ${fa.salesMarketingExplanation || "Fixed annual management input; Advertising is excluded because it is already deducted in GP3."}<br><strong>General & Administrative assumption:</strong> ${fa.gaExplanation || "Fixed annual management input, not a percentage of revenue."}`;
+
   opsWrap.innerHTML = "";
   [
     { label: "Orders", value: Math.round(ordersForYear(year) || 0).toLocaleString("en-US"), sub: forecastPeriod("Ecommerce") },
@@ -1774,6 +1797,13 @@ function renderCommercialCashFlow() {
   const cashOutRows = Object.fromEntries(years.map(y => [y, flow[y].cashOut]));
   renderCashTable("tab4CashInTable", "Cash In", cashInRows, 1);
   renderCashTable("tab4CashOutTable", "Cash Out", cashOutRows, -1);
+  const cashOutTable = document.getElementById("tab4CashOutTable");
+  let cashNote = document.getElementById("tab4CashFlowNote");
+  if (cashOutTable && !cashNote) {
+    cashNote = el("div", { id: "tab4CashFlowNote", class: "source-note financial-assumption-note" });
+    cashOutTable.insertAdjacentElement("afterend", cashNote);
+  }
+  if (cashNote) cashNote.textContent = (STATE.financialAssumptions || {}).cashFlowExplanation || "Shopify deposits are used as a simplified cash-in proxy. Opening cash and actual payment timing remain pending QuickBooks or bank integration.";
   const totals = {};
   years.forEach(y => {
     const opening = openingCashForYear(y, totals);
@@ -2101,33 +2131,57 @@ function latestRowsByPeriodStart(rows) {
 }
 
 function smartrrMembershipActuals(rows) {
-  const latestRows = latestRowsByPeriodStart(rows);
+  const sourceRows = latestRowsByPeriodStart(rows);
   const out = { signatureActive: 0, premiumActive: 0, signatureNew: 0, premiumNew: 0, legacyMembershipActive: 0 };
   const migrationEffective = new Date() >= new Date("2026-08-01T00:00:00Z");
-  latestRows.forEach(r => {
-    // smartrr_subscribers aggregate row support
+
+  // Some Smartrr exports contain duplicate aggregate/detail rows for the same
+  // plan. Keep one value per plan/variant (the latest/highest snapshot value),
+  // then sum distinct plans. This prevents every Cavali field from inheriting
+  // the largest number in the sheet.
+  const aggregate = { signature: 0, premium: 0 };
+  const plans = new Map();
+  sourceRows.forEach((r, index) => {
     const aggregateSignature = parseNumber(r.signature);
     const aggregatePremium = parseNumber(r.premier || r.premium);
     if (aggregateSignature || aggregatePremium) {
-      out.signatureActive += aggregateSignature;
-      out.premiumActive += aggregatePremium;
+      aggregate.signature = Math.max(aggregate.signature, aggregateSignature);
+      aggregate.premium = Math.max(aggregate.premium, aggregatePremium);
       return;
     }
-    const label = String(r.product_variant || r.product || r.plan_name || "");
+    const label = String(r.product_variant || r.product || r.plan_name || r.subscription_plan || "");
     const key = normalizeProductKey(label);
-    const active = parseNumber(r.active_subscribers_current);
-    const newer = parseNumber(r.new_subscribers);
-    if (key === "signature") {
-      out.signatureActive += active;
-      out.signatureNew += newer;
-    } else if (key === "premium") {
-      out.premiumActive += active;
-      out.premiumNew += newer;
-    } else if (/membership/i.test(label)) {
-      out.legacyMembershipActive += active;
-      if (migrationEffective) { out.signatureActive += active; out.signatureNew += newer; }
-    }
+    const identity = String(r.variant_id || r.product_variant_id || r.plan_id || r.sku || label || index).toLowerCase();
+    const mapKey = `${key}|${identity}`;
+    const active = parseNumber(r.active_subscribers_current || r.active_subscribers || r.active || r.subscribers);
+    const newer = parseNumber(r.new_subscribers || r.new_members || 0);
+    const prior = plans.get(mapKey) || { key, label, active: 0, newer: 0 };
+    prior.active = Math.max(prior.active, active);
+    prior.newer = Math.max(prior.newer, newer);
+    plans.set(mapKey, prior);
   });
+
+  if (aggregate.signature || aggregate.premium) {
+    out.signatureActive = aggregate.signature;
+    out.premiumActive = aggregate.premium;
+    return out;
+  }
+
+  for (const p of plans.values()) {
+    if (p.key === "signature") {
+      out.signatureActive += p.active;
+      out.signatureNew += p.newer;
+    } else if (p.key === "premium") {
+      out.premiumActive += p.active;
+      out.premiumNew += p.newer;
+    } else if (/membership/i.test(p.label)) {
+      out.legacyMembershipActive += p.active;
+      if (migrationEffective) {
+        out.signatureActive += p.active;
+        out.signatureNew += p.newer;
+      }
+    }
+  }
   return out;
 }
 
@@ -2211,7 +2265,7 @@ function seedYearIfBlank(rows, driver, year, value) {
 
 function isDefaultForecastPlaceholder(value) {
   const s = String(value ?? "").trim();
-  return isBlankLike(s) || s === "30.5%" || s === "10%" || s === "0.20x" || /^Calculated$/i.test(s);
+  return isBlankLike(s) || /^Calculated$/i.test(s);
 }
 
 function seedForecastYearsFromCurrent(rows, driver, { preserveHigher = false } = {}) {
@@ -2230,6 +2284,8 @@ function seedForecastYearsFromCurrent(rows, driver, { preserveHigher = false } =
 }
 
 function alignForecastDefaultsToActuals() {
+  // Only seed genuinely blank cells. Never replace a saved management input,
+  // even when it is lower than the previous year.
   const acq = getBlock(STATE.commercial, "Acquisition");
   if (acq) seedForecastYearsFromCurrent(acq.rows, "CAC");
 
@@ -2238,30 +2294,30 @@ function alignForecastDefaultsToActuals() {
 
   const concierge = getBlock(STATE.growthEngines, "Concierge");
   if (concierge) {
-    ["Active Clients", "Orders per Client", "AOV"].forEach(d => seedForecastYearsFromCurrent(concierge.rows, d, { preserveHigher: true }));
-    seedForecastYearsFromCurrent(concierge.rows, "GM1 %");
+    ["Active Clients", "Orders per Client", "AOV", "GM1 %"].forEach(d => seedForecastYearsFromCurrent(concierge.rows, d));
   }
 
   const wellington = getBlock(STATE.growthEngines, "Wellington");
   if (wellington) {
-    ["Orders", "AOV"].forEach(d => seedForecastYearsFromCurrent(wellington.rows, d, { preserveHigher: true }));
-    seedForecastYearsFromCurrent(wellington.rows, "GM1 %");
+    ["Orders", "AOV", "GM1 %"].forEach(d => seedForecastYearsFromCurrent(wellington.rows, d));
   }
 
+  // Cavali 2026 starts from current actuals. 2027–2029 are management inputs
+  // and must never be overwritten by Refresh Actuals.
   const cavali = getBlock(STATE.growthEngines, "Cavali");
   if (cavali) {
     ["Orders", "Signature Active Members", "Signature Boxes per Year", "Signature Price",
-     "Premium Active Members", "Premium Boxes per Year", "Premium Price", "GM1 %"].forEach(d =>
-      seedForecastYearsFromCurrent(cavali.rows, d, { preserveHigher: true })
-    );
+     "Premium Active Members", "Premium Boxes per Year", "Premium Price", "GM1 %"].forEach(driver => {
+      const row = getRow(cavali.rows, driver);
+      if (row && !isBlankLike(row.current) && isBlankLike(row.y2026)) row.y2026 = row.current;
+    });
   }
 
   if (STATE.purchasing) {
-    seedForecastYearsFromCurrent(STATE.purchasing.commercialTerms || [], "Markup %");
     const markup = getRow(STATE.purchasing.commercialTerms || [], "Markup %");
-    if (markup && !isBlankLike(markup.current) && (isBlankLike(markup.y2026) || String(markup.y2026).trim() === "10%")) markup.y2026 = markup.current;
+    if (markup && !isBlankLike(markup.current) && isBlankLike(markup.y2026)) markup.y2026 = markup.current;
     const turns = getRow(STATE.purchasing.capitalEfficiency || [], "Inventory Turns");
-    if (turns && !isBlankLike(turns.current) && (isBlankLike(turns.y2026) || ["0.20x", "0.2x"].includes(String(turns.y2026).trim()))) turns.y2026 = turns.current;
+    if (turns && !isBlankLike(turns.current) && isBlankLike(turns.y2026)) turns.y2026 = turns.current;
   }
 }
 
@@ -2432,6 +2488,10 @@ function applyActualsToState(corroBundle, cavaliBundle) {
       const carryoverActual = corro.totalCustomerRevenue ? corro.returningRevenue / corro.totalCustomerRevenue : 0;
       setCurrentInRows(retention.rows, "Incremental Revenue Carryover %", formatPercent(carryoverActual));
       setCurrentInRows(retention.rows, "Purchase Frequency", corro.purchaseFrequency.toFixed(2));
+      const carryRow = getRow(retention.rows, "Incremental Revenue Carryover %");
+      const pfRow = getRow(retention.rows, "Purchase Frequency");
+      if (carryRow && isBlankLike(carryRow.y2026)) carryRow.y2026 = formatPercent(carryoverActual);
+      if (pfRow && isBlankLike(pfRow.y2026)) pfRow.y2026 = corro.purchaseFrequency.toFixed(2);
       const annualGp = corro.aov * corro.purchaseFrequency * corro.gm1;
       setCurrentInRows(retention.rows, "Annual GP per Customer", formatCurrency(Math.round(annualGp)));
     }
@@ -2777,7 +2837,7 @@ async function refreshActualsFromSheets({ silent = false } = {}) {
 function applyTheme(theme) {
   const next = theme === "dark" ? "dark" : "light";
   document.body.setAttribute("data-theme", next);
-  localStorage.setItem("som_theme_v200", next);
+  localStorage.setItem("som_theme_v220", next);
   const icon = document.getElementById("themeIcon");
   const btn = document.getElementById("themeToggle");
   if (icon) icon.textContent = next === "dark" ? "☾" : "☀";
@@ -2785,7 +2845,7 @@ function applyTheme(theme) {
 }
 
 function initThemeToggle() {
-  const saved = localStorage.getItem("som_theme_v200") || "light";
+  const saved = localStorage.getItem("som_theme_v220") || "light";
   applyTheme(saved);
   const btn = document.getElementById("themeToggle");
   if (btn) btn.addEventListener("click", () => {
