@@ -41,6 +41,13 @@ jobs:
           SHOPIFY_SYNC_START_DATE: "2024-01-01"
         run: node scripts/sync-shopify-actuals.mjs
 
+      - name: Sync connected Google Sheets actuals
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          SHEET_ID_CORRO: ${{ secrets.SHEET_ID_CORRO }}
+          SHEET_ID_CAVALI: ${{ secrets.SHEET_ID_CAVALI }}
+        run: node scripts/sync-connected-data.mjs
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
