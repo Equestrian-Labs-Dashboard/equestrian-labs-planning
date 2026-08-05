@@ -3,7 +3,7 @@
     "modelStatus": "Draft",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "2.5",
+    "version": "2.6",
     "lastUpdate": "2026-07-11",
     "organicGrowth": "10%",
     "doverCapture": "20%",
@@ -136,14 +136,14 @@
           "y2026": "Calculated",
           "y2027": "Calculated",
           "y2028": "Calculated",
-          "y2029": "—",
+          "y2029": "Calculated",
           "calculated": [
             "y2026",
             "y2027",
             "y2028",
             "y2029"
           ],
-          "note": "Funding-driven allocation reference. Paid Growth Revenue uses total calculated Ad Spend, not only incremental spend."
+          "note": "Funding marketing allocation is phased across 2026–2029 using a front-loaded launch curve tied to the selected funding date. It is recalculated when Funding Scenario or Funding Date changes."
         },
         {
           "driver": "Total Ad Spend",
@@ -158,7 +158,7 @@
             "y2028",
             "y2029"
           ],
-          "note": "2026–2028 = Base Ad Spend + funding-driven Incremental Ad Spend. 2029 default = prior-year Ecommerce Gross Sales × Reinvestment %."
+          "note": "Base Ad Spend + phased funding-driven Incremental Ad Spend. 2029 also includes the editable reinvestment amount generated from prior-year Ecommerce Gross Sales."
         },
         {
           "driver": "2029 Ad Reinvestment %",
@@ -182,9 +182,9 @@
           "driver": "Target Ad Spend % of Ecommerce Gross Sales",
           "current": "20%",
           "y2026": "20%",
-          "y2027": "20%",
-          "y2028": "20%",
-          "y2029": "20%",
+          "y2027": "18%",
+          "y2028": "16%",
+          "y2029": "15%",
           "calculated": [],
           "note": "Editable target by year. Ad Spend % below is the calculated actual ratio: Total Ad Spend ÷ Ecommerce Gross Sales."
         },
@@ -205,7 +205,7 @@
         },
         {
           "driver": "CAC",
-          "current": "Actuals pending",
+          "current": "$33",
           "y2026": "Calculated",
           "y2027": "Calculated",
           "y2028": "Calculated",
@@ -248,8 +248,8 @@
         },
         {
           "driver": "Incremental Revenue Carryover %",
-          "current": "Actuals pending",
-          "y2026": "Actuals pending",
+          "current": "50.4%",
+          "y2026": "50.4%",
           "y2027": "55%",
           "y2028": "58%",
           "y2029": "60%",
@@ -257,8 +257,8 @@
         },
         {
           "driver": "Purchase Frequency",
-          "current": "Actuals pending",
-          "y2026": "Actuals pending",
+          "current": "0.98",
+          "y2026": "0.98",
           "y2027": "1.5",
           "y2028": "1.8",
           "y2029": "2.0",
@@ -295,7 +295,7 @@
         {
           "driver": "Organic Growth %",
           "current": "Actual YoY Growth H1 from Sheets",
-          "y2026": "10%",
+          "y2026": "0%",
           "y2027": "10%",
           "y2028": "10%",
           "y2029": "10%",
@@ -305,27 +305,27 @@
           "driver": "Dover Market Opportunity (Gross)",
           "current": "$130M",
           "y2026": "$130M",
-          "y2027": "$130M",
-          "y2028": "$130M",
-          "y2029": "$130M",
-          "note": "Gross market opportunity before paid ads overlap."
+          "y2027": "$136.5M",
+          "y2028": "$143.3M",
+          "y2029": "$150.4M",
+          "note": "Editable market-size forecast. Default grows 5% annually from the validated $130M 2026 opportunity."
         },
         {
           "driver": "Dover Target Capture % (Gross)",
           "current": "N/A",
           "y2026": "20%",
-          "y2027": "20%",
-          "y2028": "20%",
-          "y2029": "20%",
+          "y2027": "22%",
+          "y2028": "24%",
+          "y2029": "25%",
           "note": "Scenario target capture applied across forecast years; dollar output is gross before overlap."
         },
         {
           "driver": "Paid Ads Overlap %",
           "current": "N/A",
           "y2026": "30%",
-          "y2027": "30%",
-          "y2028": "30%",
-          "y2029": "30%",
+          "y2027": "28%",
+          "y2028": "26%",
+          "y2029": "25%",
           "note": "Prevents double counting Dover revenue that is already influenced by paid ads."
         }
       ],
@@ -344,30 +344,30 @@
       "rows": [
         {
           "driver": "Orders",
-          "current": "Actuals pending",
-          "y2026": "Actuals + remaining-month forecast",
+          "current": "782",
+          "y2026": "1,173",
           "y2027": "1,600",
           "y2028": "2,500",
           "y2029": "3,000",
-          "note": "Baseline/current should feed from Shopify/Stacks ecommerce-only orders, excluding HITS, Wellington and Concierge."
+          "note": "Baseline/current should feed from Shopify/Stacks ecommerce-only orders, excluding HITS, Wellington and Concierge. Default is the latest validated snapshot; Refresh Actuals overwrites it from the connected source."
         },
         {
           "driver": "AOV",
-          "current": "Actuals pending",
-          "y2026": "Actuals pending",
+          "current": "$196",
+          "y2026": "$196",
           "y2027": "$210",
           "y2028": "$230",
           "y2029": "$250",
-          "note": "Use ecommerce-only AOV."
+          "note": "Use ecommerce-only AOV. Default is the latest validated snapshot; Refresh Actuals overwrites it from the connected source."
         },
         {
           "driver": "GM1 %",
-          "current": "Actuals pending",
-          "y2026": "Actuals pending",
+          "current": "47.3%",
+          "y2026": "47.3%",
           "y2027": "32.5%",
           "y2028": "35.5%",
           "y2029": "38.5%",
-          "note": "GM1 must be defined on Net Sales."
+          "note": "GM1 must be defined on Net Sales. Default is the latest validated snapshot; Refresh Actuals overwrites it from the connected source."
         }
       ]
     },
@@ -376,35 +376,39 @@
       "rows": [
         {
           "driver": "Active Clients",
-          "current": "Actuals pending",
-          "y2026": "Actuals pending",
+          "current": "252",
+          "y2026": "252",
           "y2027": "400",
           "y2028": "600",
-          "y2029": "1,000"
+          "y2029": "1,000",
+          "note": "Default is the latest validated snapshot; Refresh Actuals overwrites it from the connected source."
         },
         {
           "driver": "Orders per Client",
-          "current": "Actuals pending",
-          "y2026": "Actuals pending",
+          "current": "1.21",
+          "y2026": "1.21",
           "y2027": "1.5",
           "y2028": "1.8",
-          "y2029": "2.0"
+          "y2029": "2.0",
+          "note": "Default is the latest validated snapshot; Refresh Actuals overwrites it from the connected source."
         },
         {
           "driver": "AOV",
-          "current": "Actuals pending",
-          "y2026": "Actuals pending",
+          "current": "$417",
+          "y2026": "$417",
           "y2027": "$450",
           "y2028": "$480",
-          "y2029": "$500"
+          "y2029": "$500",
+          "note": "Default is the latest validated snapshot; Refresh Actuals overwrites it from the connected source."
         },
         {
           "driver": "GM1 %",
-          "current": "Actuals pending",
-          "y2026": "Actuals pending",
+          "current": "37.9%",
+          "y2026": "37.9%",
           "y2027": "35.5%",
           "y2028": "40.5%",
-          "y2029": "45.5%"
+          "y2029": "45.5%",
+          "note": "Default is the latest validated snapshot; Refresh Actuals overwrites it from the connected source."
         }
       ]
     },
@@ -414,30 +418,30 @@
       "rows": [
         {
           "driver": "Orders",
-          "current": "Actuals pending",
-          "y2026": "Actuals + remaining-month forecast",
+          "current": "765",
+          "y2026": "765",
           "y2027": "785",
           "y2028": "795",
           "y2029": "805",
-          "note": "Shopify Cavali order count; future years remain editable."
+          "note": "Shopify Cavali order count; future years remain editable. Default is the latest validated snapshot; Refresh Actuals overwrites it from the connected source."
         },
         {
           "driver": "Signature Active Members",
-          "current": "Actuals pending",
-          "y2026": "Actuals pending",
+          "current": "574",
+          "y2026": "574",
           "y2027": "350",
           "y2028": "500",
           "y2029": "800",
-          "note": "Current to be validated from Smartrr API."
+          "note": "Current to be validated from Smartrr API. Default is the latest validated snapshot; Refresh Actuals overwrites it from the connected source."
         },
         {
           "driver": "Signature Boxes per Year",
-          "current": "Actuals pending",
-          "y2026": "Actuals pending",
+          "current": "1.9",
+          "y2026": "1.9",
           "y2027": "1.3",
           "y2028": "1.5",
           "y2029": "1.7",
-          "note": "Current/2026 from actual delivered boxes ÷ active members. Future values are editable management assumptions."
+          "note": "Current/2026 from actual delivered boxes ÷ active members. Future values are editable management assumptions. Default is the latest validated snapshot; Refresh Actuals overwrites it from the connected source."
         },
         {
           "driver": "Signature Price",
@@ -449,20 +453,21 @@
         },
         {
           "driver": "Premium Active Members",
-          "current": "Actuals pending",
-          "y2026": "Actuals pending",
+          "current": "11",
+          "y2026": "11",
           "y2027": "31",
           "y2028": "41",
-          "y2029": "51"
+          "y2029": "51",
+          "note": "Default is the latest validated snapshot; Refresh Actuals overwrites it from the connected source."
         },
         {
           "driver": "Premium Boxes per Year",
-          "current": "Actuals pending",
-          "y2026": "Actuals pending",
+          "current": "2.33",
+          "y2026": "2.33",
           "y2027": "2.5",
           "y2028": "3.0",
           "y2029": "3.5",
-          "note": "Current/2026 from Premium boxes delivered ÷ active Premium members; do not assume 2 without source validation."
+          "note": "Current/2026 from Premium boxes delivered ÷ active Premium members; do not assume 2 without source validation. Default is the latest validated snapshot; Refresh Actuals overwrites it from the connected source."
         },
         {
           "driver": "Premium Price",
@@ -474,12 +479,12 @@
         },
         {
           "driver": "GM1 %",
-          "current": "Actuals pending",
-          "y2026": "Actuals pending",
+          "current": "32.1%",
+          "y2026": "32.1%",
           "y2027": "35%",
           "y2028": "38%",
           "y2029": "40%",
-          "note": "Seeded from validated Cavali actual GM1; each forecast year remains editable."
+          "note": "Seeded from validated Cavali actual GM1; each forecast year remains editable. Default is the latest validated snapshot; Refresh Actuals overwrites it from the connected source."
         },
         {
           "driver": "Organic Member Growth",
@@ -523,28 +528,30 @@
       "rows": [
         {
           "driver": "Orders",
-          "current": "Actuals pending",
-          "y2026": "Actuals + remaining-month forecast",
+          "current": "787",
+          "y2026": "1,181",
           "y2027": "1,000",
           "y2028": "1,150",
           "y2029": "1,300",
-          "note": "2026 from Shopify Wellington-tagged/POS orders; future values are editable operating forecasts."
+          "note": "2026 from Shopify Wellington-tagged/POS orders; future values are editable operating forecasts. Default is the latest validated snapshot; Refresh Actuals overwrites it from the connected source."
         },
         {
           "driver": "AOV",
-          "current": "Actuals pending",
-          "y2026": "Actuals pending",
+          "current": "$171",
+          "y2026": "$171",
           "y2027": "$180",
           "y2028": "$195",
-          "y2029": "$210"
+          "y2029": "$210",
+          "note": "Default is the latest validated snapshot; Refresh Actuals overwrites it from the connected source."
         },
         {
           "driver": "GM1 %",
-          "current": "Actuals pending",
-          "y2026": "Actuals pending",
+          "current": "43.6%",
+          "y2026": "43.6%",
           "y2027": "45%",
           "y2028": "48%",
-          "y2029": "50%"
+          "y2029": "50%",
+          "note": "Default is the latest validated snapshot; Refresh Actuals overwrites it from the connected source."
         }
       ]
     },
@@ -614,35 +621,36 @@
     "commercialTerms": [
       {
         "driver": "Markup %",
-        "current": "Actuals pending",
-        "y2026": "Actuals pending",
-        "y2027": "10%",
-        "y2028": "10%",
-        "y2029": "10%"
+        "current": "74.8%",
+        "y2026": "74.8%",
+        "y2027": "76%",
+        "y2028": "78%",
+        "y2029": "80%",
+        "note": "Current/2026 is overwritten by connected SKU-level actuals when available. Future values are editable margin-management targets."
       },
       {
         "driver": "Booking Amount",
-        "current": "Actuals pending",
+        "current": "$10k",
         "y2026": "$10k",
-        "y2027": "$10k",
+        "y2027": "$15k",
         "y2028": "$20k",
-        "y2029": "$20k"
+        "y2029": "$25k"
       },
       {
         "driver": "Booking Discount %",
-        "current": "Actuals pending",
+        "current": "10%",
         "y2026": "10%",
-        "y2027": "10%",
-        "y2028": "10%",
-        "y2029": "10%"
+        "y2027": "9%",
+        "y2028": "8%",
+        "y2029": "7%"
       },
       {
         "driver": "Discounts & Returns %",
-        "current": "17%",
+        "current": "2.1%",
         "y2026": "16%",
-        "y2027": "16%",
-        "y2028": "16%",
-        "y2029": "16%",
+        "y2027": "15%",
+        "y2028": "14%",
+        "y2029": "13%",
         "note": "Commercial Economics — authorized by Tatum"
       }
     ],
@@ -654,40 +662,42 @@
     "capitalEfficiency": [
       {
         "driver": "Inventory Turns",
-        "current": "Actuals pending",
-        "y2026": "Actuals pending",
-        "y2027": "0.30x",
-        "y2028": "0.50x",
-        "y2029": "0.80x",
-        "note": "Current/2026 must come from SKU Savvy inventory turns; future targets remain editable."
+        "current": "1.36x",
+        "y2026": "1.36x",
+        "y2027": "1.50x",
+        "y2028": "1.75x",
+        "y2029": "2.00x",
+        "note": "Current/2026 is overwritten by SKU Savvy actual inventory turns when available. Future values are editable operating targets."
       }
     ]
   },
   "operations": [
     {
       "driver": "Outbound Shipping Cost %",
-      "current": "Manual / ShipStation or QuickBooks pending",
-      "y2026": "0%",
-      "y2027": "0%",
-      "y2028": "0%",
-      "y2029": "0%",
-      "note": "Check whether split exists in QuickBooks or use manual source."
+      "current": "5%",
+      "y2026": "5%",
+      "y2027": "4.8%",
+      "y2028": "4.5%",
+      "y2029": "4.2%",
+      "note": "Current/2026 is the latest validated operating assumption until ShipStation or QuickBooks is connected. Future rates improve gradually and remain editable."
     },
     {
       "driver": "Shipping Revenue %",
-      "current": "Manual / Shopify pending",
-      "y2026": "0%",
-      "y2027": "0%",
-      "y2028": "0%",
-      "y2029": "0%"
+      "current": "2%",
+      "y2026": "2%",
+      "y2027": "2.2%",
+      "y2028": "2.5%",
+      "y2029": "2.8%",
+      "note": "Current/2026 is the latest validated Shopify shipping-revenue assumption. Future rates are editable."
     },
     {
       "driver": "Packaging Cost %",
-      "current": "Manual pending",
-      "y2026": "0%",
-      "y2027": "0%",
-      "y2028": "0%",
-      "y2029": "0%"
+      "current": "2%",
+      "y2026": "2%",
+      "y2027": "1.9%",
+      "y2028": "1.8%",
+      "y2029": "1.7%",
+      "note": "Current/2026 is the latest validated packaging assumption until accounting data is connected. Future rates improve gradually and remain editable."
     }
   ],
   "growthInitiatives": [

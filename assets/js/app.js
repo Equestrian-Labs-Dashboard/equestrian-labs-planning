@@ -554,14 +554,25 @@ function incrementalAdSpendByYear(yearKey) {
   const total = fundingTotal(funding);
   const marketingAllocation = parseMoney(funding.marketing);
   if (!year || !marketingAllocation || total <= 0) return 0;
+
   const fundingDate = monthIndexFromFundingDate(STATE.meta.fundingDate || funding.date);
   if (!fundingDate) return 0;
-  const start = addMonths(fundingDate, 1);
-  const end = adSpendCoverageEndForScenario(total, start);
-  const months = monthsBetweenInclusive(start, end);
-  if (!months.length) return 0;
-  const monthly = marketingAllocation / months.length;
-  return months.filter(x => x.year === year).length * monthly;
+
+  // Front-loaded but non-flat deployment curve. The first year is prorated by
+  // months available after funding; the remaining allocation is distributed
+  // across the next three years. This keeps every year logical and prevents
+  // the same amount from being copied across 2027–2029.
+  const launchYear = fundingDate.year;
+  const monthsActiveFirstYear = Math.max(0, 11 - fundingDate.month); // month after funding through Dec
+  const firstYearWeight = Math.min(0.12, (monthsActiveFirstYear / 12) * 0.30);
+  const remaining = 1 - firstYearWeight;
+  const weights = {
+    [launchYear]: firstYearWeight,
+    [launchYear + 1]: remaining * 0.46,
+    [launchYear + 2]: remaining * 0.34,
+    [launchYear + 3]: remaining * 0.20
+  };
+  return marketingAllocation * (weights[year] || 0);
 }
 
 function baseAdSpendByYear(yearKey) {
@@ -598,10 +609,11 @@ function roasForYear(yearKey) {
 }
 
 function totalAdSpendByYear(yearKey) {
-  // Ceci-approved logic: 2026–2028 use the operating budget (base + funding allocation).
-  // Target Ad Spend % is a comparison KPI and must not create a circular revenue/spend loop.
-  if (yearKey === "y2029") return totalAdSpendManualOrEditable(yearKey);
-  return baseAdSpendByYear(yearKey) + incrementalAdSpendByYear(yearKey);
+  // Base operating budget + phased funding allocation in every forecast year.
+  // 2029 also includes the management reinvestment amount discussed in review.
+  const operatingSpend = baseAdSpendByYear(yearKey) + incrementalAdSpendByYear(yearKey);
+  if (yearKey === "y2029") return operatingSpend + totalAdSpendManualOrEditable(yearKey);
+  return operatingSpend;
 }
 
 function privateLabelLaunchStart() {
@@ -620,7 +632,6 @@ function computedCommercialValue(row, key) {
   if (!row || !key || key === "current") return null;
   if (row.driver === "Base Ad Spend") return formatMoney(baseAdSpendByYear(key));
   if (row.driver === "Incremental Ad Spend") {
-    if (key === "y2029") return "—";
     return formatMoney(incrementalAdSpendByYear(key));
   }
   if (row.driver === "Total Ad Spend") {
@@ -687,7 +698,7 @@ function getRow(rows, driver) {
 function isBlankLike(v) {
   const s = String(v ?? "").trim();
   if (!s || s === "$" || s === "-" || s === "—") return true;
-  if (/^calculated/i.test(s) || /^actuals?$/i.test(s) || /^editable$/i.test(s) || /^kpi \/ calculated$/i.test(s)) return true;
+  if (/^calculated/i.test(s) || /^actuals?( pending)?$/i.test(s) || /^editable$/i.test(s) || /^kpi \/ calculated$/i.test(s)) return true;
   if (/^no ad_spend/i.test(s) || /^needs /i.test(s) || /^revenue share/i.test(s)) return true;
   return false;
 }

@@ -8,7 +8,7 @@
  * sin tocar una sola línea de app.js.
  */
 const DataService = (() => {
-  const STORAGE_KEY = "som_assumptions_v250";
+  const STORAGE_KEY = "som_assumptions_v260";
   const LEGACY_KEYS = [];
 
   async function load() {
