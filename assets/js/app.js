@@ -204,6 +204,7 @@ function renderAll() {
   renderSheet2Draft();
   renderFinancialSummary();
   renderCommercialCashFlow();
+  renderBoardDashboard();
   renderFormulaQA();
   renderGrowth();
   renderThesis();
@@ -244,6 +245,7 @@ function renderHeader() {
   const { meta, lists } = STATE;
   document.getElementById("modelStatus").innerHTML = optionList(lists.modelStatus, meta.modelStatus);
   document.getElementById("fundingScenario").innerHTML = optionList(lists.fundingScenario, meta.fundingScenario);
+  document.getElementById("displayYear").innerHTML = optionList(lists.displayYear || ["2026", "2027", "2028", "2029"], String(meta.displayYear || "2026"));
   document.getElementById("fundingDate").innerHTML = optionList(lists.fundingDate, meta.fundingDate);
   document.getElementById("baseEcommerce").value = meta.baseEcommerceMonthly || "$70k";
   document.getElementById("doverCapture").innerHTML = optionList(lists.doverCapture || ["5%", "10%", "15%", "20%", "30%"], meta.doverCapture);
@@ -252,11 +254,12 @@ function renderHeader() {
   document.getElementById("versionBadge").textContent = `v${meta.version}`;
 
   document.getElementById("modelStatus").onchange = e => switchModelStatus(e.target.value);
-  document.getElementById("fundingScenario").onchange = e => { meta.fundingScenario = e.target.value; applyFundingOrganicDefault(); renderKpis(); renderFunding(); renderCommercial(); renderGrowth(); renderBusinessUnits(); renderSheet2Draft(); renderThesis(); scheduleSave(); };
-  document.getElementById("fundingDate").onchange = e => { meta.fundingDate = e.target.value; renderKpis(); renderGrowth(); renderSheet2Draft(); scheduleSave(); };
-  document.getElementById("baseEcommerce").onchange = e => { meta.baseEcommerceMonthly = e.target.value; renderKpis(); renderSheet2Draft(); renderThesis(); scheduleSave(); };
-  document.getElementById("doverCapture").onchange = e => { meta.doverCapture = e.target.value; syncHeaderToTables(); renderKpis(); renderCommercial(); renderSheet2Draft(); renderThesis(); scheduleSave(); };
-  document.getElementById("roas").onchange = e => { meta.roas = e.target.value; syncHeaderToTables(); renderKpis(); renderCommercial(); renderSheet2Draft(); renderThesis(); scheduleSave(); };
+  document.getElementById("fundingScenario").onchange = e => { meta.fundingScenario = e.target.value; applyFundingOrganicDefault(); renderKpis(); renderFunding(); renderCommercial(); renderGrowth(); renderBusinessUnits(); renderSheet2Draft(); renderFinancialSummary(); renderCommercialCashFlow(); renderBoardDashboard(); renderThesis(); scheduleSave(); };
+  document.getElementById("displayYear").onchange = e => { meta.displayYear = e.target.value; renderBoardDashboard(); scheduleSave(); };
+  document.getElementById("fundingDate").onchange = e => { meta.fundingDate = e.target.value; renderKpis(); renderGrowth(); renderSheet2Draft(); renderCommercialCashFlow(); renderBoardDashboard(); scheduleSave(); };
+  document.getElementById("baseEcommerce").onchange = e => { meta.baseEcommerceMonthly = e.target.value; renderKpis(); renderSheet2Draft(); renderFinancialSummary(); renderCommercialCashFlow(); renderBoardDashboard(); renderThesis(); scheduleSave(); };
+  document.getElementById("doverCapture").onchange = e => { meta.doverCapture = e.target.value; syncHeaderToTables(); renderKpis(); renderCommercial(); renderSheet2Draft(); renderFinancialSummary(); renderCommercialCashFlow(); renderBoardDashboard(); renderThesis(); scheduleSave(); };
+  document.getElementById("roas").onchange = e => { meta.roas = e.target.value; syncHeaderToTables(); renderKpis(); renderCommercial(); renderSheet2Draft(); renderFinancialSummary(); renderCommercialCashFlow(); renderBoardDashboard(); renderThesis(); scheduleSave(); };
   document.getElementById("lastUpdate").oninput = e => { meta.lastUpdate = e.target.value; scheduleSave(); };
 }
 
@@ -1198,6 +1201,166 @@ function renderSheet2Draft() {
   renderSheet2MarginBridge("y2026");
 }
 
+
+
+/* ---------------- Tab 05 Board Dashboard ---------------- */
+function selectedBoardYearKey() {
+  const year = String((STATE.meta && STATE.meta.displayYear) || "2026");
+  return `y${year}`;
+}
+
+function boardCashSummary() {
+  const years = yearKeys();
+  const openingInitial = parseMoney((STATE.cashFlow && STATE.cashFlow.openingCash) || "$0");
+  let opening = openingInitial;
+  const summary = {};
+  years.forEach(year => {
+    const flow = cashFlowRows(year);
+    const cashIn = Object.values(flow.cashIn).reduce((sum, value) => sum + Number(value || 0), 0);
+    const cashOut = (flow.cashOut["Operating Cash Out"] || 0)
+      + (flow.cashOut["Growth Investments"] || 0)
+      + (flow.cashOut["CapEx"] || 0)
+      + (flow.cashOut["Private Label Investment"] || 0)
+      + (flow.cashOut["Other Cash Out"] || 0);
+    const net = cashIn - cashOut;
+    const ending = opening + net;
+    const monthlyBurn = cashOut > cashIn ? (cashOut - cashIn) / 12 : cashOut / 12;
+    const runway = monthlyBurn > 0 ? ending / monthlyBurn : null;
+    summary[year] = { opening, cashIn, cashOut, net, ending, runway, flow };
+    opening = ending;
+  });
+  return summary;
+}
+
+function boardMilestoneDate(baseDate, monthsToAdd) {
+  const match = String(baseDate || "Oct-26").match(/^([A-Za-z]{3})-(\d{2})$/);
+  if (!match) return String(baseDate || "—");
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const startMonth = months.indexOf(match[1]);
+  if (startMonth < 0) return String(baseDate || "—");
+  const absolute = (2000 + Number(match[2])) * 12 + startMonth + monthsToAdd;
+  const year = Math.floor(absolute / 12);
+  const month = absolute % 12;
+  return `${months[month]}-${String(year).slice(-2)}`;
+}
+
+function renderBoardKpis(yearKey, bridge, cash) {
+  const wrap = document.getElementById("boardKpiGrid");
+  if (!wrap) return;
+  const year = yearLabel(yearKey);
+  const opex = pnlOpexForYear(yearKey, bridge);
+  const ebitda = bridge.gp3 - opex.total;
+  const cards = [
+    ["Gross Sales", formatFinancialMoney(bridge.grossSales, {dashZero:true})],
+    ["Net Sales", formatFinancialMoney(bridge.netSales, {dashZero:true})],
+    ["GP3", formatFinancialMoney(bridge.gp3, {dashZero:true})],
+    ["EBITDA", formatFinancialMoney(ebitda, {dashZero:true})],
+    ["Ending Cash", formatFinancialMoney(cash.ending, {dashZero:true})],
+    ["Cash Runway", cash.runway === null ? "Self-funded" : `${Math.max(0, cash.runway).toFixed(1)} mo`],
+    ["ROAS", `${roasForYear(yearKey).toFixed(1)}x`],
+    ["New Customers", Math.round(newCustomersForYear(yearKey) || 0).toLocaleString("en-US")],
+    ["Dover Capture", formatPercent(currentDoverTargetPct(yearKey))],
+    ["Funding", STATE.meta.fundingScenario || "Base $0"]
+  ];
+  wrap.innerHTML = "";
+  cards.forEach(([label, value]) => {
+    const card = el("div", { class: "board-kpi-card" }, [
+      el("div", { class: "board-kpi-label" }, label),
+      el("div", { class: `board-kpi-value ${moneyClass(value, "")}` }, value),
+      el("div", { class: "board-kpi-period" }, `Forecast ${year}`)
+    ]);
+    wrap.appendChild(card);
+  });
+}
+
+function renderBoardRevenueMix(yearKey) {
+  const root = document.getElementById("boardRevenueMix");
+  if (!root) return;
+  const rows = engineOutputs(yearKey).filter(row => row.gross > 0);
+  const total = rows.reduce((sum, row) => sum + row.gross, 0) || 1;
+  const palette = ["#173f73", "#2f7f71", "#d4a900", "#805ad5", "#e67e22", "#df5b6c"];
+  let offset = 25;
+  const circles = rows.map((row, index) => {
+    const pct = row.gross / total;
+    const length = pct * 75;
+    const circle = `<circle cx="58" cy="58" r="42" fill="none" stroke="${palette[index % palette.length]}" stroke-width="18" stroke-dasharray="${length} ${100-length}" stroke-dashoffset="-${offset}" pathLength="100"/>`;
+    offset += length;
+    return circle;
+  }).join("");
+  root.innerHTML = `<div class="donut-layout"><div class="donut-wrap"><svg viewBox="0 0 116 116" role="img" aria-label="Revenue mix donut"><circle cx="58" cy="58" r="42" fill="none" stroke="rgba(120,140,170,.16)" stroke-width="18"/>${circles}</svg><div class="donut-center"><strong>${formatMoney(total)}</strong><span>Gross Sales</span></div></div><div class="donut-legend">${rows.map((row,index)=>`<div class="donut-legend-row"><span class="legend-dot" style="background:${palette[index%palette.length]}"></span><span>${row.engine}</span><strong>${formatPercent(row.gross/total)}</strong></div>`).join("")}</div></div>`;
+}
+
+function renderBoardRevenueGrowth() {
+  const root = document.getElementById("boardRevenueGrowth");
+  if (!root) return;
+  const rows = yearKeys().map(year => ({ year: yearLabel(year), value: marginBridge(year).grossSales }));
+  const max = Math.max(...rows.map(row => row.value), 1);
+  root.innerHTML = `<div class="bar-chart">${rows.map(row => `<div class="bar-column"><div class="bar-value">${formatMoney(row.value)}</div><div class="bar-track"><div class="bar-fill" style="height:${Math.max(4,(row.value/max)*100)}%"></div></div><div class="bar-label">${row.year}</div></div>`).join("")}</div>`;
+}
+
+function renderBoardProfitability(yearKey, bridge) {
+  const root = document.getElementById("boardProfitability");
+  if (!root) return;
+  const opex = pnlOpexForYear(yearKey, bridge);
+  const ebitda = bridge.gp3 - opex.total;
+  const points = [
+    ["Gross Sales", bridge.grossSales],
+    ["Net Sales", bridge.netSales],
+    ["GP1", bridge.gp1],
+    ["GP2", bridge.gp2],
+    ["GP3", bridge.gp3],
+    ["EBITDA", ebitda]
+  ];
+  const max = Math.max(...points.map(([,value]) => Math.abs(value)), 1);
+  root.innerHTML = `<div class="profit-journey">${points.map(([label,value],index)=>`<div class="profit-step ${value<0?'loss':''}"><div class="profit-value">${formatMoney(value)}</div><div class="profit-bar"><span style="height:${Math.max(6,Math.abs(value)/max*100)}%"></span></div><div class="profit-label">${label}</div>${index<points.length-1?'<div class="profit-arrow">→</div>':''}</div>`).join("")}</div>`;
+}
+
+function renderBoardCash(yearKey, cash) {
+  const root = document.getElementById("boardCashPosition");
+  if (!root) return;
+  const items = [
+    ["Opening Cash", cash.opening, "neutral"],
+    ["Cash In", cash.cashIn, "positive"],
+    ["Cash Out", cash.cashOut, "negative"],
+    ["Ending Cash", cash.ending, cash.ending < 0 ? "negative" : "positive"],
+    ["Cash Runway", cash.runway === null ? "Self-funded" : `${Math.max(0,cash.runway).toFixed(1)} mo`, "neutral"]
+  ];
+  root.innerHTML = `<div class="cash-flow-board">${items.map(([label,value,tone],index)=>`<div class="cash-board-item ${tone}"><span>${label}</span><strong>${typeof value==='number'?formatMoney(value):value}</strong></div>${index<items.length-1?'<div class="cash-board-arrow">↓</div>':''}`).join("")}</div>`;
+}
+
+function renderBoardMilestones() {
+  const root = document.getElementById("boardMilestones");
+  if (!root) return;
+  const fundingDate = STATE.meta.fundingDate || selectedFundingRow().date || "Oct-26";
+  const amount = fundingAmountSelected();
+  const milestones = [
+    ["Funding", fundingDate, true],
+    ["Dover Expansion", boardMilestoneDate(fundingDate, 0), true],
+    ["Embroidery", boardMilestoneDate(fundingDate, 3), amount >= 1000000],
+    ["Private Label", boardMilestoneDate(fundingDate, 15), amount >= 3000000],
+    ["International Growth", boardMilestoneDate(fundingDate, 18), amount >= 5000000]
+  ];
+  root.innerHTML = `<div class="milestone-list">${milestones.map(([name,date,active],index)=>`<div class="milestone-row ${active?'active':'locked'}"><div class="milestone-marker">${active?'✓':'○'}</div><div class="milestone-copy"><strong>${name}</strong><span>${active?date:'Funding gate not met'}</span></div>${index<milestones.length-1?'<div class="milestone-line"></div>':''}</div>`).join("")}</div>`;
+}
+
+function renderBoardDashboard() {
+  if (!STATE) return;
+  const yearKey = selectedBoardYearKey();
+  const year = yearLabel(yearKey);
+  const bridge = marginBridge(yearKey);
+  const cashSummary = boardCashSummary();
+  const cash = cashSummary[yearKey];
+  const context = document.getElementById("boardContext");
+  const pill = document.getElementById("boardYearPill");
+  if (context) context.textContent = `${STATE.meta.modelStatus || "Draft"} scenario · ${STATE.meta.fundingScenario || "Base $0"} funding · closing forecast`;
+  if (pill) pill.textContent = `Forecast ${year}`;
+  renderBoardKpis(yearKey, bridge, cash);
+  renderBoardRevenueMix(yearKey);
+  renderBoardRevenueGrowth();
+  renderBoardProfitability(yearKey, bridge);
+  renderBoardCash(yearKey, cash);
+  renderBoardMilestones();
+}
 
 function renderFormulaQA() {
   const root = document.getElementById("formulaQaBlocks");
@@ -2394,6 +2557,7 @@ async function refreshActualsFromSheets({ silent = false } = {}) {
     renderBusinessUnits();
     renderSheet2Draft();
     renderCommercialCashFlow();
+    renderBoardDashboard();
     saveNow();
 
     const sourceLabel = shopifyJson && connectedJson ? "Shopify + Google Sheets" : (shopifyJson ? "Shopify sync" : "Google Sheets");

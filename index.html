@@ -6,7 +6,7 @@
 <title>Equestrian Labs · Strategic Operating Model</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/styles.css?v=250" />
+<link rel="stylesheet" href="assets/css/styles.css?v=270" />
 </head>
 <body>
 
@@ -26,6 +26,7 @@
     <div class="controls">
       <div class="control-field"><label>Model Status</label><select id="modelStatus"></select></div>
       <div class="control-field"><label>Funding Scenario</label><select id="fundingScenario"></select></div>
+      <div class="control-field"><label>Display Year</label><select id="displayYear"></select></div>
       <div class="control-field"><label>Funding Date</label><select id="fundingDate"></select></div>
       <div class="control-field"><label>Base Ecommerce</label><input id="baseEcommerce" /></div>
       <div class="control-field"><label>Dover Capture</label><select id="doverCapture"></select></div>
@@ -187,11 +188,54 @@
     </section>
   </section>
 
-  <section class="tab-panel" id="tab-05">
-    <div class="placeholder-card" data-accent="margin">
-      <div class="placeholder-tag">05</div>
-      <h2>Board Dashboard</h2>
-      <p>Coming next — executive summary view for board &amp; investor meetings.</p>
+  <section class="tab-panel board-dashboard" id="tab-05">
+    <div class="board-hero">
+      <div>
+        <p class="board-eyebrow">BOARD DASHBOARD</p>
+        <h2>Executive View</h2>
+        <p id="boardContext" class="board-context"></p>
+      </div>
+      <div class="board-year-pill" id="boardYearPill">Forecast 2026</div>
+    </div>
+
+    <section class="section board-section" data-accent="commercial">
+      <div class="section-header">Executive Snapshot</div>
+      <p class="section-note">The most important closing-forecast indicators for the selected Display Year.</p>
+      <div class="board-kpi-grid" id="boardKpiGrid"></div>
+    </section>
+
+    <div class="board-two-col">
+      <section class="section board-section" data-accent="bu">
+        <div class="section-header">Revenue Mix</div>
+        <p class="section-note">Gross Sales contribution by growth engine.</p>
+        <div class="board-chart-card" id="boardRevenueMix"></div>
+      </section>
+
+      <section class="section board-section" data-accent="growth">
+        <div class="section-header">Revenue Growth</div>
+        <p class="section-note">Gross Sales forecast by year.</p>
+        <div class="board-chart-card" id="boardRevenueGrowth"></div>
+      </section>
+    </div>
+
+    <section class="section board-section" data-accent="margin">
+      <div class="section-header">Profitability Journey</div>
+      <p class="section-note">How Gross Sales convert into EBITDA for the selected Display Year.</p>
+      <div class="board-chart-card board-wide-chart" id="boardProfitability"></div>
+    </section>
+
+    <div class="board-two-col">
+      <section class="section board-section" data-accent="cashflow">
+        <div class="section-header">Cash Position</div>
+        <p class="section-note">Closing liquidity and operating runway.</p>
+        <div class="board-chart-card" id="boardCashPosition"></div>
+      </section>
+
+      <section class="section board-section" data-accent="funding">
+        <div class="section-header">Strategic Milestones</div>
+        <p class="section-note">Dates shift automatically with the Funding Date when applicable.</p>
+        <div class="board-chart-card" id="boardMilestones"></div>
+      </section>
     </div>
   </section>
 
@@ -208,7 +252,7 @@
   </section>
 </main>
 
-<script src="assets/js/dataService.js?v=260"></script>
-<script src="assets/js/app.js?v=260"></script>
+<script src="assets/js/dataService.js?v=270"></script>
+<script src="assets/js/app.js?v=270"></script>
 </body>
 </html>
