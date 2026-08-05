@@ -569,11 +569,6 @@ function baseAdSpendByYear(yearKey) {
 }
 
 function totalAdSpendManualOrEditable(yearKey) {
-  if (corro) {
-    STATE.meta.actualsThroughMonth = corro.latest.month;
-    STATE.actuals.actualsThroughMonth = corro.latest.month;
-  }
-
   const acq = getBlock(STATE.commercial, "Acquisition");
   const rows = acq ? acq.rows : [];
   if (yearKey === "y2029") {
