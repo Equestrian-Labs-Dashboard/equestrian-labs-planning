@@ -1,210 +1,97 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { google } from 'googleapis';
+#!/usr/bin/env node
+/**
+ * Secure Google Sheets sync for GitHub Pages.
+ * Reads private sheets with the GOOGLE_CREDENTIALS service account and writes
+ * a token-free data/connected_actuals.json consumed by the browser.
+ */
+import fs from "node:fs/promises";
+import crypto from "node:crypto";
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const DATA_DIR = path.join(ROOT, 'data');
-const OUT = path.join(DATA_DIR, 'connected_actuals.json');
-
-function env(name, required = false) {
-  const value = String(process.env[name] || '').trim();
-  if (required && !value) throw new Error(`Missing required environment variable: ${name}`);
+const required = (name) => {
+  const value = process.env[name];
+  if (!value) throw new Error(`Missing required environment variable: ${name}`);
   return value;
+};
+
+const credentials = JSON.parse(required("GOOGLE_CREDENTIALS"));
+const sheetIds = {
+  corro: required("SHEET_ID_CORRO"),
+  cavali: required("SHEET_ID_CAVALI"),
+};
+
+const tabs = {
+  corro: ["kpis_daily", "revenue_share", "ad_spend", "new_vs_returning", "products_q1_2026"],
+  cavali: ["kpis_daily", "revenue_share", "ad_spend", "new_vs_returning", "smartrr_product_volume", "smartrr_subscribers", "products_q1_2026"],
+};
+
+function base64url(value) {
+  return Buffer.from(value).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 }
 
-function parseCredentials() {
-  const raw = env('GOOGLE_CREDENTIALS', true);
-  try { return JSON.parse(raw); }
-  catch (error) { throw new Error(`GOOGLE_CREDENTIALS is not valid JSON: ${error.message}`); }
-}
-
-
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let field = '';
-  let quoted = false;
-  for (let i = 0; i < text.length; i += 1) {
-    const ch = text[i];
-    if (quoted) {
-      if (ch === '"' && text[i + 1] === '"') { field += '"'; i += 1; }
-      else if (ch === '"') quoted = false;
-      else field += ch;
-    } else if (ch === '"') quoted = true;
-    else if (ch === ',') { row.push(field); field = ''; }
-    else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
-    else if (ch !== '\r') field += ch;
-  }
-  if (field.length || row.length) { row.push(field); rows.push(row); }
-  if (!rows.length) return [];
-  const headers = rows[0].map(h => String(h || '').replace(/^\uFEFF/, '').trim());
-  return rows.slice(1).filter(r => r.some(v => String(v || '').trim())).map(r => {
-    const out = {};
-    headers.forEach((h, i) => { out[h || `column_${i + 1}`] = r[i] ?? ''; });
-    return out;
+async function accessToken() {
+  const now = Math.floor(Date.now() / 1000);
+  const header = base64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const payload = base64url(JSON.stringify({
+    iss: credentials.client_email,
+    scope: "https://www.googleapis.com/auth/spreadsheets.readonly",
+    aud: credentials.token_uri || "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  }));
+  const unsigned = `${header}.${payload}`;
+  const signature = crypto.sign("RSA-SHA256", Buffer.from(unsigned), credentials.private_key);
+  const assertion = `${unsigned}.${base64url(signature)}`;
+  const body = new URLSearchParams({
+    grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+    assertion,
   });
+  const response = await fetch(credentials.token_uri || "https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+  const json = await response.json();
+  if (!response.ok || !json.access_token) throw new Error(`Google token error: ${JSON.stringify(json).slice(0, 1000)}`);
+  return json.access_token;
 }
 
 function rowsToObjects(values = []) {
-  if (!Array.isArray(values) || !values.length) return [];
-  const headers = values[0].map((h, i) => String(h || `column_${i + 1}`).trim());
-  return values.slice(1).filter(row => row.some(v => String(v ?? '').trim() !== '')).map(row => {
+  if (!values.length) return [];
+  const headers = values[0].map(v => String(v ?? "").trim());
+  return values.slice(1).filter(row => row.some(v => String(v ?? "").trim() !== "")).map(row => {
     const out = {};
-    headers.forEach((h, i) => { out[h] = row[i] ?? ''; });
+    headers.forEach((header, index) => { if (header) out[header] = row[index] ?? ""; });
     return out;
   });
 }
 
-async function fetchTab(sheets, spreadsheetId, tabName) {
-  if (!spreadsheetId) return [];
-  try {
-    const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: `'${tabName}'` });
-    return rowsToObjects(res.data.values || []);
-  } catch (error) {
-    const status = error?.response?.status;
-    if (status === 400 || status === 404) {
-      console.warn(`Tab not found or unavailable: ${tabName}`);
-      return [];
-    }
-    throw error;
+async function readTab(token, spreadsheetId, tab) {
+  const range = encodeURIComponent(`'${tab}'`);
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?majorDimension=ROWS`;
+  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (response.status === 400 || response.status === 404) {
+    console.warn(`Optional tab unavailable: ${tab}`);
+    return [];
   }
-}
-
-async function fetchBundle(sheets, spreadsheetId, brand) {
-  const productTabs = ['products_q1_2026', 'products_2026', 'products_current'];
-  let products = [];
-  for (const tab of productTabs) {
-    products = await fetchTab(sheets, spreadsheetId, tab);
-    if (products.length) break;
-  }
-  return {
-    brand,
-    kpis_daily: await fetchTab(sheets, spreadsheetId, 'kpis_daily'),
-    revenue_share: await fetchTab(sheets, spreadsheetId, 'revenue_share'),
-    new_vs_returning: await fetchTab(sheets, spreadsheetId, 'new_vs_returning'),
-    ad_spend: await fetchTab(sheets, spreadsheetId, 'ad_spend'),
-    smartrr_subscribers: await fetchTab(sheets, spreadsheetId, 'smartrr_subscribers'),
-    smartrr_product_volume: await fetchTab(sheets, spreadsheetId, 'smartrr_product_volume'),
-    products_q1_2026: products
-  };
-}
-
-function findField(row, names) {
-  const entries = Object.entries(row || {});
-  for (const wanted of names) {
-    const normalized = wanted.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const match = entries.find(([k]) => k.toLowerCase().replace(/[^a-z0-9]/g, '') === normalized);
-    if (match) return match[1];
-  }
-  return '';
-}
-
-function number(value) {
-  const n = Number(String(value ?? '').replace(/[$,%()]/g, '').replace(/,/g, '').trim());
-  return Number.isFinite(n) ? n : 0;
-}
-
-function loadInventoryCsv(filePath, warehouse) {
-  if (!fs.existsSync(filePath)) return [];
-  const text = fs.readFileSync(filePath, 'utf8');
-  const rows = parseCsv(text);
-  return rows.map(row => {
-    const quantity = number(findField(row, ['quantity', 'qty', 'available', 'inventory quantity', 'stock']));
-    let unitCost = number(findField(row, ['unit cost', 'cost', 'avg cost', 'avgCost', 'average cost', 'landed cost']));
-    let price = number(findField(row, ['price', 'retail price', 'unit price', 'retail']));
-    // SKUSavvy warehouse exports store monetary values in thousandths (130380 = $130.38).
-    if (unitCost > 10000) unitCost /= 1000;
-    if (price > 10000) price /= 1000;
-    return {
-      warehouse,
-      sku: String(findField(row, ['sku', 'variant sku']) || '').trim(),
-      product_title: String(findField(row, ['product', 'product name', 'title', 'item']) || '').trim(),
-      quantity,
-      cost: unitCost,
-      price,
-      inventory_value: quantity * unitCost,
-      retail_value: quantity * price,
-      markup: unitCost > 0 && price > 0 ? (price - unitCost) / unitCost : null
-    };
-  }).filter(r => r.sku || r.product_title);
-}
-
-function buildSkuSavvySummary() {
-  const csvDir = path.join(DATA_DIR, 'skusavvy');
-  const configs = [
-    ['Wellington Warehouse', 'wellington_inventory.csv'],
-    ['Corro Trailer 1', 'corro_trailer_1_inventory.csv'],
-    ['Drop Ship', 'drop_ship_inventory.csv']
-  ];
-  const products = configs.flatMap(([warehouse, file]) => loadInventoryCsv(path.join(csvDir, file), warehouse));
-  const totals = products.reduce((a, r) => {
-    a.quantity += r.quantity;
-    a.inventoryValue += r.inventory_value;
-    a.retailValue += r.retail_value;
-    if (Number.isFinite(r.markup)) {
-      const weight = Math.max(r.inventory_value, r.quantity, 1);
-      a.markupNumerator += r.markup * weight;
-      a.markupWeight += weight;
-    }
-    return a;
-  }, { quantity: 0, inventoryValue: 0, retailValue: 0, markupNumerator: 0, markupWeight: 0 });
-  return {
-    source: 'Committed SKUSavvy warehouse CSV exports',
-    csvFiles: configs.map(([, file]) => `data/skusavvy/${file}`),
-    rows: products.length,
-    totalQuantity: totals.quantity,
-    inventoryValue: totals.inventoryValue,
-    retailValue: totals.retailValue,
-    weightedMarkup: totals.markupWeight ? totals.markupNumerator / totals.markupWeight : null,
-    products
-  };
+  const json = await response.json();
+  if (!response.ok) throw new Error(`Google Sheets ${tab}: HTTP ${response.status} ${JSON.stringify(json).slice(0, 1000)}`);
+  return rowsToObjects(json.values || []);
 }
 
 async function main() {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  const credentials = parseCredentials();
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
-  });
-  const sheets = google.sheets({ version: 'v4', auth });
-
-  const corroId = env('SHEET_ID_CORRO', true);
-  const cavaliId = env('SHEET_ID_CAVALI', true);
-  const adsId = env('ADS_SHEET_ID');
-
-  const [corro, cavali] = await Promise.all([
-    fetchBundle(sheets, corroId, 'corro'),
-    fetchBundle(sheets, cavaliId, 'cavali')
-  ]);
-
-  const marketing = adsId ? {
-    total_shopify: await fetchTab(sheets, adsId, 'Total Shopify'),
-    total_google_meta: await fetchTab(sheets, adsId, 'Total Google+META'),
-    google_ads: await fetchTab(sheets, adsId, 'Google Ads'),
-    meta: await fetchTab(sheets, adsId, 'META')
-  } : {};
-
-  const payload = {
-    generated_at: new Date().toISOString(),
-    sources: {
-      corroSheetId: corroId,
-      cavaliSheetId: cavaliId,
-      adsSheetId: adsId || null
-    },
-    brands: { corro, cavali },
-    marketing,
-    skusavvy: buildSkuSavvySummary()
-  };
-
-  fs.writeFileSync(OUT, JSON.stringify(payload, null, 2));
-  console.log(`Connected actuals written: ${OUT}`);
-  console.log(`Corro KPI rows: ${corro.kpis_daily.length}`);
-  console.log(`Cavali KPI rows: ${cavali.kpis_daily.length}`);
-  console.log(`SKUSavvy rows: ${payload.skusavvy.rows}`);
+  const token = await accessToken();
+  const brands = {};
+  for (const brand of Object.keys(sheetIds)) {
+    brands[brand] = {};
+    for (const tab of tabs[brand]) {
+      brands[brand][tab] = await readTab(token, sheetIds[brand], tab);
+      console.log(`${brand}/${tab}: ${brands[brand][tab].length} rows`);
+    }
+  }
+  const output = { generated_at: new Date().toISOString(), source: "google_sheets_service_account", brands };
+  await fs.mkdir("data", { recursive: true });
+  await fs.writeFile("data/connected_actuals.json", JSON.stringify(output, null, 2));
+  console.log("Wrote data/connected_actuals.json");
 }
 
-main().catch(error => {
-  console.error(error);
-  process.exit(1);
-});
+main().catch(error => { console.error(error); process.exit(1); });

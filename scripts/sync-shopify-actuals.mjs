@@ -61,7 +61,7 @@ function emptyAgg(period, source = "shopify_admin_graphql") {
     gross_profit: "",
     total_discounts: 0,
     total_returns: 0,
-    cogs: "",
+    cogs: 0,
     shipping_income: 0,
     taxes: 0,
     nb_orders: 0,
@@ -92,6 +92,9 @@ query OrdersForActuals($cursor: String, $query: String!) {
           sku
           originalUnitPriceSet { shopMoney { amount currencyCode } }
           discountedTotalSet { shopMoney { amount currencyCode } }
+          variant {
+            inventoryItem { unitCost { amount currencyCode } }
+          }
           product {
             id
             title
@@ -107,17 +110,31 @@ query OrdersForActuals($cursor: String, $query: String!) {
 
 async function graphql(store, token, query, variables) {
   const endpoint = `https://${normalizeStore(store)}/admin/api/${API_VERSION}/graphql.json`;
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
-    body: JSON.stringify({ query, variables }),
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok || json.errors) {
-    const detail = JSON.stringify(json.errors || json, null, 2).slice(0, 2000);
-    throw new Error(`Shopify GraphQL failed for ${store}: HTTP ${res.status}. ${detail}`);
+  let lastError;
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Shopify-Access-Token": token },
+        body: JSON.stringify({ query, variables }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json.errors) {
+        const detail = JSON.stringify(json.errors || json, null, 2).slice(0, 2000);
+        const retryable = res.status === 429 || res.status >= 500;
+        if (!retryable) throw new Error(`Shopify GraphQL failed for ${store}: HTTP ${res.status}. ${detail}`);
+        throw new Error(`Retryable Shopify HTTP ${res.status}: ${detail}`);
+      }
+      return json.data;
+    } catch (err) {
+      lastError = err;
+      if (attempt === 5) break;
+      const delay = 1000 * (2 ** (attempt - 1));
+      console.warn(`${store}: request failed (${err.message}); retry ${attempt}/5 in ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
-  return json.data;
+  throw lastError;
 }
 
 async function fetchOrdersForStore(storeConfig) {
@@ -142,7 +159,7 @@ async function fetchOrdersForStore(storeConfig) {
 }
 
 function addOrderToAgg(agg, order, lineItems) {
-  let gross = 0, net = 0, units = 0;
+  let gross = 0, net = 0, units = 0, cogs = 0;
   for (const line of lineItems) {
     const qty = Number(line.quantity || 0);
     const originalUnit = money(line.originalUnitPriceSet);
@@ -150,6 +167,7 @@ function addOrderToAgg(agg, order, lineItems) {
     gross += originalUnit * qty;
     net += discountedTotal;
     units += qty;
+    cogs += Number(line.variant?.inventoryItem?.unitCost?.amount || 0) * qty;
   }
   const discount = Math.max(0, gross - net);
   const shipping = money(order.totalShippingPriceSet);
@@ -162,6 +180,7 @@ function addOrderToAgg(agg, order, lineItems) {
   agg.taxes += taxes;
   agg.nb_orders += 1;
   agg.nb_units += units;
+  agg.cogs += cogs;
   if (order.customer?.id) agg.customers.add(order.customer.id);
 }
 
@@ -177,13 +196,13 @@ function finalizeKpiRows(map) {
         period_end: r.period_end,
         gross_sales: round2(r.gross_sales),
         net_sales: round2(r.net_sales),
-        gross_profit: r.gross_profit,
+        gross_profit: round2(r.net_sales - r.cogs),
         total_discounts: round2(r.total_discounts),
         total_returns: round2(r.total_returns),
-        cogs: r.cogs,
+        cogs: round2(r.cogs),
         pct_discount: r.gross_sales ? round2((r.total_discounts / r.gross_sales) * 100) : 0,
         pct_returns: 0,
-        pct_gm: "",
+        pct_gm: r.net_sales ? round2(((r.net_sales - r.cogs) / r.net_sales) * 100) : 0,
         nb_orders: r.nb_orders,
         nb_units: r.nb_units,
         aov: r.nb_orders ? round2(r.gross_sales / r.nb_orders) : 0,
@@ -234,6 +253,9 @@ function aggregateOrders(orders) {
       nb_units: r.nb_units,
       aov: r.nb_orders ? round2(r.gross_sales / r.nb_orders) : 0,
       unique_customers: r.customers.size,
+      cogs: round2(r.cogs),
+      gross_profit: round2(r.net_sales - r.cogs),
+      pct_gm: r.net_sales ? round2(((r.net_sales - r.cogs) / r.net_sales) * 100) : 0,
       source: "shopify_tags",
     }));
 
@@ -271,7 +293,7 @@ async function main() {
         "Shopify sync provides sales/orders/units/AOV/discounts/shipping/taxes.",
         "Corro channels are classified from order/product tags: Drop ship, Shopify Collective, Concierge, Wellington, Legacy, e-commerce.",
         "Cavali orders are counted directly from Shopify; membership fields still depend on Smartrr until Smartrr API is connected.",
-        "COGS/GM1 are not overwritten unless a product-cost pipeline is added.",
+        "COGS/GM1 use Shopify variant InventoryItem unitCost when available; missing unit costs remain zero and should be reviewed in Formula QA.",
         "Inventory turns should continue coming from SKU/Savy or product-cost inventory source.",
         "QuickBooks/ShipStation remain preferred source for cash timing, shipping cost, packaging, and OPEX."
       ],

@@ -569,6 +569,11 @@ function baseAdSpendByYear(yearKey) {
 }
 
 function totalAdSpendManualOrEditable(yearKey) {
+  if (corro) {
+    STATE.meta.actualsThroughMonth = corro.latest.month;
+    STATE.actuals.actualsThroughMonth = corro.latest.month;
+  }
+
   const acq = getBlock(STATE.commercial, "Acquisition");
   const rows = acq ? acq.rows : [];
   if (yearKey === "y2029") {
@@ -597,11 +602,10 @@ function roasForYear(yearKey) {
 }
 
 function totalAdSpendByYear(yearKey) {
-  // 2029 is intentionally editable. In the current $3M scenario, funding-driven
-  // incremental marketing ends in 2028, so management chooses reinvestment for 2029.
-  // 2026–2028 are calculated from Target Ad Spend % of Ecommerce Gross Sales.
+  // Ceci-approved logic: 2026–2028 use the operating budget (base + funding allocation).
+  // Target Ad Spend % is a comparison KPI and must not create a circular revenue/spend loop.
   if (yearKey === "y2029") return totalAdSpendManualOrEditable(yearKey);
-  return ecommerceBuild(yearKey).adSpend;
+  return baseAdSpendByYear(yearKey) + incrementalAdSpendByYear(yearKey);
 }
 
 function privateLabelLaunchStart() {
@@ -815,26 +819,31 @@ function baseEcommerceRevenue(year) {
   const years = yearKeys();
   const idx = years.indexOf(year);
   const monthly = parseMoney(STATE.meta.baseEcommerceMonthly || "$70k");
-  const initialBase = monthly * 12;
+  const throughMonth = Math.max(0, Math.min(12, Number((STATE.actuals || {}).actualsThroughMonth || STATE.meta.actualsThroughMonth || 0)));
+  const ecommerceActualYtd = Number((STATE.actuals || {}).ecommerceGrossYtd || 0);
+  // 2026 is a closing forecast: actuals through the latest closed month + remaining months × run rate.
+  const initialBase = ecommerceActualYtd > 0 ? ecommerceActualYtd + Math.max(0, 12 - throughMonth) * monthly : monthly * 12;
   if (idx <= 0) return initialBase;
 
   let base = initialBase;
   for (let i = 1; i <= idx; i++) {
     const priorYear = years[i - 1];
-    const priorOrganic = base * organicGrowthPct(priorYear);
+    const priorOrganic = organicGrowthRevenue(priorYear);
     const priorPaid = incrementalPaidGrowth(priorYear);
     const priorDover = netDoverCapture(priorYear);
     const carryover = carryoverPctForYear(priorYear);
-    // Latest Easy Numbers Test logic: the editable carryover rate applies to
-    // Organic Growth + Paid Growth Revenue + Net Dover Capture. This keeps the
-    // formula map and implemented model aligned before actuals are loaded.
     base = base + carryover * (priorOrganic + priorPaid + priorDover);
   }
   return base;
 }
 
 function organicGrowthRevenue(year) {
-  return baseEcommerceRevenue(year) * organicGrowthPct(year);
+  const years = yearKeys();
+  const idx = years.indexOf(year);
+  // Actual 2026 already contains its realized organic performance. Do not add it again.
+  if (idx <= 0) return 0;
+  const priorYear = years[idx - 1];
+  return baseEcommerceRevenue(priorYear) * organicGrowthPct(priorYear);
 }
 
 function incrementalPaidGrowth(year) {
@@ -853,34 +862,9 @@ function ecommerceBuild(year) {
   let total = prePaidRevenue;
   let warning = "";
 
-  if (year === "y2029") {
-    // 2029 Default Logic onwards: prior-year Ecommerce Gross Sales × Reinvestment %, then ROAS creates paid growth revenue.
-    adSpend = totalAdSpendManualOrEditable(year);
-    paid = adSpend * roas;
-    total = prePaidRevenue + paid;
-  } else {
-    // 2026–2028: solve the circular relationship exactly.
-    // Total Ecommerce Gross Sales = prePaidRevenue + (Total Ecommerce Gross Sales × Ad Spend % × ROAS)
-    // => Total Ecommerce Gross Sales = prePaidRevenue / (1 - Ad Spend % × ROAS)
-    const pct = targetAdSpendPct(year);
-    const multiplier = pct * roas;
-    if (pct > 0 && multiplier < 1) {
-      total = prePaidRevenue / (1 - multiplier);
-      adSpend = total * pct;
-      paid = adSpend * roas;
-    } else if (pct > 0 && multiplier >= 1) {
-      warning = "Ad Spend % × ROAS must be below 100%";
-      // Conservative fallback so the page never breaks.
-      adSpend = baseAdSpendByYear(year) + incrementalAdSpendByYear(year);
-      paid = adSpend * roas;
-      total = prePaidRevenue + paid;
-    } else {
-      // If target percentage is blank/zero, use the funding/base spend fallback.
-      adSpend = baseAdSpendByYear(year) + incrementalAdSpendByYear(year);
-      paid = adSpend * roas;
-      total = prePaidRevenue + paid;
-    }
-  }
+  adSpend = totalAdSpendByYear(year);
+  paid = adSpend * roas;
+  total = prePaidRevenue + paid;
 
   return { base, organic, paid, dover, total, adSpend, roas, warning };
 }
@@ -1821,14 +1805,15 @@ function dashboardActuals(rows) {
 
 function adSpendActuals(rows, kpiActuals) {
   if (!rows || !rows.length || !kpiActuals || !kpiActuals.latest) return null;
-  const throughMonth = Math.min(kpiActuals.latest.month, (STATE && STATE.meta && STATE.meta.actualsThroughMonth) || 6);
+  const throughMonth = Math.min(kpiActuals.latest.month, (STATE && STATE.meta && STATE.meta.actualsThroughMonth) || kpiActuals.latest.month);
   const ytd = rowsForYtd(rows, kpiActuals.latest.year, throughMonth);
-  const spend = sumField(ytd, "ad_spend");
-  const weightedRoasNumerator = (ytd || []).reduce((s, r) => s + parseNumber(r.ad_spend) * parseNumber(r.roas), 0);
+  const spend = sumField(ytd, "ad_spend") || sumField(ytd, "spend");
+  const purchases = sumField(ytd, "purchases") || sumField(ytd, "attributed_purchases") || sumField(ytd, "nb_purchases");
+  const weightedRoasNumerator = (ytd || []).reduce((sum, r) => sum + (parseNumber(r.ad_spend || r.spend) * parseNumber(r.roas)), 0);
   const roas = spend ? weightedRoasNumerator / spend : 0;
   const cos = kpiActuals.grossSales ? spend / kpiActuals.grossSales : 0;
-  const cac = kpiActuals.newCustomers ? spend / kpiActuals.newCustomers : 0;
-  return { spend, roas, cos, cac };
+  const cac = purchases ? spend / purchases : (kpiActuals.newCustomers ? spend / kpiActuals.newCustomers : 0);
+  return { spend, purchases, roas, cos, cac, cacSource: purchases ? "Attributed Purchases" : "New Customers fallback" };
 }
 
 function channelRevenueYtd(rows, channel, latest) {
@@ -1875,6 +1860,25 @@ function smartrrMembershipActuals(rows) {
   return out;
 }
 
+
+function revenueCarryoverActuals(rows, latest) {
+  if (!rows || !rows.length || !latest) return null;
+  const throughMonth = Math.min(latest.month, (STATE && STATE.meta && STATE.meta.actualsThroughMonth) || latest.month);
+  const ytd = rowsForYtd(rows, latest.year, throughMonth);
+  const explicitReturning = sumField(ytd, "returning_revenue") || sumField(ytd, "revenue_returning");
+  const explicitTotal = sumField(ytd, "total_revenue") || sumField(ytd, "total_customer_revenue");
+  if (explicitTotal > 0) return explicitReturning / explicitTotal;
+
+  let returningRevenue = 0;
+  let totalRevenue = 0;
+  ytd.forEach(row => {
+    const type = String(row.customer_type || row.type || row.segment || row.customer_status || "").toLowerCase();
+    const revenue = parseNumber(row.revenue || row.net_sales || row.gross_sales || row.amount || row.total_sales);
+    totalRevenue += revenue;
+    if (type.includes("return") || type.includes("repeat")) returningRevenue += revenue;
+  });
+  return totalRevenue > 0 ? returningRevenue / totalRevenue : null;
+}
 
 function firstPresent(row, names) {
   const keys = Object.keys(row || {});
@@ -1997,10 +2001,11 @@ function applyActualsToState(corroBundle, cavaliBundle) {
     Wellington: wellingtonMetrics.grossSales,
     Cavali: cavali ? cavali.grossSales : 0
   };
+  STATE.actuals.ecommerceGrossYtd = ecommerceMetrics.grossSales || (corro ? corro.grossSales : 0);
   STATE.actuals.engineGm1 = {
-    Ecommerce: corro ? corro.gm1 : 0,
-    Concierge: corro ? corro.gm1 : 0,
-    Wellington: corro ? corro.gm1 : 0,
+    Ecommerce: ecommerceMetrics.gm1 || (corro ? corro.gm1 : 0),
+    Concierge: conciergeMetrics.gm1 || 0,
+    Wellington: wellingtonMetrics.gm1 || 0,
     Cavali: cavali ? cavali.gm1 : 0
   };
 
@@ -2022,6 +2027,11 @@ function applyActualsToState(corroBundle, cavaliBundle) {
     if (retention) {
       setCurrentInRows(retention.rows, "Returning Customers %", formatPercent(corro.returningCustomerPct));
       setCurrentInRows(retention.rows, "Purchase Frequency", corro.purchaseFrequency.toFixed(2));
+      const carryoverActual = revenueCarryoverActuals(corroBundle.newVsReturning, corro.latest);
+      if (carryoverActual !== null) {
+        setCurrentInRows(retention.rows, "Incremental Revenue Carryover %", formatPercent(carryoverActual));
+        setYearInRows(retention.rows, "Incremental Revenue Carryover %", "y2026", formatPercent(carryoverActual));
+      }
       const annualGp = corro.aov * corro.purchaseFrequency * corro.gm1;
       setCurrentInRows(retention.rows, "Annual GP per Customer", formatCurrency(Math.round(annualGp)));
     }
@@ -2036,10 +2046,13 @@ function applyActualsToState(corroBundle, cavaliBundle) {
       const ecommerceAov = ecommerceMetrics.aov || corro.aov;
       setCurrentInRows(ecommerce.rows, "Orders", Math.round(ecommerceOrders).toLocaleString("en-US"));
       setCurrentInRows(ecommerce.rows, "AOV", formatMoney(ecommerceAov));
-      setCurrentInRows(ecommerce.rows, "GM1 %", formatPercent(corro.gm1));
-      setYearInRows(ecommerce.rows, "Orders", "y2026", Math.round(ecommerceOrders + 10).toLocaleString("en-US"));
+      const ecommerceGm = ecommerceMetrics.gm1 || corro.gm1;
+      setCurrentInRows(ecommerce.rows, "GM1 %", formatPercent(ecommerceGm));
+      const month = Math.max(1, corro.latest.month);
+      const ordersForecast = ecommerceOrders + (ecommerceOrders / month) * Math.max(0, 12 - month);
+      setYearInRows(ecommerce.rows, "Orders", "y2026", Math.round(ordersForecast).toLocaleString("en-US"));
       setYearInRows(ecommerce.rows, "AOV", "y2026", formatMoney(ecommerceAov));
-      setYearInRows(ecommerce.rows, "GM1 %", "y2026", formatPercent(corro.gm1));
+      setYearInRows(ecommerce.rows, "GM1 %", "y2026", formatPercent(ecommerceGm));
     }
     if (concierge) {
       const activeClients = conciergeMetrics.customers || 0;
@@ -2047,19 +2060,23 @@ function applyActualsToState(corroBundle, cavaliBundle) {
       setCurrentInRows(concierge.rows, "Active Clients", activeClients ? Math.round(activeClients).toLocaleString("en-US") : "No Concierge tag rows");
       setCurrentInRows(concierge.rows, "Orders per Client", ordersPerClient ? ordersPerClient.toFixed(2) : "—");
       setCurrentInRows(concierge.rows, "AOV", conciergeMetrics.aov ? formatMoney(conciergeMetrics.aov) : "—");
-      setCurrentInRows(concierge.rows, "GM1 %", formatPercent(corro.gm1));
-      setYearInRows(concierge.rows, "Active Clients", "y2026", String(Math.round(activeClients + 10)));
-      setYearInRows(concierge.rows, "Orders per Client", "y2026", ordersPerClient ? ordersPerClient.toFixed(2) : "1.2");
-      setYearInRows(concierge.rows, "AOV", "y2026", conciergeMetrics.aov ? formatMoney(conciergeMetrics.aov) : "$100");
-      setYearInRows(concierge.rows, "GM1 %", "y2026", formatPercent(corro.gm1));
+      const conciergeGm = conciergeMetrics.gm1 || 0;
+      setCurrentInRows(concierge.rows, "GM1 %", conciergeGm ? formatPercent(conciergeGm) : "Data unavailable");
+      setYearInRows(concierge.rows, "Active Clients", "y2026", activeClients ? String(Math.round(activeClients)) : "—");
+      setYearInRows(concierge.rows, "Orders per Client", "y2026", ordersPerClient ? ordersPerClient.toFixed(2) : "—");
+      setYearInRows(concierge.rows, "AOV", "y2026", conciergeMetrics.aov ? formatMoney(conciergeMetrics.aov) : "—");
+      setYearInRows(concierge.rows, "GM1 %", "y2026", conciergeGm ? formatPercent(conciergeGm) : "—");
     }
     if (wellington) {
       setCurrentInRows(wellington.rows, "Orders", wellingtonMetrics.orders ? Math.round(wellingtonMetrics.orders).toLocaleString("en-US") : "No Wellington tag rows");
       setCurrentInRows(wellington.rows, "AOV", wellingtonMetrics.aov ? formatMoney(wellingtonMetrics.aov) : "—");
-      setCurrentInRows(wellington.rows, "GM1 %", formatPercent(corro.gm1));
-      setYearInRows(wellington.rows, "Orders", "y2026", String(Math.round((wellingtonMetrics.orders || 0) + 10)));
-      setYearInRows(wellington.rows, "AOV", "y2026", wellingtonMetrics.aov ? formatMoney(wellingtonMetrics.aov) : "$100");
-      setYearInRows(wellington.rows, "GM1 %", "y2026", formatPercent(corro.gm1));
+      const wellingtonGm = wellingtonMetrics.gm1 || 0;
+      setCurrentInRows(wellington.rows, "GM1 %", wellingtonGm ? formatPercent(wellingtonGm) : "Data unavailable");
+      const month = Math.max(1, corro.latest.month);
+      const wellingtonForecastOrders = (wellingtonMetrics.orders || 0) + ((wellingtonMetrics.orders || 0) / month) * Math.max(0, 12 - month);
+      setYearInRows(wellington.rows, "Orders", "y2026", wellingtonMetrics.orders ? String(Math.round(wellingtonForecastOrders)) : "—");
+      setYearInRows(wellington.rows, "AOV", "y2026", wellingtonMetrics.aov ? formatMoney(wellingtonMetrics.aov) : "—");
+      setYearInRows(wellington.rows, "GM1 %", "y2026", wellingtonGm ? formatPercent(wellingtonGm) : "—");
     }
     // Concierge and Wellington now feed from Shopify tag-based revenue_share
     // when data/shopify_actuals.json is generated by the secure GitHub Action.
@@ -2084,8 +2101,7 @@ function applyActualsToState(corroBundle, cavaliBundle) {
       setCurrentInRows(cavaliEngine.rows, "Premium Active Members", Math.round(cavaliMembers.premiumActive).toLocaleString("en-US"));
     }
 
-    // Fill all 2026 Cavali forecast fields, not only Orders.
-    // Counts use actual +10 placeholder; the remaining assumptions carry current/default values.
+    // Fill 2026 Cavali from actuals and leave 2027–2029 management forecasts untouched.
     setCavaliForecastFields(cavaliEngine, cavali, cavaliAds);
   }
 }
@@ -2184,16 +2200,19 @@ function shopifyJsonToBundle(json, brand) {
 }
 
 function channelMetricsYtd(rows, channel, latest) {
-  if (!rows || !rows.length || !latest) return { grossSales:0, netSales:0, orders:0, units:0, customers:0, aov:0 };
-  const throughMonth = Math.min(latest.month, (STATE && STATE.meta && STATE.meta.actualsThroughMonth) || 6);
+  if (!rows || !rows.length || !latest) return { grossSales:0, netSales:0, cogs:0, grossProfit:0, gm1:0, orders:0, units:0, customers:0, aov:0 };
+  const throughMonth = Math.min(latest.month, (STATE && STATE.meta && STATE.meta.actualsThroughMonth) || latest.month);
   const ytd = rowsForYtd(rows, latest.year, throughMonth)
     .filter(r => String(r.channel || "").toLowerCase().includes(String(channel).toLowerCase()));
   const grossSales = sumField(ytd, "gross_sales") || sumField(ytd, "amount");
-  const netSales = sumField(ytd, "net_sales");
+  const netSales = sumField(ytd, "net_sales") || grossSales;
+  const cogs = sumField(ytd, "cogs");
+  const grossProfit = sumField(ytd, "gross_profit") || (netSales && cogs ? netSales - cogs : 0);
   const orders = sumField(ytd, "nb_orders");
   const units = sumField(ytd, "nb_units");
   const customers = sumField(ytd, "unique_customers");
-  return { grossSales, netSales, orders, units, customers, aov: orders ? grossSales / orders : 0 };
+  const gm1 = netSales ? grossProfit / netSales : 0;
+  return { grossSales, netSales, cogs, grossProfit, gm1, orders, units, customers, aov: orders ? grossSales / orders : 0 };
 }
 
 function setYearInRows(rows, driver, year, value) {
@@ -2241,7 +2260,9 @@ function setCavaliForecastFields(cavaliEngine, cavali, cavaliAds) {
     if (row && isBlankLike(row[year])) row[year] = value;
   };
 
-  seedIfBlank("Orders", "y2026", cavali && cavali.orders ? Math.round(cavali.orders).toLocaleString("en-US") : "—");
+  const month = Math.max(1, Number((STATE.actuals || {}).actualsThroughMonth || STATE.meta.actualsThroughMonth || 12));
+  const cavaliOrdersForecast = cavali && cavali.orders ? cavali.orders + (cavali.orders / month) * Math.max(0, 12 - month) : 0;
+  seedIfBlank("Orders", "y2026", cavaliOrdersForecast ? Math.round(cavaliOrdersForecast).toLocaleString("en-US") : "—");
   ["Signature Active Members", "Signature Boxes per Year", "Signature Price",
    "Premium Active Members", "Premium Boxes per Year", "Premium Price", "GM1 %"]
     .forEach(driver => {
@@ -2249,10 +2270,6 @@ function setCavaliForecastFields(cavaliEngine, cavali, cavaliAds) {
       if (row && !isBlankLike(row.current)) seedIfBlank(driver, "y2026", row.current);
     });
 
-  // Future GM defaults to the latest validated Cavali GM, but remains editable.
-  const gmRow = getRow(rows, "GM1 %");
-  const gmSeed = !isBlankLike(gmRow.y2026) ? gmRow.y2026 : (!isBlankLike(gmRow.current) ? gmRow.current : "—");
-  ["y2027", "y2028", "y2029"].forEach(y => seedIfBlank("GM1 %", y, gmSeed));
 
   // Add Cavali ROAS as an explicit management input. Ad revenue = Ad Spend × ROAS.
   let roasRow = getRow(rows, "Cavali ROAS");
@@ -2272,13 +2289,39 @@ function ensureCavaliOrdersRow(cavaliEngine) {
     cavaliEngine.rows.unshift({
       driver: "Orders",
       current: "Actuals pending",
-      y2026: "Actuals + 10",
-      y2027: "Editable",
-      y2028: "Editable",
-      y2029: "Editable",
+      y2026: "—",
+      y2027: "785",
+      y2028: "795",
+      y2029: "805",
       note: "Shopify Cavali order count; future years remain editable."
     });
   }
+}
+
+async function fetchConnectedActualsJson() {
+  try {
+    const response = await fetch(`data/connected_actuals.json?ts=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) return null;
+    const json = await response.json();
+    return json && json.brands ? json : null;
+  } catch (error) {
+    console.warn("Connected actuals JSON not available", error);
+    return null;
+  }
+}
+
+function connectedBrandBundle(json, brand) {
+  const data = json && json.brands ? json.brands[brand] : null;
+  if (!data) return null;
+  return {
+    kpis: data.kpis_daily || [],
+    revenueShare: data.revenue_share || [],
+    newVsReturning: data.new_vs_returning || [],
+    adSpend: data.ad_spend || [],
+    smartrrProductVolume: data.smartrr_product_volume || data.smartrr_subscribers || [],
+    productsQ1: data.products_q1_2026 || [],
+    _source: "connected_actuals_json"
+  };
 }
 
 async function refreshActualsFromSheets({ silent = false } = {}) {
@@ -2289,18 +2332,18 @@ async function refreshActualsFromSheets({ silent = false } = {}) {
   try {
     updateIndicator("Refreshing actuals…");
 
-    const shopifyJson = await fetchShopifyActualsJson();
-    let baseCorroBundle = { kpis: [], revenueShare: [], newVsReturning: [], adSpend: [], smartrrProductVolume: [], productsQ1: [] };
-    let baseCavaliBundle = { kpis: [], revenueShare: [], newVsReturning: [], adSpend: [], smartrrProductVolume: [], productsQ1: [] };
+    const [shopifyJson, connectedJson] = await Promise.all([fetchShopifyActualsJson(), fetchConnectedActualsJson()]);
+    let baseCorroBundle = connectedBrandBundle(connectedJson, "corro") || { kpis: [], revenueShare: [], newVsReturning: [], adSpend: [], smartrrProductVolume: [], productsQ1: [] };
+    let baseCavaliBundle = connectedBrandBundle(connectedJson, "cavali") || { kpis: [], revenueShare: [], newVsReturning: [], adSpend: [], smartrrProductVolume: [], productsQ1: [] };
 
-    if (corroSource && cavaliSource) {
+    if (!connectedJson && corroSource && cavaliSource) {
       try {
         [baseCorroBundle, baseCavaliBundle] = await Promise.all([
           fetchDashboardBundle(corroSource, "corro"),
           fetchDashboardBundle(cavaliSource, "cavali")
         ]);
       } catch (sheetErr) {
-        console.warn("Google Sheets fallback/support data unavailable. Continuing with Shopify JSON if present.", sheetErr);
+        console.warn("Google Sheets support data unavailable. Continuing with Shopify JSON if present.", sheetErr);
         if (!shopifyJson) throw sheetErr;
       }
     }
@@ -2326,7 +2369,7 @@ async function refreshActualsFromSheets({ silent = false } = {}) {
     renderCommercialCashFlow();
     saveNow();
 
-    const sourceLabel = shopifyJson ? "Shopify sync" : "Google Sheets";
+    const sourceLabel = shopifyJson && connectedJson ? "Shopify + Google Sheets" : (shopifyJson ? "Shopify sync" : "Google Sheets");
     const msg = `Actuals refreshed ✓ ${sourceLabel} · ${STATE.actuals.corroPeriod || ""}`;
     updateIndicator(msg);
     if (!silent) alert(`Actuals connected from ${sourceLabel}.\nCorro: ${STATE.actuals.corroPeriod}\nCavali: ${STATE.actuals.cavaliPeriod}\n\nShopify sync: ${shopifyJson ? "available" : "not generated yet"}\n\nLoaded sources:\nCorro: ${JSON.stringify(STATE.actuals.sources.corro)}\nCavali: ${JSON.stringify(STATE.actuals.sources.cavali)}\n\nStill needed: Klaviyo/email revenue, SKU/Savy inventory turns/costs, and QuickBooks/ShipStation shipping/packaging/OPEX.`);
