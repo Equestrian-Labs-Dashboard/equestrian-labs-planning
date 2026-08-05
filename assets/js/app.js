@@ -290,8 +290,8 @@ function syncHeaderToTables() {
   const acq = STATE.commercial.find(b => b.title.includes("Acquisition"));
   if (acq) {
     const roas = acq.rows.find(r => r.driver === "ROAS");
-    // Header ROAS is also a scenario assumption; keep all forecast years aligned unless users edit later.
-    if (roas) years.forEach(y => { roas[y] = STATE.meta.roas; });
+    // Header ROAS controls the 2026 closing forecast only. Future years remain editable assumptions.
+    if (roas) roas.y2026 = STATE.meta.roas;
   }
 }
 
@@ -409,7 +409,8 @@ function renderEngineTable(tableEl, rows) {
     tr.appendChild(el("td", { class: "label-cell" }, row.driver));
     ["current", "y2026", "y2027", "y2028", "y2029"].forEach(k => {
       if (k === "current") tr.appendChild(makeCalcCell(row[k] || "", "gray-cell"));
-      else tr.appendChild(makeEditableCell(row, k, () => scheduleSave()));
+      else if (row.calculated && row.calculated.includes(k)) tr.appendChild(makeCalcCell(computedCommercialValue(row, k) || row[k] || "—"));
+      else tr.appendChild(makeEditableCell(row, k, () => { renderBusinessUnits(); renderSheet2Draft(); scheduleSave(); }));
     });
     tbody.appendChild(tr);
   });
@@ -572,7 +573,7 @@ function totalAdSpendManualOrEditable(yearKey) {
   const acq = getBlock(STATE.commercial, "Acquisition");
   const rows = acq ? acq.rows : [];
   if (yearKey === "y2029") {
-    const reinvestRow = getRow(rows, "2029 Reinvestment %");
+    const reinvestRow = getRow(rows, "2029 Ad Reinvestment %");
     const pct = parsePercent(reinvestRow && reinvestRow[yearKey] ? reinvestRow[yearKey] : "20%");
     const priorGross = ecommerceBuild("y2028").total;
     return priorGross * pct;
@@ -642,6 +643,23 @@ function computedCommercialValue(row, key) {
     const attributedRevenue = spend * roas;
     const attributedPurchases = aov > 0 ? attributedRevenue / aov : 0;
     return attributedPurchases > 0 ? formatMoney(spend / attributedPurchases) : "—";
+  }
+  if (row.driver === "Cavali CAC") {
+    const cavali = getBlock(STATE.growthEngines, "Cavali");
+    const rows = cavali ? cavali.rows : [];
+    const direct = getRow(rows, "Cavali CAC")[key];
+    if (!isFormulaToken(direct)) return direct;
+    const spend = parseMoney(val(rows, "Cavali Ad Spend", key));
+    const roas = parseMultiple(val(rows, "Cavali ROAS", key));
+    const orders = parseNumber(val(rows, "Orders", key));
+    const attributedRevenue = spend * roas;
+    const paidOrders = orders > 0 ? Math.max(1, attributedRevenue / Math.max(1, engineGrossAndGp(cavali, key).gross / orders)) : 0;
+    return spend > 0 && paidOrders > 0 ? formatMoney(spend / paidOrders) : "—";
+  }
+  if (row.driver === "New Customer Mix %") {
+    const retention = getBlock(STATE.commercial, "Retention");
+    const returning = parsePercent(val(retention ? retention.rows : [], "Returning Customers %", key));
+    return returning >= 0 && returning <= 1 ? formatPercent(1 - returning) : "—";
   }
   if (row.driver === "Annual GP per Customer") {
     const ecommerce = getBlock(STATE.growthEngines, "Ecommerce");
@@ -1297,7 +1315,7 @@ function loadEasyNumberInputs() {
   const acq = getBlock(STATE.commercial, "Acquisition");
   if (acq) {
     const target = getRow(acq.rows, "Target Ad Spend % of Ecommerce Gross Sales"); if (target) { target.y2026="—"; target.y2027="—"; target.y2028="—"; target.y2029="—"; }
-    const reinvest = getRow(acq.rows, "2029 Reinvestment %"); if (reinvest) { reinvest.y2029="20%"; }
+    const reinvest = getRow(acq.rows, "2029 Ad Reinvestment %"); if (reinvest) { reinvest.y2029="20%"; }
     const total = getRow(acq.rows, "Total Ad Spend"); if (total) { total.y2026="$100"; total.y2027="$100"; total.y2028="$100"; total.y2029="Calculated"; }
   }
   renderAll();
@@ -2265,6 +2283,9 @@ function setCavaliForecastFields(cavaliEngine, cavali, cavaliAds) {
       if (row && !isBlankLike(row.current)) seedIfBlank(driver, "y2026", row.current);
     });
 
+
+  const cacRow = getRow(rows, "Cavali CAC");
+  if (cacRow && cacRow.driver) cacRow.calculated = ["y2026"];
 
   // Add Cavali ROAS as an explicit management input. Ad revenue = Ad Spend × ROAS.
   let roasRow = getRow(rows, "Cavali ROAS");

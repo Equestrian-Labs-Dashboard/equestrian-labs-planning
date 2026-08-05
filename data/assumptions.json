@@ -3,7 +3,7 @@
     "modelStatus": "Draft",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "2.4.1",
+    "version": "2.5",
     "lastUpdate": "2026-07-11",
     "organicGrowth": "10%",
     "doverCapture": "20%",
@@ -161,21 +161,22 @@
           "note": "2026–2028 = Base Ad Spend + funding-driven Incremental Ad Spend. 2029 default = prior-year Ecommerce Gross Sales × Reinvestment %."
         },
         {
-          "driver": "2029 Reinvestment %",
+          "driver": "2029 Ad Reinvestment %",
           "current": "Management input",
           "y2026": "—",
           "y2027": "—",
           "y2028": "—",
           "y2029": "20%",
-          "note": "Default Logic (2029 onwards): Prior Year Ecommerce Gross Sales × Reinvestment %."
+          "note": "Editable management assumption discussed in the review. It is not an actual. 2029 Ad Spend = 2028 Ecommerce Gross Sales × this percentage."
         },
         {
           "driver": "ROAS",
-          "current": "YTD avg pending",
+          "current": "YTD actual from Stats",
           "y2026": "4.0x",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "y2027": "4.2x",
+          "y2028": "4.5x",
+          "y2029": "5.0x",
+          "note": "2026 is the selected scenario ROAS. 2027–2029 are editable efficiency assumptions and are not forced to remain equal."
         },
         {
           "driver": "Target Ad Spend % of Ecommerce Gross Sales",
@@ -215,15 +216,22 @@
             "y2028",
             "y2029"
           ],
-          "note": "Current CAC = Marketing Stats Spend ÷ Attributed Purchases. Forecast CAC = AOV ÷ ROAS under the constant-ROAS assumption, and therefore changes with AOV or ROAS."
+          "note": "Current CAC = Marketing Stats Spend ÷ Attributed Purchases. Forecast CAC = AOV ÷ ROAS, so it changes when AOV or ROAS changes."
         },
         {
           "driver": "New Customer Mix %",
-          "current": "YTD avg pending",
-          "y2026": "",
-          "y2027": "",
-          "y2028": "",
-          "y2029": ""
+          "current": "YTD actual from Shopify",
+          "y2026": "Calculated",
+          "y2027": "Calculated",
+          "y2028": "Calculated",
+          "y2029": "Calculated",
+          "calculated": [
+            "y2026",
+            "y2027",
+            "y2028",
+            "y2029"
+          ],
+          "note": "Forecast New Customer Mix = 100% − Returning Customers %. Current comes from Shopify new_vs_returning."
         }
       ]
     },
@@ -242,10 +250,10 @@
           "driver": "Incremental Revenue Carryover %",
           "current": "Actuals pending",
           "y2026": "Actuals pending",
-          "y2027": "60%",
-          "y2028": "60%",
+          "y2027": "55%",
+          "y2028": "58%",
           "y2029": "60%",
-          "note": "Current/2026 = Returning customer revenue ÷ total customer revenue from new_vs_returning. Forecast carryover applies once to Organic Growth + Paid Growth + Net Dover Capture when building the following year base."
+          "note": "Current/2026 = Returning customer revenue ÷ total customer revenue. Forecast values are editable and apply once to the following year base."
         },
         {
           "driver": "Purchase Frequency",
@@ -436,8 +444,8 @@
           "current": "$99",
           "y2026": "$99",
           "y2027": "$99",
-          "y2028": "$99",
-          "y2029": "$99"
+          "y2028": "$104",
+          "y2029": "$109"
         },
         {
           "driver": "Premium Active Members",
@@ -461,8 +469,8 @@
           "current": "$199",
           "y2026": "$199",
           "y2027": "$199",
-          "y2028": "$199",
-          "y2029": "$199"
+          "y2028": "$209",
+          "y2029": "$219"
         },
         {
           "driver": "GM1 %",
@@ -477,36 +485,36 @@
           "driver": "Organic Member Growth",
           "current": "-33.9%",
           "y2026": "10%",
-          "y2027": "10%",
-          "y2028": "10%",
-          "y2029": "10%"
+          "y2027": "12%",
+          "y2028": "15%",
+          "y2029": "18%"
         },
         {
           "driver": "Cavali Ad Spend",
           "current": "Data unavailable",
-          "y2026": "—",
-          "y2027": "—",
-          "y2028": "—",
-          "y2029": "—",
-          "note": "Enter Cavali paid-media spend by year when available."
+          "y2026": "$0",
+          "y2027": "$25k",
+          "y2028": "$50k",
+          "y2029": "$75k",
+          "note": "2026 uses connected actuals when available; $0 is the neutral fallback. 2027–2029 are editable management assumptions."
         },
         {
           "driver": "Cavali CAC",
           "current": "Data unavailable",
-          "y2026": "—",
-          "y2027": "—",
-          "y2028": "—",
-          "y2029": "—",
-          "note": "Calculated only when Cavali attributed purchases are available; not used to calculate paid revenue."
+          "y2026": "Calculated",
+          "y2027": "$90",
+          "y2028": "$80",
+          "y2029": "$75",
+          "note": "Current/2026 uses connected Cavali attributed purchases when available. Future values are editable acquisition-cost assumptions."
         },
         {
           "driver": "Cavali ROAS",
           "current": "—",
           "y2026": "4.0x",
-          "y2027": "4.0x",
-          "y2028": "4.0x",
-          "y2029": "4.0x",
-          "note": "Paid growth revenue = Cavali Ad Spend × Cavali ROAS."
+          "y2027": "4.2x",
+          "y2028": "4.5x",
+          "y2029": "5.0x",
+          "note": "Paid growth revenue = Cavali Ad Spend × Cavali ROAS. All forecast years are editable."
         }
       ]
     },
