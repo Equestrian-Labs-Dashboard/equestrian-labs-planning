@@ -257,7 +257,7 @@ function renderHeader() {
 
   document.getElementById("modelStatus").onchange = e => switchModelStatus(e.target.value);
   document.getElementById("fundingScenario").onchange = e => { meta.fundingScenario = e.target.value; applyFundingOrganicDefault(); renderKpis(); renderFunding(); renderCommercial(); renderGrowth(); renderBusinessUnits(); renderSheet2Draft(); renderFinancialSummary(); renderCommercialCashFlow(); renderBoardDashboard(); renderThesis(); scheduleSave(); };
-  document.getElementById("displayYear").onchange = e => { meta.displayYear = e.target.value; renderBoardDashboard(); scheduleSave(); };
+  document.getElementById("displayYear").onchange = e => { meta.displayYear = e.target.value; renderSheet2Draft(); renderFinancialSummary(); renderCommercialCashFlow(); renderBoardDashboard(); scheduleSave(); };
   document.getElementById("fundingDate").onchange = e => { meta.fundingDate = e.target.value; renderKpis(); renderGrowth(); renderSheet2Draft(); renderCommercialCashFlow(); renderBoardDashboard(); scheduleSave(); };
   document.getElementById("baseEcommerce").onchange = e => { meta.baseEcommerceMonthly = e.target.value; renderKpis(); renderSheet2Draft(); renderFinancialSummary(); renderCommercialCashFlow(); renderBoardDashboard(); renderThesis(); scheduleSave(); };
   document.getElementById("doverCapture").onchange = e => { meta.doverCapture = e.target.value; syncHeaderToTables(); renderKpis(); renderCommercial(); renderSheet2Draft(); renderFinancialSummary(); renderCommercialCashFlow(); renderBoardDashboard(); renderThesis(); scheduleSave(); };
@@ -362,13 +362,17 @@ function isMarketGrowthSharedAssumption(row) {
 function syncSharedMarketGrowthAssumption(row, changedKey) {
   if (!row || !isMarketGrowthSharedAssumption(row)) return;
   const years = ["y2026", "y2027", "y2028", "y2029"];
+  // Ceci 2026-08-10: Dover market opportunity is a fixed market base of $130M.
+  // It must NOT grow by year and is not a forecast-growth assumption.
+  if (String(row.driver || "").startsWith("Dover Market Opportunity")) {
+    row.current = "$130M";
+    years.forEach(y => { row[y] = "$130M"; });
+    return;
+  }
   const sourceKey = years.includes(changedKey) ? changedKey : "y2026";
   const value = row[sourceKey] || row.current || row.y2026 || "";
   if (!value) return;
   years.forEach(y => { row[y] = value; });
-  if (String(row.driver || "").startsWith("Dover Market Opportunity")) {
-    row.current = value;
-  }
 }
 
 function displayCurrentForDriver(row) {
@@ -388,6 +392,7 @@ function renderDriverTable(tableEl, rows) {
     tr.appendChild(el("td", { class: "label-cell" }, row.driver));
     ["current", "y2026", "y2027", "y2028", "y2029"].forEach(k => {
       if (k === "current") tr.appendChild(makeCalcCell(displayCurrentForDriver(row), "gray-cell"));
+      else if (String(row.driver || "").startsWith("Dover Market Opportunity")) tr.appendChild(makeCalcCell("$130M"));
       else if (row.calculated && row.calculated.includes(k)) tr.appendChild(makeCalcCell(computedCommercialValue(row, k) || row[k] || "Calculated"));
       else tr.appendChild(makeEditableCell(row, k, () => {
         syncSharedMarketGrowthAssumption(row, k);
@@ -846,11 +851,9 @@ function paidAdsOverlapPct(year) {
 }
 
 function doverMarketOpportunity(year) {
-  const market = getBlock(STATE.commercial, "Market Growth");
-  const rows = market ? market.rows : [];
-  const row = (rows || []).find(r => String(r.driver || "").startsWith("Dover Market Opportunity"));
-  const v = row ? (row[year] || row.current || "") : "";
-  return parseMoney(v || "$100M");
+  // Fixed market-size base validated by Ceci. Capture %, ramp and overlap may vary;
+  // the underlying Dover opportunity itself does not compound by year.
+  return 130000000;
 }
 
 function grossDoverOpportunity(year) {
@@ -877,8 +880,11 @@ function baseEcommerceRevenue(year) {
   const monthly = parseMoney(STATE.meta.baseEcommerceMonthly || "$70k");
   const throughMonth = Math.max(0, Math.min(12, Number((STATE.actuals || {}).actualsThroughMonth || STATE.meta.actualsThroughMonth || 0)));
   const ecommerceActualYtd = Number((STATE.actuals || {}).ecommerceGrossYtd || 0);
-  // 2026 is a closing forecast: actuals through the latest closed month + remaining months × run rate.
-  const initialBase = ecommerceActualYtd > 0 ? ecommerceActualYtd + Math.max(0, 12 - throughMonth) * monthly : monthly * 12;
+  // 2026 is a true closing forecast: Shopify YTD actuals for the Ecommerce engine
+  // + ONLY the still-open months at the editable monthly run rate.
+  // Never allow the forecast base to fall below already-realized YTD Ecommerce sales.
+  const forecastRemaining = Math.max(0, 12 - throughMonth) * monthly;
+  const initialBase = ecommerceActualYtd > 0 ? Math.max(ecommerceActualYtd, ecommerceActualYtd + forecastRemaining) : monthly * 12;
   if (idx <= 0) return initialBase;
 
   let base = initialBase;
@@ -1046,11 +1052,10 @@ function engineGrossAndGp(engine, year) {
     const premPrice = parseMoney(forecastMetric(rows, "Premium Price", year));
     gm1 = parsePercent(forecastMetric(rows, "GM1 %", year));
     const base = sigMembers * sigBoxes * sigPrice + premMembers * premBoxes * premPrice;
-    const adSpend = parseMoney(forecastMetric(rows, "Cavali Ad Spend", year, false));
-    const roas = parseNumber(forecastMetric(rows, "Cavali ROAS", year, false)) || parseNumber(STATE.meta.roas);
-    const paidGrowth = adSpend > 0 && roas > 0 ? adSpend * roas : 0;
-    gross = base + paidGrowth;
-    note = "Membership revenue + Cavali Ad Spend × Cavali ROAS";
+    // Ceci validation 2026-08-10: Cavali revenue is driven by fulfilled subscription boxes.
+    // Ads/ROAS remain planning/efficiency inputs and are NOT added a second time to Cavali revenue.
+    gross = base;
+    note = "Signature Members × Boxes/Year × Price + Premium Members × Boxes/Year × Price";
   } else if (title.startsWith("Private Label")) {
     const units = parseNumber(val(rows, "Units Sold", year));
     const asp = parseMoney(val(rows, "Average Selling Price", year));
@@ -1239,12 +1244,13 @@ function captureTab2Outputs() {
 }
 
 function renderSheet2Draft() {
+  const selectedYear = `y${String((STATE.meta && STATE.meta.displayYear) || "2026")}`;
   renderSheet2Scenario();
-  renderFinancialSnapshot("y2026");
+  renderFinancialSnapshot(selectedYear);
   renderEcommerceRevenueBuild();
-  renderSheet2ExecSummary("y2026");
-  renderSheet2SupportingKpis("y2026");
-  renderSheet2MarginBridge("y2026");
+  renderSheet2ExecSummary(selectedYear);
+  renderSheet2SupportingKpis(selectedYear);
+  renderSheet2MarginBridge(selectedYear);
   captureTab2Outputs();
 }
 
@@ -2304,11 +2310,26 @@ function applyActualsToState(corroBundle, cavaliBundle) {
 
   const conciergeMetrics = corro ? channelMetricsYtd(corroBundle.revenueShare, "Concierge", corro.latest) : { grossSales:0 };
   const wellingtonMetrics = corro ? channelMetricsYtd(corroBundle.revenueShare, "Wellington", corro.latest) : { grossSales:0 };
-  const ecommerceMetrics = corro ? (
-    channelMetricsYtd(corroBundle.revenueShare, "e-commerce", corro.latest).grossSales
-      ? channelMetricsYtd(corroBundle.revenueShare, "e-commerce", corro.latest)
-      : { grossSales: Math.max(0, corro.grossSales - conciergeMetrics.grossSales - wellingtonMetrics.grossSales), orders: corro.orders, aov: corro.aov }
-  ) : { grossSales:0 };
+  const explicitEcommerce = corro ? channelMetricsYtd(corroBundle.revenueShare, "e-commerce", corro.latest) : { grossSales:0 };
+  // revenue_share can be incomplete/under-tagged. Use the larger of the explicit Ecommerce
+  // channel and the residual Corro sales after Concierge + Wellington, so 2026 FCS cannot
+  // collapse below the Shopify actuals that are already realized.
+  const residualEcommerceGross = corro ? Math.max(0, corro.grossSales - conciergeMetrics.grossSales - wellingtonMetrics.grossSales) : 0;
+  const ecommerceMetrics = corro ? (explicitEcommerce.grossSales >= residualEcommerceGross && explicitEcommerce.grossSales > 0
+    ? explicitEcommerce
+    : {
+        grossSales: residualEcommerceGross,
+        netSales: Math.max(0, corro.netSales - (conciergeMetrics.netSales || 0) - (wellingtonMetrics.netSales || 0)),
+        grossProfit: Math.max(0, corro.grossProfit - (conciergeMetrics.grossProfit || 0) - (wellingtonMetrics.grossProfit || 0)),
+        gm1: 0,
+        orders: Math.max(0, corro.orders - (conciergeMetrics.orders || 0) - (wellingtonMetrics.orders || 0)),
+        customers: 0,
+        aov: 0
+      }) : { grossSales:0 };
+  if (ecommerceMetrics.netSales > 0 && ecommerceMetrics.grossProfit >= 0) ecommerceMetrics.gm1 = ecommerceMetrics.grossProfit / ecommerceMetrics.netSales;
+  if (ecommerceMetrics.orders > 0) ecommerceMetrics.aov = ecommerceMetrics.grossSales / ecommerceMetrics.orders;
+  if (corro && corro.latest) STATE.actuals.actualsThroughMonth = Math.min(corro.latest.month, Number(STATE.meta.actualsThroughMonth || corro.latest.month));
+  if (corro) STATE.actuals.corroGrossYtd = corro.grossSales || 0;
   STATE.actuals.engineGrossSales = {
     Ecommerce: ecommerceMetrics.grossSales,
     Concierge: conciergeMetrics.grossSales,
@@ -2335,7 +2356,7 @@ function applyActualsToState(corroBundle, cavaliBundle) {
       } else {
         setCurrentInRows(acq.rows, "Base Ad Spend", "$20k / month");
         setCurrentInRows(acq.rows, "Incremental Ad Spend", "$0");
-        setCurrentInRows(acq.rows, "ROAS", "No ad_spend rows");
+        setCurrentInRows(acq.rows, "ROAS", "—");
       }
     }
     if (retention) {
@@ -2375,7 +2396,7 @@ function applyActualsToState(corroBundle, cavaliBundle) {
       setCurrentInRows(concierge.rows, "Orders per Client", ordersPerClient ? ordersPerClient.toFixed(2) : "—");
       setCurrentInRows(concierge.rows, "AOV", conciergeMetrics.aov ? formatMoney(conciergeMetrics.aov) : "—");
       const conciergeGm = conciergeMetrics.gm1 || 0;
-      setCurrentInRows(concierge.rows, "GM1 %", conciergeGm ? formatPercent(conciergeGm) : "Data unavailable");
+      setCurrentInRows(concierge.rows, "GM1 %", conciergeGm ? formatPercent(conciergeGm) : "—");
       setYearInRows(concierge.rows, "Active Clients", "y2026", activeClients ? String(Math.round(activeClients)) : "—");
       setYearInRows(concierge.rows, "Orders per Client", "y2026", ordersPerClient ? ordersPerClient.toFixed(2) : "—");
       setYearInRows(concierge.rows, "AOV", "y2026", conciergeMetrics.aov ? formatMoney(conciergeMetrics.aov) : "—");
@@ -2385,7 +2406,7 @@ function applyActualsToState(corroBundle, cavaliBundle) {
       setCurrentInRows(wellington.rows, "Orders", wellingtonMetrics.orders ? Math.round(wellingtonMetrics.orders).toLocaleString("en-US") : "No Wellington tag rows");
       setCurrentInRows(wellington.rows, "AOV", wellingtonMetrics.aov ? formatMoney(wellingtonMetrics.aov) : "—");
       const wellingtonGm = wellingtonMetrics.gm1 || 0;
-      setCurrentInRows(wellington.rows, "GM1 %", wellingtonGm ? formatPercent(wellingtonGm) : "Data unavailable");
+      setCurrentInRows(wellington.rows, "GM1 %", wellingtonGm ? formatPercent(wellingtonGm) : "—");
       const month = Math.max(1, corro.latest.month);
       const wellingtonForecastOrders = (wellingtonMetrics.orders || 0) + ((wellingtonMetrics.orders || 0) / month) * Math.max(0, 12 - month);
       setYearInRows(wellington.rows, "Orders", "y2026", wellingtonMetrics.orders ? String(Math.round(wellingtonForecastOrders)) : "—");
@@ -2406,8 +2427,8 @@ function applyActualsToState(corroBundle, cavaliBundle) {
       setCurrentInRows(cavaliEngine.rows, "Cavali Ad Spend", formatMoney(cavaliAds.spend));
       setCurrentInRows(cavaliEngine.rows, "Cavali CAC", formatMoney(cavaliAds.cac));
     } else {
-      setCurrentInRows(cavaliEngine.rows, "Cavali Ad Spend", "Data unavailable");
-      setCurrentInRows(cavaliEngine.rows, "Cavali CAC", "Data unavailable");
+      setCurrentInRows(cavaliEngine.rows, "Cavali Ad Spend", "$0");
+      setCurrentInRows(cavaliEngine.rows, "Cavali CAC", "—");
     }
 
     if (cavaliMembers.signatureActive || cavaliMembers.premiumActive) {
@@ -2617,7 +2638,7 @@ function ensureCavaliOrdersRow(cavaliEngine) {
   if (!existing.driver) {
     cavaliEngine.rows.unshift({
       driver: "Orders",
-      current: "Actuals pending",
+      current: "—",
       y2026: "—",
       y2027: "785",
       y2028: "795",
@@ -2693,11 +2714,9 @@ async function refreshActualsFromSheets({ silent = false } = {}) {
       } : null;
     }
 
-    renderCommercial();
-    renderBusinessUnits();
-    renderSheet2Draft();
-    renderCommercialCashFlow();
-    renderBoardDashboard();
+    // Re-render the entire model after actuals are applied. This is required so
+    // Tab 2 FCS, Tab 3, Tab 4 and Tab 5 all read the same refreshed state.
+    renderAll();
     saveNow();
 
     const sourceLabel = shopifyJson && connectedJson ? "Shopify + Google Sheets" : (shopifyJson ? "Shopify sync" : "Google Sheets");
@@ -2731,11 +2750,33 @@ function initThemeToggle() {
   });
 }
 
+function migrateKnownStaleModelValues() {
+  // Preserve user-entered Draft/Forecast values, but repair values that were generated
+  // by known obsolete formulas in previous builds. These are not management inputs.
+  const normalizeState = (state) => {
+    if (!state) return;
+    const market = getBlock(state.commercial || [], "Market Growth");
+    if (market) {
+      const opp = getRow(market.rows || [], "Dover Market Opportunity (Gross)");
+      if (opp && opp.driver) {
+        opp.current = "$130M";
+        ["y2026","y2027","y2028","y2029"].forEach(y => { opp[y] = "$130M"; });
+      }
+    }
+    if (state.meta) { state.meta.actualsThroughMonth = 7; state.meta.version = "2.12"; }
+    if (state.actuals) state.actuals.actualsThroughMonth = 7;
+  };
+  normalizeState(STATE);
+  Object.values((STATE && STATE.scenarioVersions) || {}).forEach(normalizeState);
+}
+
 async function boot() {
   initThemeToggle();
   STATE = await DataService.load();
+  migrateKnownStaleModelValues();
   renderAll();
-  refreshActualsFromSheets({ silent: true });
+  // Wait for actuals so 2026 FCS is not left displaying stale pre-refresh values.
+  await refreshActualsFromSheets({ silent: true });
   initTabs();
   document.getElementById("addGrowthRow").addEventListener("click", addGrowthRow);
   document.getElementById("saveData").addEventListener("click", saveNow);

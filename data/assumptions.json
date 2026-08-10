@@ -3,7 +3,7 @@
     "modelStatus": "Draft",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "2.9",
+    "version": "2.12",
     "lastUpdate": "2026-07-11",
     "organicGrowth": "10%",
     "doverCapture": "20%",
@@ -509,7 +509,7 @@
         },
         {
           "driver": "Cavali Ad Spend",
-          "current": "Data unavailable",
+          "current": "$0",
           "y2026": "$0",
           "y2027": "$25k",
           "y2028": "$50k",
@@ -518,7 +518,7 @@
         },
         {
           "driver": "Cavali CAC",
-          "current": "Data unavailable",
+          "current": "—",
           "y2026": "Calculated",
           "y2027": "$90",
           "y2028": "$80",
