@@ -318,6 +318,19 @@ function renderKpis() {
   ])));
 }
 
+function refreshModelAfterFundingEdit() {
+  renderFunding();
+  renderCommercial();
+  renderBusinessUnits();
+  renderSheet2Draft();
+  renderFinancialSummary();
+  renderCommercialCashFlow();
+  renderBoardDashboard();
+  renderGrowth();
+  renderThesis();
+  scheduleSave();
+}
+
 function renderFunding() {
   const cols = ["scenario", "date", "organicGrowthDefault", "payables", "inventory", "marketing", "embroidery", "privateLabel"];
   const heads = ["Scenario", "Date", "Organic Growth", "Payables", "Inventory", "Marketing", "Embroidery", "Private Label", "Unallocated Capital"];
@@ -328,9 +341,9 @@ function renderFunding() {
     const tr = el("tr");
     cols.forEach(col => {
       if (col === "scenario") tr.appendChild(el("td", { class: "label-cell scenario-cell" }, row.scenario));
-      else if (col === "date") tr.appendChild(makeEditableCell(row, col, () => { renderFunding(); scheduleSave(); }));
-      else if (col === "organicGrowthDefault") tr.appendChild(makeEditableCell(row, col, () => { applyFundingOrganicDefault(); renderCommercial(); renderSheet2Draft(); renderThesis(); scheduleSave(); }));
-      else tr.appendChild(makeEditableCell(row, col, () => { renderFunding(); scheduleSave(); }, { money: true }));
+      else if (col === "date") tr.appendChild(makeEditableCell(row, col, refreshModelAfterFundingEdit));
+      else if (col === "organicGrowthDefault") tr.appendChild(makeEditableCell(row, col, () => { applyFundingOrganicDefault(); refreshModelAfterFundingEdit(); }));
+      else tr.appendChild(makeEditableCell(row, col, refreshModelAfterFundingEdit, { money: true }));
     });
     const allocated = ["marketing", "inventory", "payables", "embroidery", "privateLabel"].reduce((sum, k) => sum + parseMoney(row[k]), 0);
     const unallocated = fundingTotal(row) - allocated;
@@ -405,7 +418,25 @@ function renderCommercial() {
   });
 }
 
+
+function computedEngineValue(row, key) {
+  if (!row || !key || key === "current") return null;
+  if (row.driver === "Orders" && row._engine === "Cavali") {
+    const cavali = getBlock(STATE.growthEngines, "Cavali");
+    const rows = cavali ? cavali.rows : [];
+    const sigMembers = parseNumber(val(rows, "Signature Active Members", key));
+    const sigBoxes = parseNumber(val(rows, "Signature Boxes per Year", key));
+    const premMembers = parseNumber(val(rows, "Premium Active Members", key));
+    const premBoxes = parseNumber(val(rows, "Premium Boxes per Year", key));
+    const boxes = sigMembers * sigBoxes + premMembers * premBoxes;
+    return boxes > 0 ? Math.round(boxes).toLocaleString("en-US") : "—";
+  }
+  return computedCommercialValue(row, key);
+}
+
 function renderEngineTable(tableEl, rows) {
+  const cavaliBlock = getBlock(STATE.growthEngines, "Cavali");
+  if (rows === (cavaliBlock && cavaliBlock.rows)) rows.forEach(r => { r._engine = "Cavali"; });
   const heads = ["Driver", "Baseline / Current", "2026", "2027", "2028", "2029"];
   tableEl.innerHTML = `<thead><tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr></thead>`;
   const tbody = el("tbody");
@@ -414,7 +445,7 @@ function renderEngineTable(tableEl, rows) {
     tr.appendChild(el("td", { class: "label-cell" }, row.driver));
     ["current", "y2026", "y2027", "y2028", "y2029"].forEach(k => {
       if (k === "current") tr.appendChild(makeCalcCell(row[k] || "", "gray-cell"));
-      else if (row.calculated && row.calculated.includes(k)) tr.appendChild(makeCalcCell(computedCommercialValue(row, k) || row[k] || "—"));
+      else if (row.calculated && row.calculated.includes(k)) tr.appendChild(makeCalcCell(computedEngineValue(row, k) || row[k] || "—"));
       else tr.appendChild(makeEditableCell(row, k, () => { renderBusinessUnits(); renderSheet2Draft(); scheduleSave(); }));
     });
     tbody.appendChild(tr);
@@ -563,21 +594,16 @@ function incrementalAdSpendByYear(yearKey) {
   const fundingDate = monthIndexFromFundingDate(STATE.meta.fundingDate || funding.date);
   if (!fundingDate) return 0;
 
-  // Front-loaded but non-flat deployment curve. The first year is prorated by
-  // months available after funding; the remaining allocation is distributed
-  // across the next three years. This keeps every year logical and prevents
-  // the same amount from being copied across 2027–2029.
-  const launchYear = fundingDate.year;
-  const monthsActiveFirstYear = Math.max(0, 11 - fundingDate.month); // month after funding through Dec
-  const firstYearWeight = Math.min(0.12, (monthsActiveFirstYear / 12) * 0.30);
-  const remaining = 1 - firstYearWeight;
-  const weights = {
-    [launchYear]: firstYearWeight,
-    [launchYear + 1]: remaining * 0.46,
-    [launchYear + 2]: remaining * 0.34,
-    [launchYear + 3]: remaining * 0.20
-  };
-  return marketingAllocation * (weights[year] || 0);
+  // Ceci review 2026-08-10: marketing funding is a one-time incremental budget,
+  // deployed evenly over 12 months starting in the funding month.
+  // Example: $950k funded in Oct-26 => 3/12 in 2026 and 9/12 in 2027.
+  const monthly = marketingAllocation / 12;
+  let activeMonths = 0;
+  for (let i = 0; i < 12; i += 1) {
+    const d = addMonths(fundingDate, i);
+    if (d && d.year === year) activeMonths += 1;
+  }
+  return monthly * activeMonths;
 }
 
 function baseAdSpendByYear(yearKey) {
@@ -652,13 +678,14 @@ function computedCommercialValue(row, key) {
     return gross ? formatPercent(totalAdSpendByYear(key) / gross) : "—";
   }
   if (row.driver === "CAC") {
-    const ecommerce = getBlock(STATE.growthEngines, "Ecommerce");
-    const aov = parseMoney(val(ecommerce ? ecommerce.rows : [], "AOV", key));
-    const roas = parseNumber(val((getBlock(STATE.commercial, "Acquisition") || {}).rows, "ROAS", key)) || parseNumber(STATE.meta.roas);
-    const spend = totalAdSpendByYear(key);
-    const attributedRevenue = spend * roas;
-    const attributedPurchases = aov > 0 ? attributedRevenue / aov : 0;
-    return attributedPurchases > 0 ? formatMoney(spend / attributedPurchases) : "—";
+    const acq = getBlock(STATE.commercial, "Acquisition");
+    const actualCac = parseMoney((row && row.current) || "$33");
+    const baseRoas = Math.max(0.1, parseMultiple(val(acq ? acq.rows : [], "ROAS", "y2026") || STATE.meta.roas || "4.0x"));
+    const forecastRoas = Math.max(0.1, roasForYear(key));
+    // Current CAC is sourced from Marketing Stats: Spend / Attributed Purchases.
+    // Forecast CAC is anchored to that validated CAC and improves as ROAS efficiency improves.
+    // This avoids the incorrect AOV/ROAS shortcut that made CAC rise when AOV increased.
+    return actualCac > 0 ? formatMoney(actualCac * (baseRoas / forecastRoas)) : "—";
   }
   if (row.driver === "Cavali CAC") {
     const cavali = getBlock(STATE.growthEngines, "Cavali");
@@ -1561,13 +1588,38 @@ function renderThesis() {
 
 
 /* ---------------- Tab 03 Financial Summary + Tab 04 Commercial Cash Flow ---------------- */
+function privateLabelInvestmentTranches() {
+  const fundingRow = selectedFundingRow();
+  if (fundingAmountSelected() < 3000000) return [];
+  const start = monthIndexFromFundingDate(STATE.meta.fundingDate || fundingRow.date);
+  if (!start) return [];
+  const projectTotal = 1000000;
+  const initial = Math.min(projectTotal, Math.max(0, parseMoney(fundingRow.privateLabel)));
+  const remainingAfterInitial = Math.max(0, projectTotal - initial);
+  const second = Math.min(400000, remainingAfterInitial);
+  const final = Math.max(0, remainingAfterInitial - second);
+  return [
+    { date: start, amount: initial, label: "Initial samples / setup" },
+    { date: addMonths(start, 6), amount: second, label: "Production tranche" },
+    { date: addMonths(start, 9), amount: final, label: "Final pre-launch tranche" }
+  ].filter(x => x.amount > 0);
+}
+
+function privateLabelInvestmentByYear(yearKey) {
+  const year = Number(String(yearKey).replace("y", ""));
+  return privateLabelInvestmentTranches().filter(x => x.date && x.date.year === year).reduce((s, x) => s + x.amount, 0);
+}
+
 function pnlOpexForYear(yearKey, bridge) {
-  const months = yearKey === "y2026" ? 12 : 12;
-  const payroll = 40000 * months;
-  const ga = 45000 * months;
-  const sm = (bridge.grossSales || 0) * 0.0662;
+  // Advertising is already deducted above GP3 and must NOT be duplicated in S&M.
+  // Ceci review: keep non-ad S&M nearly flat: ~$210k in 2026, then $300k/year.
+  // G&A remains $1.0M/year for the planning horizon.
+  const sm = yearKey === "y2026" ? 210000 : 300000;
+  const ga = 1000000;
+  const payroll = 0; // included in the G&A total above, not added a second time.
   const tech = 0;
-  return { payroll, ga, sm, tech, total: payroll + ga + sm + tech };
+  const privateLabel = privateLabelInvestmentByYear(yearKey);
+  return { payroll, ga, sm, tech, privateLabel, total: payroll + ga + sm + tech + privateLabel };
 }
 
 function ordersForYear(yearKey) {
@@ -1636,6 +1688,7 @@ function renderFinancialSummary() {
     ["GP3", y => bridges[y].gp3, true],
     ["Sales & Marketing (S&M)", y => -pnlOpexForYear(y, bridges[y]).sm],
     ["General & Administrative (G&A)", y => -(pnlOpexForYear(y, bridges[y]).payroll + pnlOpexForYear(y, bridges[y]).ga)],
+    ["Private Label Investment", y => -pnlOpexForYear(y, bridges[y]).privateLabel],
     ["Other Operating Expenses", y => -pnlOpexForYear(y, bridges[y]).tech],
     ["EBITDA", y => bridges[y].gp3 - pnlOpexForYear(y, bridges[y]).total, true],
     ["EBITDA %", y => { const e = bridges[y].gp3 - pnlOpexForYear(y, bridges[y]).total; return bridges[y].netSales ? e / bridges[y].netSales : 0; }, true, "pct"]
@@ -1682,22 +1735,24 @@ function cashFlowRows(yearKey) {
   const b = marginBridge(yearKey);
   const o = pnlOpexForYear(yearKey, b);
   const recurrentInventory = yearKey === fundingYear ? parseMoney(fundingRow.inventory) : 0;
+  const payablesSettlement = yearKey === fundingYear ? parseMoney(fundingRow.payables) : 0;
   const advertising = b.adSpend;
   const shipping = b.outboundShipping + b.packaging;
   const sm = o.sm;
   const ga = o.payroll + o.ga;
   const otherOperating = o.tech;
-  const operatingCashOut = recurrentInventory + advertising + shipping + sm + ga + otherOperating;
+  const operatingCashOut = recurrentInventory + payablesSettlement + advertising + shipping + sm + ga + otherOperating;
   const cashOut = {
     "Operating Cash Out": operatingCashOut,
     "Inventory": recurrentInventory,
+    "Payables Settlement": payablesSettlement,
     "Advertising": advertising,
     "Shipping & Fulfillment": shipping,
     "Sales & Marketing (S&M)": sm,
     "General & Administrative (G&A)": ga,
     "Growth Investments": yearKey === fundingYear ? parseMoney(fundingRow.embroidery) : 0,
     "CapEx": 0,
-    "Private Label Investment": yearKey === fundingYear ? parseMoney(fundingRow.privateLabel) : 0,
+    "Private Label Investment": privateLabelInvestmentByYear(yearKey),
     "Other Cash Out": 0,
     "Other": otherOperating
   };
@@ -2079,6 +2134,24 @@ function smartrrMembershipActuals(rows) {
 }
 
 
+function smartrrBoxRateActuals(rows) {
+  const latestRows = latestRowsByPeriodStart(rows || []);
+  const out = { signatureBoxesPerMember: null, premiumBoxesPerMember: null };
+  ["signature", "premium"].forEach(kind => {
+    const subset = latestRows.filter(r => normalizeProductKey(r.product_variant || r.product || "") === kind);
+    let boxes = 0;
+    let members = 0;
+    subset.forEach(r => {
+      boxes += parseNumber(firstPresent(r, ["boxes_delivered", "quantity_ordered", "quantity", "units", "product_volume", "nb_units", "orders"]));
+      members += parseNumber(firstPresent(r, ["active_subscribers_current", "active_subscribers", "active_members", "subscribers"]));
+    });
+    const rate = members > 0 && boxes > 0 ? boxes / members : null;
+    if (kind === "signature") out.signatureBoxesPerMember = rate;
+    if (kind === "premium") out.premiumBoxesPerMember = rate;
+  });
+  return out;
+}
+
 function revenueCarryoverActuals(rows, latest) {
   if (!rows || !rows.length || !latest) return null;
   const throughMonth = Math.min(latest.month, (STATE && STATE.meta && STATE.meta.actualsThroughMonth) || latest.month);
@@ -2165,6 +2238,7 @@ function applyActualsToState(corroBundle, cavaliBundle) {
   const corroAds = adSpendActuals(corroBundle.adSpend, corro);
   const cavaliAds = adSpendActuals(cavaliBundle.adSpend, cavali);
   const cavaliMembers = smartrrMembershipActuals(cavaliBundle.smartrrProductVolume);
+  const cavaliBoxRates = smartrrBoxRateActuals(cavaliBundle.smartrrProductVolume);
 
   if (!STATE.actuals) STATE.actuals = {};
   STATE.actuals.lastRefresh = new Date().toISOString();
@@ -2317,6 +2391,12 @@ function applyActualsToState(corroBundle, cavaliBundle) {
     if (cavaliMembers.signatureActive || cavaliMembers.premiumActive) {
       setCurrentInRows(cavaliEngine.rows, "Signature Active Members", Math.round(cavaliMembers.signatureActive).toLocaleString("en-US"));
       setCurrentInRows(cavaliEngine.rows, "Premium Active Members", Math.round(cavaliMembers.premiumActive).toLocaleString("en-US"));
+    }
+    if (cavaliBoxRates.signatureBoxesPerMember) {
+      setCurrentInRows(cavaliEngine.rows, "Signature Boxes per Year", cavaliBoxRates.signatureBoxesPerMember.toFixed(2).replace(/0+$/, "").replace(/\.$/, ""));
+    }
+    if (cavaliBoxRates.premiumBoxesPerMember) {
+      setCurrentInRows(cavaliEngine.rows, "Premium Boxes per Year", cavaliBoxRates.premiumBoxesPerMember.toFixed(2).replace(/0+$/, "").replace(/\.$/, ""));
     }
 
     // Fill 2026 Cavali from actuals and leave 2027–2029 management forecasts untouched.
@@ -2506,7 +2586,13 @@ function setCavaliForecastFields(cavaliEngine, cavali, cavaliAds) {
 
 function ensureCavaliOrdersRow(cavaliEngine) {
   if (!cavaliEngine || !Array.isArray(cavaliEngine.rows)) return;
-  if (!getRow(cavaliEngine.rows, "Orders").driver) {
+  const existing = getRow(cavaliEngine.rows, "Orders");
+  if (existing && existing.driver) {
+    existing.calculated = ["y2026", "y2027", "y2028", "y2029"];
+    existing.note = "Baseline/current = Shopify Cavali orders. Forecast orders/boxes fulfilled = Signature Members × Boxes/Year + Premium Members × Boxes/Year.";
+    return;
+  }
+  if (!existing.driver) {
     cavaliEngine.rows.unshift({
       driver: "Orders",
       current: "Actuals pending",
@@ -2514,7 +2600,8 @@ function ensureCavaliOrdersRow(cavaliEngine) {
       y2027: "785",
       y2028: "795",
       y2029: "805",
-      note: "Shopify Cavali order count; future years remain editable."
+      note: "Baseline/current = Shopify Cavali orders. Forecast orders/boxes fulfilled = Signature Members × Boxes/Year + Premium Members × Boxes/Year.",
+      calculated: ["y2026", "y2027", "y2028", "y2029"]
     });
   }
 }
