@@ -1,5 +1,7 @@
 let STATE = null;
 let saveTimer = null;
+// Authoritative outputs produced by Tabs 2–4. Tab 5 only reads this cache; it does not recalculate financial results.
+let MODEL_OUTPUTS = { tab2: {}, tab3: {}, tab4: {} };
 
 function isFormulaToken(v) {
   const text = String(v ?? "").trim().toLowerCase();
@@ -1192,6 +1194,23 @@ function renderSheet2FormulaNotes() {
   table.appendChild(tbody);
 }
 
+function captureTab2Outputs() {
+  const years = yearKeys();
+  MODEL_OUTPUTS.tab2 = Object.fromEntries(years.map(yearKey => {
+    const bridge = marginBridge(yearKey);
+    const engines = engineOutputs(yearKey);
+    return [yearKey, {
+      grossSales: bridge.grossSales,
+      netSales: bridge.netSales,
+      gp1: bridge.gp1,
+      gp2: bridge.gp2,
+      gp3: bridge.gp3,
+      adSpend: bridge.adSpend,
+      engines
+    }];
+  }));
+}
+
 function renderSheet2Draft() {
   renderSheet2Scenario();
   renderFinancialSnapshot("y2026");
@@ -1199,6 +1218,7 @@ function renderSheet2Draft() {
   renderSheet2ExecSummary("y2026");
   renderSheet2SupportingKpis("y2026");
   renderSheet2MarginBridge("y2026");
+  captureTab2Outputs();
 }
 
 
@@ -1207,29 +1227,6 @@ function renderSheet2Draft() {
 function selectedBoardYearKey() {
   const year = String((STATE.meta && STATE.meta.displayYear) || "2026");
   return `y${year}`;
-}
-
-function boardCashSummary() {
-  const years = yearKeys();
-  const openingInitial = parseMoney((STATE.cashFlow && STATE.cashFlow.openingCash) || "$0");
-  let opening = openingInitial;
-  const summary = {};
-  years.forEach(year => {
-    const flow = cashFlowRows(year);
-    const cashIn = Object.values(flow.cashIn).reduce((sum, value) => sum + Number(value || 0), 0);
-    const cashOut = (flow.cashOut["Operating Cash Out"] || 0)
-      + (flow.cashOut["Growth Investments"] || 0)
-      + (flow.cashOut["CapEx"] || 0)
-      + (flow.cashOut["Private Label Investment"] || 0)
-      + (flow.cashOut["Other Cash Out"] || 0);
-    const net = cashIn - cashOut;
-    const ending = opening + net;
-    const monthlyBurn = cashOut > cashIn ? (cashOut - cashIn) / 12 : cashOut / 12;
-    const runway = monthlyBurn > 0 ? ending / monthlyBurn : null;
-    summary[year] = { opening, cashIn, cashOut, net, ending, runway, flow };
-    opening = ending;
-  });
-  return summary;
 }
 
 function boardMilestoneDate(baseDate, monthsToAdd) {
@@ -1244,40 +1241,37 @@ function boardMilestoneDate(baseDate, monthsToAdd) {
   return `${months[month]}-${String(year).slice(-2)}`;
 }
 
-function renderBoardKpis(yearKey, bridge, cash) {
+function renderBoardKpis(yearKey) {
   const wrap = document.getElementById("boardKpiGrid");
   if (!wrap) return;
   const year = yearLabel(yearKey);
-  const opex = pnlOpexForYear(yearKey, bridge);
-  const ebitda = bridge.gp3 - opex.total;
+  const fin = MODEL_OUTPUTS.tab3[yearKey] || {};
+  const cash = MODEL_OUTPUTS.tab4[yearKey] || {};
   const cards = [
-    ["Gross Sales", formatFinancialMoney(bridge.grossSales, {dashZero:true})],
-    ["Net Sales", formatFinancialMoney(bridge.netSales, {dashZero:true})],
-    ["GP3", formatFinancialMoney(bridge.gp3, {dashZero:true})],
-    ["EBITDA", formatFinancialMoney(ebitda, {dashZero:true})],
+    ["Gross Sales", formatFinancialMoney(fin.grossSales, {dashZero:true})],
+    ["Net Sales", formatFinancialMoney(fin.netSales, {dashZero:true})],
+    ["GP3", formatFinancialMoney(fin.gp3, {dashZero:true})],
+    ["EBITDA", formatFinancialMoney(fin.ebitda, {dashZero:true})],
     ["Ending Cash", formatFinancialMoney(cash.ending, {dashZero:true})],
-    ["Cash Runway", cash.runway === null ? "Self-funded" : `${Math.max(0, cash.runway).toFixed(1)} mo`],
-    ["ROAS", `${roasForYear(yearKey).toFixed(1)}x`],
-    ["New Customers", Math.round(newCustomersForYear(yearKey) || 0).toLocaleString("en-US")],
+    ["Cash Runway", cash.runway == null ? "Self-funded" : `${Math.max(0, cash.runway).toFixed(1)} mo`],
+    ["ROAS", `${Number(fin.roas || 0).toFixed(1)}x`],
+    ["New Customers", Math.round(Number(fin.newCustomers || 0)).toLocaleString("en-US")],
     ["Dover Capture", formatPercent(currentDoverTargetPct(yearKey))],
     ["Funding", STATE.meta.fundingScenario || "Base $0"]
   ];
   wrap.innerHTML = "";
-  cards.forEach(([label, value]) => {
-    const card = el("div", { class: "board-kpi-card" }, [
-      el("div", { class: "board-kpi-label" }, label),
-      el("div", { class: `board-kpi-value ${moneyClass(value, "")}` }, value),
-      el("div", { class: "board-kpi-period" }, `Forecast ${year}`)
-    ]);
-    wrap.appendChild(card);
-  });
+  cards.forEach(([label, value]) => wrap.appendChild(el("div", { class: "board-kpi-card" }, [
+    el("div", { class: "board-kpi-label" }, label),
+    el("div", { class: `board-kpi-value ${moneyClass(value, "")}` }, value),
+    el("div", { class: "board-kpi-period" }, `Forecast ${year}`)
+  ])));
 }
 
 function renderBoardRevenueMix(yearKey) {
   const root = document.getElementById("boardRevenueMix");
   if (!root) return;
-  const rows = engineOutputs(yearKey).filter(row => row.gross > 0);
-  const total = rows.reduce((sum, row) => sum + row.gross, 0) || 1;
+  const rows = ((MODEL_OUTPUTS.tab2[yearKey] || {}).engines || []).filter(row => Number(row.gross || 0) > 0);
+  const total = rows.reduce((sum, row) => sum + Number(row.gross || 0), 0) || 1;
   const palette = ["#173f73", "#2f7f71", "#d4a900", "#805ad5", "#e67e22", "#df5b6c"];
   let offset = 25;
   const circles = rows.map((row, index) => {
@@ -1293,37 +1287,33 @@ function renderBoardRevenueMix(yearKey) {
 function renderBoardRevenueGrowth() {
   const root = document.getElementById("boardRevenueGrowth");
   if (!root) return;
-  const rows = yearKeys().map(year => ({ year: yearLabel(year), value: marginBridge(year).grossSales }));
+  const rows = yearKeys().map(yearKey => ({ year: yearLabel(yearKey), value: Number((MODEL_OUTPUTS.tab2[yearKey] || {}).grossSales || 0) }));
   const max = Math.max(...rows.map(row => row.value), 1);
   root.innerHTML = `<div class="bar-chart">${rows.map(row => `<div class="bar-column"><div class="bar-value">${formatMoney(row.value)}</div><div class="bar-track"><div class="bar-fill" style="height:${Math.max(4,(row.value/max)*100)}%"></div></div><div class="bar-label">${row.year}</div></div>`).join("")}</div>`;
 }
 
-function renderBoardProfitability(yearKey, bridge) {
+function renderBoardProfitability(yearKey) {
   const root = document.getElementById("boardProfitability");
   if (!root) return;
-  const opex = pnlOpexForYear(yearKey, bridge);
-  const ebitda = bridge.gp3 - opex.total;
+  const fin = MODEL_OUTPUTS.tab3[yearKey] || {};
   const points = [
-    ["Gross Sales", bridge.grossSales],
-    ["Net Sales", bridge.netSales],
-    ["GP1", bridge.gp1],
-    ["GP2", bridge.gp2],
-    ["GP3", bridge.gp3],
-    ["EBITDA", ebitda]
-  ];
+    ["Gross Sales", fin.grossSales], ["Net Sales", fin.netSales], ["GP1", fin.gp1],
+    ["GP2", fin.gp2], ["GP3", fin.gp3], ["EBITDA", fin.ebitda]
+  ].map(([label,value]) => [label, Number(value || 0)]);
   const max = Math.max(...points.map(([,value]) => Math.abs(value)), 1);
   root.innerHTML = `<div class="profit-journey">${points.map(([label,value],index)=>`<div class="profit-step ${value<0?'loss':''}"><div class="profit-value">${formatMoney(value)}</div><div class="profit-bar"><span style="height:${Math.max(6,Math.abs(value)/max*100)}%"></span></div><div class="profit-label">${label}</div>${index<points.length-1?'<div class="profit-arrow">→</div>':''}</div>`).join("")}</div>`;
 }
 
-function renderBoardCash(yearKey, cash) {
+function renderBoardCash(yearKey) {
   const root = document.getElementById("boardCashPosition");
   if (!root) return;
+  const cash = MODEL_OUTPUTS.tab4[yearKey] || {};
   const items = [
-    ["Opening Cash", cash.opening, "neutral"],
-    ["Cash In", cash.cashIn, "positive"],
-    ["Cash Out", cash.cashOut, "negative"],
-    ["Ending Cash", cash.ending, cash.ending < 0 ? "negative" : "positive"],
-    ["Cash Runway", cash.runway === null ? "Self-funded" : `${Math.max(0,cash.runway).toFixed(1)} mo`, "neutral"]
+    ["Opening Cash", Number(cash.opening || 0), "neutral"],
+    ["Cash In", Number(cash.cashIn || 0), "positive"],
+    ["Cash Out", Number(cash.cashOut || 0), "negative"],
+    ["Ending Cash", Number(cash.ending || 0), Number(cash.ending || 0) < 0 ? "negative" : "positive"],
+    ["Cash Runway", cash.runway == null ? "Self-funded" : `${Math.max(0,cash.runway).toFixed(1)} mo`, "neutral"]
   ];
   root.innerHTML = `<div class="cash-flow-board">${items.map(([label,value,tone],index)=>`<div class="cash-board-item ${tone}"><span>${label}</span><strong>${typeof value==='number'?formatMoney(value):value}</strong></div>${index<items.length-1?'<div class="cash-board-arrow">↓</div>':''}`).join("")}</div>`;
 }
@@ -1332,33 +1322,38 @@ function renderBoardMilestones() {
   const root = document.getElementById("boardMilestones");
   if (!root) return;
   const fundingDate = STATE.meta.fundingDate || selectedFundingRow().date || "Oct-26";
-  const amount = fundingAmountSelected();
-  const milestones = [
-    ["Funding", fundingDate, true],
-    ["Dover Expansion", boardMilestoneDate(fundingDate, 0), true],
-    ["Embroidery", boardMilestoneDate(fundingDate, 3), amount >= 1000000],
-    ["Private Label", boardMilestoneDate(fundingDate, 15), amount >= 3000000],
-    ["International Growth", boardMilestoneDate(fundingDate, 18), amount >= 5000000]
-  ];
+  const rows = (STATE.growthInitiatives || []).filter(row => {
+    const n = String(row.initiative || "").toLowerCase();
+    return n.includes("cavali paid") || n.includes("embroidery") || n.includes("private label") || n.includes("market expansion") || n.includes("international");
+  });
+  const milestones = [["Funding", fundingDate, true]].concat(rows.map(row => {
+    const st = statusForTrigger(row.trigger);
+    let name = row.initiative;
+    if (/market expansion/i.test(name)) name = "International Growth";
+    return [name, effectiveInitiativeLaunch(row), st.cls === "active"];
+  }));
+  // Dover follows the same Funding Date trigger used by the model.
+  milestones.splice(1, 0, ["Dover Expansion", fundingDate, true]);
   root.innerHTML = `<div class="milestone-list">${milestones.map(([name,date,active],index)=>`<div class="milestone-row ${active?'active':'locked'}"><div class="milestone-marker">${active?'✓':'○'}</div><div class="milestone-copy"><strong>${name}</strong><span>${active?date:'Funding gate not met'}</span></div>${index<milestones.length-1?'<div class="milestone-line"></div>':''}</div>`).join("")}</div>`;
 }
 
 function renderBoardDashboard() {
   if (!STATE) return;
+  // Ensure Tabs 2–4 have produced their authoritative output caches before Board renders.
+  if (!MODEL_OUTPUTS.tab2.y2026) captureTab2Outputs();
+  if (!MODEL_OUTPUTS.tab3.y2026) renderFinancialSummary();
+  if (!MODEL_OUTPUTS.tab4.y2026) renderCommercialCashFlow();
   const yearKey = selectedBoardYearKey();
   const year = yearLabel(yearKey);
-  const bridge = marginBridge(yearKey);
-  const cashSummary = boardCashSummary();
-  const cash = cashSummary[yearKey];
   const context = document.getElementById("boardContext");
   const pill = document.getElementById("boardYearPill");
-  if (context) context.textContent = `${STATE.meta.modelStatus || "Draft"} scenario · ${STATE.meta.fundingScenario || "Base $0"} funding · closing forecast`;
+  if (context) context.textContent = `${STATE.meta.modelStatus || "Draft"} scenario · ${STATE.meta.fundingScenario || "Base $0"} funding · direct outputs from Tabs 1–4`;
   if (pill) pill.textContent = `Forecast ${year}`;
-  renderBoardKpis(yearKey, bridge, cash);
+  renderBoardKpis(yearKey);
   renderBoardRevenueMix(yearKey);
   renderBoardRevenueGrowth();
-  renderBoardProfitability(yearKey, bridge);
-  renderBoardCash(yearKey, cash);
+  renderBoardProfitability(yearKey);
+  renderBoardCash(yearKey);
   renderBoardMilestones();
 }
 
@@ -1512,6 +1507,19 @@ function statusForTrigger(trigger) {
   return { text: active ? "ACTIVE ✓" : "LOCKED 🔒", cls: active ? "active" : "locked" };
 }
 
+function effectiveInitiativeLaunch(row) {
+  const name = String((row && row.initiative) || "").toLowerCase();
+  const trigger = String((row && row.trigger) || "");
+  const fundingDependent = parseTriggerAmount(trigger) > 0;
+  if (!fundingDependent) return (row && row.launch) || "—";
+  const fundingDate = (STATE.meta && STATE.meta.fundingDate) || selectedFundingRow().date || "Oct-26";
+  if (name.includes("embroidery")) return boardMilestoneDate(fundingDate, 3);
+  if (name.includes("private label")) return boardMilestoneDate(fundingDate, 15);
+  if (name.includes("cavali paid")) return fundingDate;
+  if (name.includes("market expansion") || name.includes("international")) return boardMilestoneDate(fundingDate, 3);
+  return fundingDate;
+}
+
 function renderGrowth() {
   const table = document.getElementById("growthTable");
   table.innerHTML = `<thead><tr><th>Initiative</th><th>Owner</th><th>Funding Trigger</th><th>Status</th><th>Launch Date</th><th>Investment</th></tr></thead>`;
@@ -1521,7 +1529,9 @@ function renderGrowth() {
     ["initiative", "owner", "trigger"].forEach(k => tr.appendChild(makeEditableCell(row, k, () => { renderGrowth(); scheduleSave(); })));
     const st = statusForTrigger(row.trigger);
     tr.appendChild(el("td", { class: "calc-cell" }, el("span", { class: `status-pill ${st.cls} inline` }, st.text)));
-    ["launch", "investment"].forEach(k => tr.appendChild(makeEditableCell(row, k, () => scheduleSave())));
+    // Funding-dependent launch dates are calculated once in the model and reused by Tab 5.
+    tr.appendChild(makeCalcCell(effectiveInitiativeLaunch(row)));
+    tr.appendChild(makeEditableCell(row, "investment", () => scheduleSave()));
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
@@ -1578,6 +1588,23 @@ function renderFinancialSummary() {
   if (!kpiWrap || !table || !opsWrap) return;
   const years = yearKeys();
   const bridges = Object.fromEntries(years.map(y => [y, marginBridge(y)]));
+  MODEL_OUTPUTS.tab3 = Object.fromEntries(years.map(y => {
+    const bridge = bridges[y];
+    const opex = pnlOpexForYear(y, bridge);
+    return [y, {
+      grossSales: bridge.grossSales,
+      netSales: bridge.netSales,
+      gp1: bridge.gp1,
+      gp2: bridge.gp2,
+      gp3: bridge.gp3,
+      ebitda: bridge.gp3 - opex.total,
+      orders: ordersForYear(y),
+      newCustomers: newCustomersForYear(y),
+      roas: roasForYear(y),
+      adSpend: totalAdSpendByYear(y),
+      netGrossRatio: bridge.grossSales ? bridge.netSales / bridge.grossSales : 0
+    }];
+  }));
   const b = bridges.y2026;
   const o = pnlOpexForYear("y2026", b);
   const ebitda = b.gp3 - o.total;
@@ -1722,12 +1749,16 @@ function renderCommercialCashFlow() {
   let running = opening;
   const totals = {};
   years.forEach(y => {
+    const yearOpening = running;
     const cashIn = Object.values(cashInRows[y]).reduce((s, v) => s + Number(v || 0), 0);
     const cashOut = (cashOutRows[y]["Operating Cash Out"] || 0) + (cashOutRows[y]["Growth Investments"] || 0) + (cashOutRows[y]["CapEx"] || 0) + (cashOutRows[y]["Private Label Investment"] || 0) + (cashOutRows[y]["Other Cash Out"] || 0);
     const net = cashIn - cashOut;
     running += net;
-    totals[y] = { cashIn, cashOut, net, ending: running };
+    const monthlyBurn = cashOut > cashIn ? (cashOut - cashIn) / 12 : cashOut / 12;
+    const runway = monthlyBurn > 0 ? running / monthlyBurn : null;
+    totals[y] = { opening: yearOpening, cashIn, cashOut, net, ending: running, runway };
   });
+  MODEL_OUTPUTS.tab4 = totals;
   const cashCoverage = totals.y2026.cashOut ? `${Math.max(0, (totals.y2026.ending / (totals.y2026.cashOut / 12))).toFixed(1)} mo` : "—";
   const minimumBuffer = Number((STATE.cashFlow && STATE.cashFlow.minimumCashBuffer) || 0);
   const capex = flow.y2026.cashOut["CapEx"] || 0;
