@@ -1759,6 +1759,17 @@ function cashFlowRows(yearKey) {
   return { cashIn, cashOut, operatingCashOut };
 }
 
+function totalCashOutFromRows(row) {
+  // Operating Cash Out already contains Inventory, Payables Settlement, Advertising,
+  // Shipping & Fulfillment, S&M, G&A and Other operating expenses.
+  // Only add strategic/investment cash uses here to avoid double counting.
+  return Number(row["Operating Cash Out"] || 0)
+    + Number(row["Growth Investments"] || 0)
+    + Number(row["CapEx"] || 0)
+    + Number(row["Private Label Investment"] || 0)
+    + Number(row["Other Cash Out"] || 0);
+}
+
 function renderCashTable(id, title, rowsByYear, sign = 1) {
   const table = document.getElementById(id);
   if (!table) return;
@@ -1768,9 +1779,17 @@ function renderCashTable(id, title, rowsByYear, sign = 1) {
   const rowNames = Object.keys(rowsByYear.y2026 || {});
   rowNames.forEach(name => {
     const isSubtotal = name === "Operating Cash Out";
-    const tr = el("tr", { class: isSubtotal ? "important-row" : "" });
+    const isCashOut = title.startsWith("Cash Out");
+    const tr = el("tr", { class: isSubtotal ? "important-row cash-out-subtotal" : (isCashOut ? "cash-out-detail" : "") });
     tr.appendChild(el("td", { class: "label-cell" + (isSubtotal ? " total-row-label" : "") }, name));
-    years.forEach(y => tr.appendChild(makeCalcCell(formatFinancialMoney((rowsByYear[y][name] || 0) * sign, {dashZero:true}))));
+    years.forEach(y => {
+      const raw = Number(rowsByYear[y][name] || 0);
+      // In the Cash Out detail table, display uses as positive magnitudes in neutral navy/black.
+      // The TOTAL CASH OUT and net-flow views retain the negative sign.
+      const displayValue = isCashOut ? raw : raw * sign;
+      const cellClass = isCashOut ? "calc-cell cash-out-neutral" : "calc-cell";
+      tr.appendChild(makeCalcCell(formatFinancialMoney(displayValue, {dashZero:true}), cellClass));
+    });
     tbody.appendChild(tr);
   });
   const total = el("tr", { class: "important-row" });
@@ -1779,7 +1798,7 @@ function renderCashTable(id, title, rowsByYear, sign = 1) {
     let totalValue;
     if (title.startsWith("Cash Out")) {
       const r = rowsByYear[y];
-      totalValue = (r["Operating Cash Out"] || 0) + (r["Growth Investments"] || 0) + (r["CapEx"] || 0) + (r["Private Label Investment"] || 0) + (r["Other Cash Out"] || 0);
+      totalValue = totalCashOutFromRows(r);
     } else {
       totalValue = Object.values(rowsByYear[y]).reduce((s, v) => s + Number(v || 0), 0);
     }
@@ -1806,7 +1825,7 @@ function renderCommercialCashFlow() {
   years.forEach(y => {
     const yearOpening = running;
     const cashIn = Object.values(cashInRows[y]).reduce((s, v) => s + Number(v || 0), 0);
-    const cashOut = (cashOutRows[y]["Operating Cash Out"] || 0) + (cashOutRows[y]["Growth Investments"] || 0) + (cashOutRows[y]["CapEx"] || 0) + (cashOutRows[y]["Private Label Investment"] || 0) + (cashOutRows[y]["Other Cash Out"] || 0);
+    const cashOut = totalCashOutFromRows(cashOutRows[y]);
     const net = cashIn - cashOut;
     running += net;
     const monthlyBurn = cashOut > cashIn ? (cashOut - cashIn) / 12 : cashOut / 12;
@@ -1814,7 +1833,10 @@ function renderCommercialCashFlow() {
     totals[y] = { opening: yearOpening, cashIn, cashOut, net, ending: running, runway };
   });
   MODEL_OUTPUTS.tab4 = totals;
-  const cashCoverage = totals.y2026.cashOut ? `${Math.max(0, (totals.y2026.ending / (totals.y2026.cashOut / 12))).toFixed(1)} mo` : "—";
+  const recurringOperatingCashOut2026 = Number(flow.y2026.operatingCashOut || 0);
+  const cashCoverage = recurringOperatingCashOut2026 > 0
+    ? `${Math.max(0, (totals.y2026.ending / (recurringOperatingCashOut2026 / 12))).toFixed(1)} mo`
+    : "—";
   const minimumBuffer = Number((STATE.cashFlow && STATE.cashFlow.minimumCashBuffer) || 0);
   const capex = flow.y2026.cashOut["CapEx"] || 0;
   const endingDelta = totals.y2026.ending - opening;
@@ -1824,7 +1846,7 @@ function renderCommercialCashFlow() {
     { label: "Opening Cash", value: opening, icon: "wallet", tone: "neutral" },
     { label: "Cash In", value: totals.y2026.cashIn, icon: "in", tone: "positive" },
     { label: "Funding", value: flow.y2026.cashIn["Funding"] || 0, icon: "bank", tone: "positive" },
-    { label: "Operating Cash Out", value: -totals.y2026.cashOut, icon: "out", tone: "negative" },
+    { label: "Operating Cash Out", value: totals.y2026.cashOut, icon: "out", tone: "neutral" },
     { label: "CapEx", value: -capex, icon: "capex", tone: capex ? "negative" : "zero" }
   ];
   const iconMarkup = {
@@ -1870,7 +1892,7 @@ function renderCommercialCashFlow() {
         ]),
         el("div", { class: "cash-mini-grid" }, [
           el("div", { class: "cash-mini-pill" }, [el("span", {}, "Cash In"), el("strong", {}, formatFinancialMoney(totals.y2026.cashIn, {dashZero:true}))]),
-          el("div", { class: "cash-mini-pill negative" }, [el("span", {}, "Cash Out"), el("strong", {}, formatFinancialMoney(-totals.y2026.cashOut, {dashZero:true}))]),
+          el("div", { class: "cash-mini-pill" }, [el("span", {}, "Cash Out"), el("strong", {}, formatFinancialMoney(totals.y2026.cashOut, {dashZero:true}))]),
           el("div", { class: "cash-mini-pill" }, [el("span", {}, "Funding"), el("strong", {}, formatFinancialMoney(flow.y2026.cashIn["Funding"] || 0, {dashZero:true}))]),
           el("div", { class: "cash-mini-pill" }, [el("span", {}, "Coverage"), el("strong", {}, cashCoverage)])
         ]),
@@ -1912,8 +1934,8 @@ function renderCommercialCashFlow() {
     ["Opening", opening, "neutral"],
     ["Cash In", y.cashIn, "positive"],
     ["Funding", flow.y2026.cashIn["Funding"] || 0, "positive"],
-    ["Cash Out", -y.cashOut, "negative"],
-    ["CapEx", -(flow.y2026.cashOut["CapEx"] || 0), (flow.y2026.cashOut["CapEx"] || 0) ? "negative" : "zero"],
+    ["Cash Out", y.cashOut, "neutral"],
+    ["CapEx", (flow.y2026.cashOut["CapEx"] || 0), (flow.y2026.cashOut["CapEx"] || 0) ? "neutral" : "zero"],
     ["Ending", y.ending, y.ending < 0 ? "negative" : "positive"]
   ].forEach(([label, value, tone]) => {
     const chip = el("div", { class: `cash-bridge-chip ${tone}` }, [

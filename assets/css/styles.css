@@ -1145,3 +1145,33 @@ body[data-theme="dark"] .cash-pattern {
   .profit-journey { overflow-x:auto; justify-content:flex-start; }
   .profit-step { min-width:105px; }
 }
+
+
+/* V2.10 — Cash Flow readability and sign semantics */
+#tab4CashOutTable tr.cash-out-detail td.calc-cell,
+#tab4CashOutTable tr.cash-out-subtotal td.calc-cell,
+#tab4CashOutTable td.cash-out-neutral {
+  color: var(--navy) !important;
+}
+#tab4CashOutTable tr.cash-out-detail td.calc-cell,
+#tab4CashOutTable tr.cash-out-subtotal td.calc-cell {
+  font-style: normal;
+}
+#tab4CashOutTable tr.cash-out-subtotal td {
+  font-weight: 800;
+  background: #F7F9FC;
+}
+#tab4CashOutTable tr.important-row:last-child td.calc-cell {
+  color: var(--soft-red) !important;
+}
+body[data-theme="dark"] #tab4CashOutTable tr.cash-out-detail td.calc-cell,
+body[data-theme="dark"] #tab4CashOutTable tr.cash-out-subtotal td.calc-cell,
+body[data-theme="dark"] #tab4CashOutTable td.cash-out-neutral {
+  color: #F2F6FC !important;
+}
+body[data-theme="dark"] #tab4CashOutTable tr.cash-out-subtotal td {
+  background: #132B4A;
+}
+body[data-theme="dark"] #tab4CashOutTable tr.important-row:last-child td.calc-cell {
+  color: #E58B91 !important;
+}
