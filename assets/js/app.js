@@ -441,11 +441,15 @@ function computedEngineValue(row, key) {
 
 function renderEngineTable(tableEl, rows) {
   const cavaliBlock = getBlock(STATE.growthEngines, "Cavali");
-  if (rows === (cavaliBlock && cavaliBlock.rows)) rows.forEach(r => { r._engine = "Cavali"; });
+  const isCavali = rows === (cavaliBlock && cavaliBlock.rows);
+  if (isCavali) rows.forEach(r => { r._engine = "Cavali"; });
+  // Ceci 2026-08-10: simplify Cavali. Keep only drivers that explain box volume,
+  // price and margin; hide planning diagnostics that distract from the revenue build.
+  const displayRows = isCavali ? rows.filter(r => !["Organic Member Growth", "Cavali Ad Spend", "Cavali CAC", "Cavali ROAS"].includes(r.driver)) : rows;
   const heads = ["Driver", "Baseline / Current", "2026", "2027", "2028", "2029"];
   tableEl.innerHTML = `<thead><tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr></thead>`;
   const tbody = el("tbody");
-  rows.forEach(row => {
+  displayRows.forEach(row => {
     const tr = el("tr");
     tr.appendChild(el("td", { class: "label-cell" }, row.driver));
     ["current", "y2026", "y2027", "y2028", "y2029"].forEach(k => {
@@ -883,8 +887,13 @@ function baseEcommerceRevenue(year) {
   // 2026 is a true closing forecast: Shopify YTD actuals for the Ecommerce engine
   // + ONLY the still-open months at the editable monthly run rate.
   // Never allow the forecast base to fall below already-realized YTD Ecommerce sales.
-  const forecastRemaining = Math.max(0, 12 - throughMonth) * monthly;
-  const initialBase = ecommerceActualYtd > 0 ? Math.max(ecommerceActualYtd, ecommerceActualYtd + forecastRemaining) : monthly * 12;
+  // Ceci 2026-08-10: closing FCS must annualize the realized Shopify run-rate, not
+  // append a low planning run-rate to YTD. For the Aug-10 review management uses
+  // 7.5 elapsed months (e.g. $663k / 7.5 * 12 ≈ $1.06M).
+  const elapsedMonths = Math.max(1, Number((STATE.actuals || {}).forecastElapsedMonths || (throughMonth >= 7 ? 7.5 : throughMonth)));
+  const annualizedActual = ecommerceActualYtd > 0 ? (ecommerceActualYtd / elapsedMonths) * 12 : 0;
+  const planningRunRate = monthly * 12;
+  const initialBase = ecommerceActualYtd > 0 ? Math.max(ecommerceActualYtd, annualizedActual) : planningRunRate;
   if (idx <= 0) return initialBase;
 
   let base = initialBase;
@@ -1634,8 +1643,17 @@ function ordersForYear(yearKey) {
 }
 
 function newCustomersForYear(yearKey) {
+  // 2026 is an actual KPI from Shopify/Stats; do not derive it from a blank forecast cell.
+  if (yearKey === "y2026" && Number((STATE.actuals || {}).newCustomersYtd || 0) > 0) {
+    return Number(STATE.actuals.newCustomersYtd);
+  }
   const acq = getBlock(STATE.commercial, "Acquisition");
-  const mix = parsePercent(val(acq ? acq.rows : [], "New Customer Mix %", yearKey));
+  const retention = getBlock(STATE.commercial, "Retention");
+  let mix = parsePercent(computedCommercialValue(getRow(acq ? acq.rows : [], "New Customer Mix %"), yearKey));
+  if (!mix) {
+    const returning = parsePercent(val(retention ? retention.rows : [], "Returning Customers %", yearKey));
+    if (returning >= 0 && returning <= 1) mix = 1 - returning;
+  }
   return ordersForYear(yearKey) * (mix || 0);
 }
 
@@ -1659,7 +1677,8 @@ function renderFinancialSummary() {
       orders: ordersForYear(y),
       newCustomers: newCustomersForYear(y),
       roas: roasForYear(y),
-      adSpend: totalAdSpendByYear(y),
+      // Single source of truth: exactly the Advertising line already used by the margin bridge.
+      adSpend: bridge.adSpend,
       netGrossRatio: bridge.grossSales ? bridge.netSales / bridge.grossSales : 0
     }];
   }));
@@ -2337,6 +2356,9 @@ function applyActualsToState(corroBundle, cavaliBundle) {
     Cavali: cavali ? cavali.grossSales : 0
   };
   STATE.actuals.ecommerceGrossYtd = ecommerceMetrics.grossSales || (corro ? corro.grossSales : 0);
+  if (corro) STATE.actuals.newCustomersYtd = Number(corro.newCustomers || 0);
+  // Stakeholder closing-FCS convention at Aug-10 review: 7.5 elapsed months.
+  if (corro && corro.latest && corro.latest.year === 2026 && corro.latest.month >= 8) STATE.actuals.forecastElapsedMonths = 7.5;
   STATE.actuals.engineGm1 = {
     Ecommerce: ecommerceMetrics.gm1 || (corro ? corro.gm1 : 0),
     Concierge: conciergeMetrics.gm1 || 0,
@@ -2763,7 +2785,7 @@ function migrateKnownStaleModelValues() {
         ["y2026","y2027","y2028","y2029"].forEach(y => { opp[y] = "$130M"; });
       }
     }
-    if (state.meta) { state.meta.actualsThroughMonth = 7; state.meta.version = "2.12"; }
+    if (state.meta) { state.meta.actualsThroughMonth = 7; state.meta.version = "2.13"; }
     if (state.actuals) state.actuals.actualsThroughMonth = 7;
   };
   normalizeState(STATE);
