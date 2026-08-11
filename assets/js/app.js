@@ -883,17 +883,21 @@ function baseEcommerceRevenue(year) {
   const idx = years.indexOf(year);
   const monthly = parseMoney(STATE.meta.baseEcommerceMonthly || "$70k");
   const throughMonth = Math.max(0, Math.min(12, Number((STATE.actuals || {}).actualsThroughMonth || STATE.meta.actualsThroughMonth || 0)));
-  const ecommerceActualYtd = Number((STATE.actuals || {}).ecommerceGrossYtd || 0);
-  // 2026 is a true closing forecast: Shopify YTD actuals for the Ecommerce engine
-  // + ONLY the still-open months at the editable monthly run rate.
-  // Never allow the forecast base to fall below already-realized YTD Ecommerce sales.
-  // Ceci 2026-08-10: closing FCS must annualize the realized Shopify run-rate, not
-  // append a low planning run-rate to YTD. For the Aug-10 review management uses
-  // 7.5 elapsed months (e.g. $663k / 7.5 * 12 ≈ $1.06M).
-  const elapsedMonths = Math.max(1, Number((STATE.actuals || {}).forecastElapsedMonths || (throughMonth >= 7 ? 7.5 : throughMonth)));
-  const annualizedActual = ecommerceActualYtd > 0 ? (ecommerceActualYtd / elapsedMonths) * 12 : 0;
+  // Stakeholder definition for the 2026 Base Ecommerce closing forecast:
+  // use Corro's TOTAL Shopify gross sales YTD, not only the residual/tagged e-commerce row.
+  // This is intentionally different from the Growth Engine baseline/current channel split.
+  // Example validated by Ceci on 2026-08-10/11: ~$663k YTD / 7.5 elapsed months × 12 ≈ $1.06M FCS.
+  const corroGrossYtd = Number((STATE.actuals || {}).corroGrossYtd || 0);
+  const taggedEcommerceYtd = Number((STATE.actuals || {}).ecommerceGrossYtd || 0);
+  const closingForecastActualYtd = corroGrossYtd > 0 ? corroGrossYtd : taggedEcommerceYtd;
+  const elapsedMonths = Math.max(1, Number((STATE.actuals || {}).forecastElapsedMonths || (throughMonth >= 8 ? 7.5 : throughMonth || 1)));
+  const annualizedActual = closingForecastActualYtd > 0 ? (closingForecastActualYtd / elapsedMonths) * 12 : 0;
   const planningRunRate = monthly * 12;
-  const initialBase = ecommerceActualYtd > 0 ? Math.max(ecommerceActualYtd, annualizedActual) : planningRunRate;
+  // 2026 is actuals-led. The editable run rate remains a floor/fallback, never a replacement
+  // for an already higher realized sales pace.
+  const initialBase = closingForecastActualYtd > 0
+    ? Math.max(closingForecastActualYtd, annualizedActual, planningRunRate)
+    : planningRunRate;
   if (idx <= 0) return initialBase;
 
   let base = initialBase;
@@ -2347,7 +2351,12 @@ function applyActualsToState(corroBundle, cavaliBundle) {
       }) : { grossSales:0 };
   if (ecommerceMetrics.netSales > 0 && ecommerceMetrics.grossProfit >= 0) ecommerceMetrics.gm1 = ecommerceMetrics.grossProfit / ecommerceMetrics.netSales;
   if (ecommerceMetrics.orders > 0) ecommerceMetrics.aov = ecommerceMetrics.grossSales / ecommerceMetrics.orders;
-  if (corro && corro.latest) STATE.actuals.actualsThroughMonth = Math.min(corro.latest.month, Number(STATE.meta.actualsThroughMonth || corro.latest.month));
+  if (corro && corro.latest) {
+    // Do not cap refreshed actuals with a stale saved month. Refresh must always advance
+    // to the newest month available from Shopify/Stats.
+    STATE.actuals.actualsThroughMonth = corro.latest.month;
+    STATE.meta.actualsThroughMonth = corro.latest.month;
+  }
   if (corro) STATE.actuals.corroGrossYtd = corro.grossSales || 0;
   STATE.actuals.engineGrossSales = {
     Ecommerce: ecommerceMetrics.grossSales,
@@ -2785,8 +2794,9 @@ function migrateKnownStaleModelValues() {
         ["y2026","y2027","y2028","y2029"].forEach(y => { opp[y] = "$130M"; });
       }
     }
-    if (state.meta) { state.meta.actualsThroughMonth = 7; state.meta.version = "2.13"; }
-    if (state.actuals) state.actuals.actualsThroughMonth = 7;
+    if (state.meta) state.meta.version = "2.14";
+    // Never overwrite the user's saved scenario inputs here. Actuals month is refreshed
+    // from the connected source in refreshActualsFromSheets().
   };
   normalizeState(STATE);
   Object.values((STATE && STATE.scenarioVersions) || {}).forEach(normalizeState);

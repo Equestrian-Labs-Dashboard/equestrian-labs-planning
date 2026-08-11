@@ -23,7 +23,7 @@ const DataService = (() => {
         } catch (e) { /* try next key */ }
       }
     }
-    const res = await fetch("data/assumptions.json?v=211", { cache: "no-store" });
+    const res = await fetch("data/assumptions.json?v=214", { cache: "no-store" });
     if (!res.ok) throw new Error("No se pudo cargar data/assumptions.json");
     return res.json();
   }

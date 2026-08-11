@@ -3,7 +3,7 @@
     "modelStatus": "Draft",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "2.13",
+    "version": "2.14",
     "lastUpdate": "2026-07-11",
     "organicGrowth": "10%",
     "doverCapture": "20%",
@@ -121,7 +121,7 @@
   ],
   "commercial": [
     {
-      "title": "Acquisition Strategy — Emma",
+      "title": "Acquisition Strategy \u2014 Emma",
       "rows": [
         {
           "driver": "Base Ad Spend",
@@ -170,11 +170,11 @@
         {
           "driver": "2029 Ad Reinvestment %",
           "current": "Management input",
-          "y2026": "—",
-          "y2027": "—",
-          "y2028": "—",
+          "y2026": "\u2014",
+          "y2027": "\u2014",
+          "y2028": "\u2014",
           "y2029": "20%",
-          "note": "Editable management assumption discussed in the review. It is not an actual. 2029 Ad Spend = 2028 Ecommerce Gross Sales × this percentage."
+          "note": "Editable management assumption discussed in the review. It is not an actual. 2029 Ad Spend = 2028 Ecommerce Gross Sales \u00d7 this percentage."
         },
         {
           "driver": "ROAS",
@@ -183,7 +183,7 @@
           "y2027": "4.2x",
           "y2028": "4.5x",
           "y2029": "5.0x",
-          "note": "2026 is the selected scenario ROAS. 2027–2029 are editable efficiency assumptions and are not forced to remain equal."
+          "note": "2026 is the selected scenario ROAS. 2027\u20132029 are editable efficiency assumptions and are not forced to remain equal."
         },
         {
           "driver": "Target Ad Spend % of Ecommerce Gross Sales",
@@ -193,7 +193,7 @@
           "y2028": "16%",
           "y2029": "15%",
           "calculated": [],
-          "note": "Editable target by year. Ad Spend % below is the calculated actual ratio: Total Ad Spend ÷ Ecommerce Gross Sales."
+          "note": "Editable target by year. Ad Spend % below is the calculated actual ratio: Total Ad Spend \u00f7 Ecommerce Gross Sales."
         },
         {
           "driver": "Ad Spend % of Ecommerce Gross Sales",
@@ -223,7 +223,7 @@
             "y2028",
             "y2029"
           ],
-          "note": "Current CAC = Marketing Stats Spend ÷ Attributed Purchases. Forecast CAC is anchored to current CAC and improves as ROAS improves; it is not AOV ÷ ROAS."
+          "note": "Current CAC = Marketing Stats Spend \u00f7 Attributed Purchases. Forecast CAC is anchored to current CAC and improves as ROAS improves; it is not AOV \u00f7 ROAS."
         },
         {
           "driver": "New Customer Mix %",
@@ -238,12 +238,12 @@
             "y2028",
             "y2029"
           ],
-          "note": "Forecast New Customer Mix = 100% − Returning Customers %. Current comes from Shopify new_vs_returning."
+          "note": "Forecast New Customer Mix = 100% \u2212 Returning Customers %. Current comes from Shopify new_vs_returning."
         }
       ]
     },
     {
-      "title": "Retention Strategy — Berna",
+      "title": "Retention Strategy \u2014 Berna",
       "rows": [
         {
           "driver": "Returning Customers %",
@@ -260,7 +260,7 @@
           "y2027": "55%",
           "y2028": "58%",
           "y2029": "60%",
-          "note": "Current/2026 = Returning customer revenue ÷ total customer revenue. Forecast values are editable and apply once to the following year base."
+          "note": "Current/2026 = Returning customer revenue \u00f7 total customer revenue. Forecast values are editable and apply once to the following year base."
         },
         {
           "driver": "Purchase Frequency",
@@ -269,7 +269,7 @@
           "y2027": "1.5",
           "y2028": "1.8",
           "y2029": "2.0",
-          "note": "Shopify orders ÷ unique ecommerce customers for current/2026; future values are editable assumptions."
+          "note": "Shopify orders \u00f7 unique ecommerce customers for current/2026; future values are editable assumptions."
         },
         {
           "driver": "Email Revenue %",
@@ -292,7 +292,7 @@
             "y2028",
             "y2029"
           ],
-          "note": "AOV × Purchase Frequency × GM1%, all from the same business population."
+          "note": "AOV \u00d7 Purchase Frequency \u00d7 GM1%, all from the same business population."
         }
       ]
     },
@@ -346,7 +346,7 @@
   ],
   "growthEngines": [
     {
-      "title": "Ecommerce — Emma",
+      "title": "Ecommerce \u2014 Emma",
       "note": "Revenue = Base + Organic + Paid + Dover",
       "rows": [
         {
@@ -379,7 +379,7 @@
       ]
     },
     {
-      "title": "Concierge — Nicole",
+      "title": "Concierge \u2014 Nicole",
       "rows": [
         {
           "driver": "Active Clients",
@@ -420,7 +420,7 @@
       ]
     },
     {
-      "title": "Cavali — Angela",
+      "title": "Cavali \u2014 Angela",
       "note": "",
       "rows": [
         {
@@ -430,7 +430,7 @@
           "y2027": "785",
           "y2028": "795",
           "y2029": "805",
-          "note": "Baseline/current = Shopify Cavali orders. Forecast orders/boxes fulfilled = Signature Members × Boxes/Year + Premium Members × Boxes/Year.",
+          "note": "Baseline/current = Shopify Cavali orders. Forecast orders/boxes fulfilled = Signature Members \u00d7 Boxes/Year + Premium Members \u00d7 Boxes/Year.",
           "calculated": [
             "y2026",
             "y2027",
@@ -454,7 +454,7 @@
           "y2027": "1.3",
           "y2028": "1.5",
           "y2029": "1.7",
-          "note": "Current is refreshed from Smartrr product volume when delivered-box fields are available: delivered Signature boxes ÷ active Signature members. Forecast values remain editable and saved."
+          "note": "Current is refreshed from Smartrr product volume when delivered-box fields are available: delivered Signature boxes \u00f7 active Signature members. Forecast values remain editable and saved."
         },
         {
           "driver": "Signature Price",
@@ -480,7 +480,7 @@
           "y2027": "2.5",
           "y2028": "3.0",
           "y2029": "3.5",
-          "note": "Current is refreshed from Smartrr product volume when delivered-box fields are available: delivered Premium boxes ÷ active Premium members. Forecast values remain editable and saved."
+          "note": "Current is refreshed from Smartrr product volume when delivered-box fields are available: delivered Premium boxes \u00f7 active Premium members. Forecast values remain editable and saved."
         },
         {
           "driver": "Premium Price",
@@ -514,11 +514,11 @@
           "y2027": "$25k",
           "y2028": "$50k",
           "y2029": "$75k",
-          "note": "2026 uses connected actuals when available; $0 is the neutral fallback. 2027–2029 are editable management assumptions."
+          "note": "2026 uses connected actuals when available; $0 is the neutral fallback. 2027\u20132029 are editable management assumptions."
         },
         {
           "driver": "Cavali CAC",
-          "current": "—",
+          "current": "\u2014",
           "y2026": "Calculated",
           "y2027": "$90",
           "y2028": "$80",
@@ -527,17 +527,17 @@
         },
         {
           "driver": "Cavali ROAS",
-          "current": "—",
+          "current": "\u2014",
           "y2026": "4.0x",
           "y2027": "4.2x",
           "y2028": "4.5x",
           "y2029": "5.0x",
-          "note": "Paid growth revenue = Cavali Ad Spend × Cavali ROAS. All forecast years are editable."
+          "note": "Paid growth revenue = Cavali Ad Spend \u00d7 Cavali ROAS. All forecast years are editable."
         }
       ]
     },
     {
-      "title": "Wellington — Nicole",
+      "title": "Wellington \u2014 Nicole",
       "rows": [
         {
           "driver": "Orders",
@@ -569,12 +569,12 @@
       ]
     },
     {
-      "title": "Embroidery — Tatum",
-      "status": "🔒 Locked below $1M funding",
+      "title": "Embroidery \u2014 Tatum",
+      "status": "\ud83d\udd12 Locked below $1M funding",
       "rows": [
         {
           "driver": "Orders",
-          "current": "—",
+          "current": "\u2014",
           "y2026": "10",
           "y2027": "10",
           "y2028": "10",
@@ -582,7 +582,7 @@
         },
         {
           "driver": "AOV",
-          "current": "—",
+          "current": "\u2014",
           "y2026": "$0",
           "y2027": "$15",
           "y2028": "$20",
@@ -590,7 +590,7 @@
         },
         {
           "driver": "GM1 %",
-          "current": "—",
+          "current": "\u2014",
           "y2026": "60%",
           "y2027": "60%",
           "y2028": "60%",
@@ -599,12 +599,12 @@
       ]
     },
     {
-      "title": "Private Label — Tatum",
-      "status": "🔒 Locked below $3M funding",
+      "title": "Private Label \u2014 Tatum",
+      "status": "\ud83d\udd12 Locked below $3M funding",
       "rows": [
         {
           "driver": "Units Sold",
-          "current": "—",
+          "current": "\u2014",
           "y2026": "0",
           "y2027": "100",
           "y2028": "1,000",
@@ -613,7 +613,7 @@
         },
         {
           "driver": "Average Selling Price",
-          "current": "—",
+          "current": "\u2014",
           "y2026": "$0",
           "y2027": "$10",
           "y2028": "$10",
@@ -621,7 +621,7 @@
         },
         {
           "driver": "GM1 %",
-          "current": "—",
+          "current": "\u2014",
           "y2026": "70%",
           "y2027": "70%",
           "y2028": "70%",
@@ -664,7 +664,7 @@
         "y2027": "15%",
         "y2028": "14%",
         "y2029": "13%",
-        "note": "Commercial Economics — authorized by Tatum"
+        "note": "Commercial Economics \u2014 authorized by Tatum"
       }
     ],
     "vendorMix": {
@@ -742,7 +742,7 @@
     {
       "initiative": "Cavali Paid Growth",
       "owner": "Angela / Marketing",
-      "trigger": "≥$1M",
+      "trigger": "\u2265$1M",
       "status": "Active",
       "launch": "Oct-26",
       "investment": "Scenario"
@@ -750,7 +750,7 @@
     {
       "initiative": "Embroidery",
       "owner": "Tatum",
-      "trigger": "≥$1M",
+      "trigger": "\u2265$1M",
       "status": "Active",
       "launch": "Oct-26",
       "investment": "$50k"
@@ -758,7 +758,7 @@
     {
       "initiative": "Private Label",
       "owner": "Tatum",
-      "trigger": "≥$3M",
+      "trigger": "\u2265$3M",
       "status": "Active",
       "launch": "Oct-27",
       "investment": "Phased / TBD"
@@ -766,7 +766,7 @@
     {
       "initiative": "Market Expansion",
       "owner": "Leadership",
-      "trigger": "≥$5M",
+      "trigger": "\u2265$5M",
       "status": "Locked",
       "launch": "Jan-27",
       "investment": "TBD"
@@ -821,7 +821,7 @@
       },
       {
         "line": "Net Sales",
-        "source": "Gross Sales − Discounts & Returns",
+        "source": "Gross Sales \u2212 Discounts & Returns",
         "current": "",
         "y2026": "",
         "y2027": "",
@@ -839,7 +839,7 @@
       },
       {
         "line": "GM1",
-        "source": "Net Sales − COGS",
+        "source": "Net Sales \u2212 COGS",
         "current": "",
         "y2026": "",
         "y2027": "",
@@ -857,7 +857,7 @@
       },
       {
         "line": "GM2",
-        "source": "GM1 − Total Shipping Expenses",
+        "source": "GM1 \u2212 Total Shipping Expenses",
         "current": "",
         "y2026": "",
         "y2027": "",
@@ -875,7 +875,7 @@
       },
       {
         "line": "GM3",
-        "source": "GM2 − Ad Spend",
+        "source": "GM2 \u2212 Ad Spend",
         "current": "",
         "y2026": "",
         "y2027": "",
@@ -884,7 +884,7 @@
       },
       {
         "line": "EBITDA",
-        "source": "GM3 − Operating Costs",
+        "source": "GM3 \u2212 Operating Costs",
         "current": "",
         "y2026": "",
         "y2027": "",
@@ -915,7 +915,7 @@
       },
       {
         "item": "GP1 by engine",
-        "status": "connected using Engine Net Sales × GM1%",
+        "status": "connected using Engine Net Sales \u00d7 GM1%",
         "needed": "Discounts & Returns % applied before GM1; later can vary by engine if needed"
       },
       {
@@ -946,7 +946,7 @@
       {
         "item": "V16 Paid Growth Revenue",
         "status": "connected",
-        "needed": "Paid growth now uses Base Ad Spend + Incremental Ad Spend × ROAS, so revenue is not zero in years without funding-driven incremental spend."
+        "needed": "Paid growth now uses Base Ad Spend + Incremental Ad Spend \u00d7 ROAS, so revenue is not zero in years without funding-driven incremental spend."
       }
     ]
   },
@@ -1074,7 +1074,7 @@
     },
     {
       "item": "GP1 by engine",
-      "status": "connected using Gross Sales × GM1%",
+      "status": "connected using Gross Sales \u00d7 GM1%",
       "needed": "Approved GM1% per engine"
     },
     {
@@ -1113,7 +1113,7 @@
   ],
   "ecommerceBuild": {
     "normalizedMonthlyRunRate": "$70k",
-    "note": "Base Ecommerce Revenue = Monthly Ecommerce Run Rate × 12 months. Organic Growth applies only to Base Ecommerce Revenue in V1."
+    "note": "Base Ecommerce Revenue = Monthly Ecommerce Run Rate \u00d7 12 months. Organic Growth applies only to Base Ecommerce Revenue in V1."
   },
   "cashFlow": {
     "openingCash": "$0",
@@ -1143,12 +1143,12 @@
     "Carryover applies only once when calculating the following year Base Ecommerce Revenue; do not re-add prior carryover downstream.",
     "GM1 must always be defined on Net Sales, not Gross Sales.",
     "Annual GP per Customer uses AOV, Purchase Frequency and GM1 from the same business population.",
-    "2029 Default Logic onwards: Prior Year Ecommerce Gross Sales × Reinvestment %.",
+    "2029 Default Logic onwards: Prior Year Ecommerce Gross Sales \u00d7 Reinvestment %.",
     "Paid Growth Revenue: Revenue influenced by paid media. Assumes constant ROAS during selected fiscal year.",
-    "2026 Ecommerce Base = Shopify ecommerce actuals through the latest closed month + remaining months × editable monthly run rate.",
+    "2026 Ecommerce Base = Shopify ecommerce actuals through the latest closed month + remaining months \u00d7 editable monthly run rate.",
     "2026 Organic Growth revenue is zero in the revenue build; the 2026 organic-growth assumption creates 2027 growth.",
-    "2026–2028 Total Ad Spend = Base Ad Spend + funding-driven Incremental Ad Spend. Target Ad Spend % is a comparison KPI, not the spend driver.",
-    "Forecast values for 2027–2029 remain editable and are never overwritten by Refresh Actuals."
+    "2026\u20132028 Total Ad Spend = Base Ad Spend + funding-driven Incremental Ad Spend. Target Ad Spend % is a comparison KPI, not the spend driver.",
+    "Forecast values for 2027\u20132029 remain editable and are never overwritten by Refresh Actuals."
   ],
   "dataConnections": {
     "shopifyDirect": "pending - do not expose Shopify tokens in GitHub Pages; use pipeline/API proxy/Google Sheets actuals",
