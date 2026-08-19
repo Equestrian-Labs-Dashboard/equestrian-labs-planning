@@ -1686,17 +1686,20 @@ function renderFinancialSummary() {
       netGrossRatio: bridge.grossSales ? bridge.netSales / bridge.grossSales : 0
     }];
   }));
-  const b = bridges.y2026;
-  const o = pnlOpexForYear("y2026", b);
+  // KPI cards must always follow the selected Display Year.
+  const selectedYearKey = `y${String((STATE.meta && STATE.meta.displayYear) || "2026")}`;
+  const selectedYearLabel = yearLabel(selectedYearKey);
+  const b = bridges[selectedYearKey] || bridges.y2026;
+  const o = pnlOpexForYear(selectedYearKey, b);
   const ebitda = b.gp3 - o.total;
   kpiWrap.innerHTML = "";
   [
-    { label: "Gross Sales", value: formatFinancialMoney(b.grossSales, {dashZero:true}), sub: "2026 Forecast" },
-    { label: "Net Sales", value: formatFinancialMoney(b.netSales, {dashZero:true}), sub: "After Discounts" },
-    { label: "GP1", value: formatFinancialMoney(b.gp1, {dashZero:true}), sub: b.gp1 ? `${formatPercent(b.netSales ? b.gp1 / b.netSales : 0)} of Net Sales` : "After COGS" },
-    { label: "GP2", value: formatFinancialMoney(b.gp2, {dashZero:true}), sub: b.gp2 ? `${formatPercent(b.netSales ? b.gp2 / b.netSales : 0)} of Net Sales` : "After Fulfillment" },
-    { label: "GP3", value: formatFinancialMoney(b.gp3, {dashZero:true}), sub: b.gp3 ? `${formatPercent(b.netSales ? b.gp3 / b.netSales : 0)} of Net Sales` : "After Advertising" },
-    { label: "EBITDA", value: formatFinancialMoney(ebitda, {dashZero:true}), sub: "After Operating Expenses" }
+    { label: "Gross Sales", value: formatFinancialMoney(b.grossSales, {dashZero:true}), sub: `${selectedYearLabel} Forecast` },
+    { label: "Net Sales", value: formatFinancialMoney(b.netSales, {dashZero:true}), sub: `Forecast ${selectedYearLabel} · After Discounts & Returns` },
+    { label: "GP1", value: formatFinancialMoney(b.gp1, {dashZero:true}), sub: b.gp1 ? `Forecast ${selectedYearLabel} · ${formatPercent(b.netSales ? b.gp1 / b.netSales : 0)} of Net Sales` : `Forecast ${selectedYearLabel} · After COGS` },
+    { label: "GP2", value: formatFinancialMoney(b.gp2, {dashZero:true}), sub: b.gp2 ? `Forecast ${selectedYearLabel} · ${formatPercent(b.netSales ? b.gp2 / b.netSales : 0)} of Net Sales` : `Forecast ${selectedYearLabel} · After Fulfillment` },
+    { label: "GP3", value: formatFinancialMoney(b.gp3, {dashZero:true}), sub: b.gp3 ? `Forecast ${selectedYearLabel} · ${formatPercent(b.netSales ? b.gp3 / b.netSales : 0)} of Net Sales` : `Forecast ${selectedYearLabel} · After Advertising` },
+    { label: "EBITDA", value: formatFinancialMoney(ebitda, {dashZero:true}), sub: `Forecast ${selectedYearLabel} · After Operating Expenses` }
   ].forEach(card => kpiWrap.appendChild(el("div", { class: "kpi-card" }, [
     el("div", { class: "kpi-label" }, card.label), el("div", { class: "kpi-value " + moneyClass(card.value, "") }, card.value), el("div", { class: "kpi-sub" }, card.sub)
   ])));
@@ -1732,12 +1735,12 @@ function renderFinancialSummary() {
 
   opsWrap.innerHTML = "";
   [
-    { label: "Orders", value: Math.round(ordersForYear("y2026") || 0).toLocaleString("en-US"), sub: "Ecommerce" },
-    { label: "New Customers", value: Math.round(newCustomersForYear("y2026") || 0).toLocaleString("en-US"), sub: "Unique new customers" },
-    { label: "ROAS", value: `${roasForYear("y2026").toFixed(1)}x`, sub: "Scenario assumption" },
-    { label: "Ad Spend", value: formatFinancialMoney(totalAdSpendByYear("y2026"), {dashZero:true}), sub: "Advertising" },
-    { label: "Net / Gross Ratio", value: formatPercent(b.grossSales ? b.netSales / b.grossSales : 0), sub: "Net Sales / Gross Sales" },
-    { label: "Checkout Abandonment Rate", value: "—", sub: "Shopify KPI" }
+    { label: "Orders", value: Math.round(ordersForYear(selectedYearKey) || 0).toLocaleString("en-US"), sub: `Forecast ${selectedYearLabel} · Ecommerce` },
+    { label: "New Customers", value: Math.round(newCustomersForYear(selectedYearKey) || 0).toLocaleString("en-US"), sub: `Forecast ${selectedYearLabel} · Unique new customers` },
+    { label: "ROAS", value: `${roasForYear(selectedYearKey).toFixed(1)}x`, sub: `Forecast ${selectedYearLabel} · Scenario assumption` },
+    { label: "Ad Spend", value: formatFinancialMoney(bridges[selectedYearKey].adSpend, {dashZero:true}), sub: `Forecast ${selectedYearLabel} · Advertising` },
+    { label: "Net / Gross Ratio", value: formatPercent(b.grossSales ? b.netSales / b.grossSales : 0), sub: `Forecast ${selectedYearLabel} · Net Sales / Gross Sales` },
+    { label: "Checkout Abandonment Rate", value: "—", sub: `Forecast ${selectedYearLabel} · Shopify KPI` }
   ].forEach(card => opsWrap.appendChild(el("div", { class: "kpi-card" }, [
     el("div", { class: "kpi-label" }, card.label), el("div", { class: "kpi-value " + moneyClass(card.value, "") }, card.value), el("div", { class: "kpi-sub" }, card.sub)
   ])));
@@ -1746,7 +1749,8 @@ function renderFinancialSummary() {
 function cashFlowRows(yearKey) {
   const outputs = engineOutputs(yearKey);
   const fundingRow = selectedFundingRow();
-  const fundingDate = String(fundingRow.date || STATE.meta.fundingDate || "");
+  // Header Funding Date is the active model trigger; scenario row date is only the default/fallback.
+  const fundingDate = String((STATE.meta && STATE.meta.fundingDate) || fundingRow.date || "");
   const fundingYear = fundingDate.includes("27") ? "y2027" : "y2026";
   const funding = yearKey === fundingYear ? fundingAmountSelected() : 0;
   const ecommerce = (outputs.find(x => x.engine === "Ecommerce") || {}).gross || 0;
@@ -1862,20 +1866,25 @@ function renderCommercialCashFlow() {
     totals[y] = { opening: yearOpening, cashIn, cashOut, net, ending: running, runway };
   });
   MODEL_OUTPUTS.tab4 = totals;
-  const recurringOperatingCashOut2026 = Number(flow.y2026.operatingCashOut || 0);
-  const cashCoverage = recurringOperatingCashOut2026 > 0
-    ? `${Math.max(0, (totals.y2026.ending / (recurringOperatingCashOut2026 / 12))).toFixed(1)} mo`
+  // Cash Summary must follow the same Display Year as Tabs 2, 3 and 5.
+  const selectedCashYearKey = `y${String((STATE.meta && STATE.meta.displayYear) || "2026")}`;
+  const selectedCashYearLabel = yearLabel(selectedCashYearKey);
+  const selectedFlow = flow[selectedCashYearKey] || flow.y2026;
+  const selectedTotals = totals[selectedCashYearKey] || totals.y2026;
+  const selectedOperatingCashOut = Number(selectedFlow.operatingCashOut || 0);
+  const cashCoverage = selectedOperatingCashOut > 0
+    ? `${Math.max(0, (selectedTotals.ending / (selectedOperatingCashOut / 12))).toFixed(1)} mo`
     : "—";
   const minimumBuffer = Number((STATE.cashFlow && STATE.cashFlow.minimumCashBuffer) || 0);
-  const capex = flow.y2026.cashOut["CapEx"] || 0;
-  const endingDelta = totals.y2026.ending - opening;
-  const endingDeltaPct = opening ? endingDelta / opening : 0;
+  const capex = selectedFlow.cashOut["CapEx"] || 0;
+  const endingDelta = selectedTotals.ending - selectedTotals.opening;
+  const endingDeltaPct = selectedTotals.opening ? endingDelta / selectedTotals.opening : 0;
   const lastUpdated = (STATE.meta && STATE.meta.lastUpdated) || new Date().toISOString().slice(0, 10);
   const cashRows = [
-    { label: "Opening Cash", value: opening, icon: "wallet", tone: "neutral" },
-    { label: "Cash In", value: totals.y2026.cashIn, icon: "in", tone: "positive" },
-    { label: "Funding", value: flow.y2026.cashIn["Funding"] || 0, icon: "bank", tone: "positive" },
-    { label: "Operating Cash Out", value: totals.y2026.cashOut, icon: "out", tone: "neutral" },
+    { label: "Opening Cash", value: selectedTotals.opening, icon: "wallet", tone: "neutral" },
+    { label: "Cash In", value: selectedTotals.cashIn, icon: "in", tone: "positive" },
+    { label: "Funding", value: selectedFlow.cashIn["Funding"] || 0, icon: "bank", tone: "positive" },
+    { label: "Operating Cash Out", value: selectedTotals.cashOut, icon: "out", tone: "neutral" },
     { label: "CapEx", value: -capex, icon: "capex", tone: capex ? "negative" : "zero" }
   ];
   const iconMarkup = {
@@ -1892,7 +1901,7 @@ function renderCommercialCashFlow() {
         el("div", { class: "cash-accent" }),
         el("div", {}, [
           el("h3", { class: "cash-title" }, "Cash Summary"),
-          el("p", { class: "cash-subtitle" }, "Commercial Cash Flow · 2026 executive view")
+          el("p", { class: "cash-subtitle" }, `Commercial Cash Flow · ${selectedCashYearLabel} executive view`)
         ])
       ]),
       el("div", { class: "cash-updated" }, `Updated ${lastUpdated}`)
@@ -1911,7 +1920,7 @@ function renderCommercialCashFlow() {
           el("div", { class: "cash-hero-icon" }, "↗"),
           el("div", {}, [
             el("div", { class: "cash-hero-label" }, "Ending Cash"),
-            el("div", { class: moneyClass(formatFinancialMoney(totals.y2026.ending, {dashZero:true}), "cash-hero-value") }, formatFinancialMoney(totals.y2026.ending, {dashZero:true}))
+            el("div", { class: moneyClass(formatFinancialMoney(selectedTotals.ending, {dashZero:true}), "cash-hero-value") }, formatFinancialMoney(selectedTotals.ending, {dashZero:true}))
           ])
         ]),
         el("div", { class: "cash-hero-divider" }),
@@ -1920,9 +1929,9 @@ function renderCommercialCashFlow() {
           el("span", { class: "cash-hero-pct" }, opening ? `(${formatPercent(endingDeltaPct)})` : "")
         ]),
         el("div", { class: "cash-mini-grid" }, [
-          el("div", { class: "cash-mini-pill" }, [el("span", {}, "Cash In"), el("strong", {}, formatFinancialMoney(totals.y2026.cashIn, {dashZero:true}))]),
-          el("div", { class: "cash-mini-pill" }, [el("span", {}, "Cash Out"), el("strong", {}, formatFinancialMoney(totals.y2026.cashOut, {dashZero:true}))]),
-          el("div", { class: "cash-mini-pill" }, [el("span", {}, "Funding"), el("strong", {}, formatFinancialMoney(flow.y2026.cashIn["Funding"] || 0, {dashZero:true}))]),
+          el("div", { class: "cash-mini-pill" }, [el("span", {}, "Cash In"), el("strong", {}, formatFinancialMoney(selectedTotals.cashIn, {dashZero:true}))]),
+          el("div", { class: "cash-mini-pill" }, [el("span", {}, "Cash Out"), el("strong", {}, formatFinancialMoney(selectedTotals.cashOut, {dashZero:true}))]),
+          el("div", { class: "cash-mini-pill" }, [el("span", {}, "Funding"), el("strong", {}, formatFinancialMoney(selectedFlow.cashIn["Funding"] || 0, {dashZero:true}))]),
           el("div", { class: "cash-mini-pill" }, [el("span", {}, "Coverage"), el("strong", {}, cashCoverage)])
         ]),
         el("div", { class: "cash-pattern" })
@@ -2794,7 +2803,7 @@ function migrateKnownStaleModelValues() {
         ["y2026","y2027","y2028","y2029"].forEach(y => { opp[y] = "$130M"; });
       }
     }
-    if (state.meta) state.meta.version = "2.14";
+    if (state.meta) state.meta.version = "2.15.1";
     // Never overwrite the user's saved scenario inputs here. Actuals month is refreshed
     // from the connected source in refreshActualsFromSheets().
   };

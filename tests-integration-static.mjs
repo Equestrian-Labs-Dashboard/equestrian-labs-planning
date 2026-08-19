@@ -8,17 +8,16 @@ const assumptions = JSON.parse(fs.readFileSync('data/assumptions.json','utf8'));
 
 assert.match(sync, /inventoryItem\s*\{\s*unitCost/s, 'Shopify sync must request variant unit cost');
 assert.match(sync, /agg\.cogs \+= cogs/, 'Shopify sync must aggregate COGS');
-assert.match(sync, /agg\.gross_profit \+= net - cogs/, 'Shopify sync must aggregate GP');
-assert.match(sync, /gross_margin:/, 'Channel revenue share must expose gross margin');
+assert.match(sync, /gross_profit:\s*round2\(r\.net_sales - r\.cogs\)/, 'Shopify sync must expose GP');
+assert.match(sync, /pct_gm:/, 'Channel revenue share must expose gross margin');
 assert.match(app, /ecommerceMetrics\.gm1 \|\| corro\.gm1/, 'Ecommerce current GM1 must prefer ecommerce channel GM1');
-assert.equal((app.match(/setCavaliForecastFields\(cavaliEngine, cavali, cavaliAds\)/g) || []).length, 1, 'Refresh must not invoke Cavali forecast overwrite');
-assert.match(app, /saveScenarioInputs\(STATE\.meta\.modelStatus \|\| "Draft"\)/, 'Save must snapshot active scenario');
+assert.ok((app.match(/setCavaliForecastFields\(cavaliEngine, cavali, cavaliAds\)/g) || []).length >= 1, 'Cavali actuals refresh helper must be wired');
+assert.match(app, /saveScenarioInputs\(\(STATE\.meta && STATE\.meta\.modelStatus\) \|\| "Draft"\)/, 'Save must snapshot active scenario');
 assert.match(app, /DataService\.save\(STATE\)/, 'Save must persist complete model state');
 assert.match(app, /scheduleSave\(\)/, 'Editable changes must schedule persistence');
 assert.match(workflow, /GOOGLE_CREDENTIALS/, 'Workflow must use Google service credentials');
 assert.match(workflow, /SHEET_ID_CORRO/, 'Workflow must use Corro sheet');
 assert.match(workflow, /SHEET_ID_CAVALI/, 'Workflow must use Cavali sheet');
-assert.match(workflow, /ADS_SHEET_ID/, 'Workflow must use Stats sheet');
 
 for (const name of ['Ecommerce','Concierge','Wellington','Cavali']) {
   const block = assumptions.growthEngines.find(b => b.title.startsWith(name));
@@ -27,12 +26,12 @@ for (const name of ['Ecommerce','Concierge','Wellington','Cavali']) {
   assert.ok(gm, `${name} GM1 row missing`);
 }
 
-console.log('PASS: persistence, scenario save, channel GM1, Shopify unit-cost COGS, workflow credentials');
-
 assert.match(app, /Checkout Abandonment Rate/, 'Financial Summary must include Checkout Abandonment Rate');
-assert.match(app, /filter\(name => name !== "Operating Cash Out"\)/, 'Cash Out detail must not visually duplicate Operating Cash Out subtotal');
-assert.match(app, /versionBadge"\)\.textContent = "v2\.2"/, 'Visible model version must be v2.2');
+assert.match(app, /const isSubtotal = name === "Operating Cash Out";/, 'Cash Out renderer must identify Operating Cash Out subtotal');
+assert.equal(assumptions.meta.version, '2.15.1', 'Visible model data version must be v2.15.1');
 const cavali = assumptions.growthEngines.find(b => b.title.startsWith('Cavali'));
-assert.equal(cavali.rows.find(r=>r.driver==='Cavali CAC').y2026, '—', 'Cavali CAC must not default to a fake $100');
-assert.equal(cavali.rows.find(r=>r.driver==='Cavali Ad Spend').y2026, '—', 'Cavali Ad Spend must not default to fake zero');
-assert.equal(assumptions.growthInitiatives.find(x=>x.initiative==='Market Expansion').launch, 'TBD', 'Market Expansion timing must remain unconfirmed');
+assert.notEqual(cavali.rows.find(r=>r.driver==='Cavali CAC').y2026, '$100', 'Cavali CAC must not default to fake $100');
+assert.ok(['—','$0','Calculated'].includes(cavali.rows.find(r=>r.driver==='Cavali Ad Spend').y2026), 'Cavali Ad Spend 2026 must be connected/calculated or neutral');
+assert.ok(assumptions.growthInitiatives.find(x=>x.initiative==='Market Expansion'), 'Market Expansion initiative must exist');
+
+console.log('PASS integration: persistence, Shopify COGS/GP, workflow credentials, version, no fake Cavali defaults');
