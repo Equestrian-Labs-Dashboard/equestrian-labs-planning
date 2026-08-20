@@ -4,13 +4,13 @@ const assumptions = JSON.parse(fs.readFileSync('data/assumptions.json','utf8'));
 const market = assumptions.commercial.find(b => String(b.title||'').startsWith('Market Growth'));
 const org = market.rows.find(r => r.driver === 'Organic Growth %');
 function ok(name, cond){ if(!cond){ console.error('FAIL',name); process.exitCode=1; } else console.log('PASS',name); }
-ok('version 2.15.2', assumptions.meta.version === '2.15.2');
+ok('version 2.15.3', assumptions.meta.version === '2.15.3');
 ok('2026 organic planning assumption is not stale 0%', org.y2026 !== '0%' && org.y2026 !== '0');
 ok('2026 organic revenue still explicitly zero', app.includes('if (idx <= 0) return 0;'));
 ok('2027+ organic uses current-year carried-forward base', app.includes('return baseEcommerceRevenue(year) * organicGrowthPct(priorYear);'));
 ok('stale saved scenarios are migrated from 0%', app.includes('if (current2026 === 0)'));
 ok('Dover fixed at 130M', app.includes('return 130000000;'));
-ok('cache bust v2152', fs.readFileSync('index.html','utf8').includes('app.js?v=2152'));
+ok('cache bust v2153', fs.readFileSync('index.html','utf8').includes('app.js?v=2153'));
 
 // Numeric regression test using the model's intended mechanics for the current $3M/Oct-26 scenario.
 const base2026 = 1_100_000; // representative current FCS, exact live value comes from Shopify actuals

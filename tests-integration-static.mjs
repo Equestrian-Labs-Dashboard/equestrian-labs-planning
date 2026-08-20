@@ -28,7 +28,7 @@ for (const name of ['Ecommerce','Concierge','Wellington','Cavali']) {
 
 assert.match(app, /Checkout Abandonment Rate/, 'Financial Summary must include Checkout Abandonment Rate');
 assert.match(app, /const isSubtotal = name === "Operating Cash Out";/, 'Cash Out renderer must identify Operating Cash Out subtotal');
-assert.equal(assumptions.meta.version, '2.15.2', 'Visible model data version must be v2.15.2');
+assert.equal(assumptions.meta.version, '2.15.3', 'Visible model data version must be v2.15.3');
 const cavali = assumptions.growthEngines.find(b => b.title.startsWith('Cavali'));
 assert.notEqual(cavali.rows.find(r=>r.driver==='Cavali CAC').y2026, '$100', 'Cavali CAC must not default to fake $100');
 assert.ok(['—','$0','Calculated'].includes(cavali.rows.find(r=>r.driver==='Cavali Ad Spend').y2026), 'Cavali Ad Spend 2026 must be connected/calculated or neutral');

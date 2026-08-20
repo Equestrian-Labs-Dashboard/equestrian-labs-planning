@@ -3,7 +3,7 @@
     "modelStatus": "Draft",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "2.15.2",
+    "version": "2.15.3",
     "lastUpdate": "2026-07-11",
     "organicGrowth": "10%",
     "doverCapture": "20%",
@@ -165,7 +165,7 @@
             "y2028",
             "y2029"
           ],
-          "note": "Base Ad Spend + phased funding-driven Incremental Ad Spend. 2029 also includes the editable reinvestment amount generated from prior-year Ecommerce Gross Sales."
+          "note": "Calculated consistently for 2026\u20132029. Base Ad Spend + active funding deployment is honored; after the funding burst, the editable Target Ad Spend % sustains a strategic budget against pre-paid Ecommerce revenue. 2029 reinvestment is a cap, not additive spend."
         },
         {
           "driver": "2029 Ad Reinvestment %",
@@ -174,7 +174,7 @@
           "y2027": "\u2014",
           "y2028": "\u2014",
           "y2029": "20%",
-          "note": "Editable management assumption discussed in the review. It is not an actual. 2029 Ad Spend = 2028 Ecommerce Gross Sales \u00d7 this percentage."
+          "note": "Editable management ceiling for 2029 reinvestment. It caps the normal 2029 ad budget and is not added on top of Base/Target-driven spend, preventing double counting and artificial paid-growth spikes."
         },
         {
           "driver": "ROAS",
@@ -193,7 +193,7 @@
           "y2028": "16%",
           "y2029": "15%",
           "calculated": [],
-          "note": "Editable target by year. Ad Spend % below is the calculated actual ratio: Total Ad Spend \u00f7 Ecommerce Gross Sales."
+          "note": "Editable planning guardrail by year. For forecast budgeting it is applied to Ecommerce revenue before paid growth to avoid circular Revenue\u2192Ads\u2192Revenue inflation; the displayed Ad Spend % below remains Total Ad Spend \u00f7 final Ecommerce Gross Sales."
         },
         {
           "driver": "Ad Spend % of Ecommerce Gross Sales",

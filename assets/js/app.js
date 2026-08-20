@@ -623,15 +623,36 @@ function baseAdSpendByYear(yearKey) {
 function totalAdSpendManualOrEditable(yearKey) {
   const acq = getBlock(STATE.commercial, "Acquisition");
   const rows = acq ? acq.rows : [];
-  if (yearKey === "y2029") {
-    const reinvestRow = getRow(rows, "2029 Ad Reinvestment %");
-    const pct = parsePercent(reinvestRow && reinvestRow[yearKey] ? reinvestRow[yearKey] : "20%");
-    const priorGross = ecommerceBuild("y2028").total;
-    return priorGross * pct;
-  }
   const totalRow = getRow(rows, "Total Ad Spend");
   const directCell = totalRow ? totalRow[yearKey] : "";
   return !isFormulaToken(directCell) ? parseMoney(directCell) : 0;
+}
+
+function prePaidEcommerceRevenue(yearKey) {
+  // Revenue available before the paid-growth layer. Keeping this separate prevents
+  // the circular feedback loop Revenue -> Ad Spend -> Paid Revenue -> Revenue.
+  return baseEcommerceRevenue(yearKey) + organicGrowthRevenue(yearKey) + netDoverCapture(yearKey);
+}
+
+function strategicAdBudgetByYear(yearKey) {
+  // The Target Ad Spend % is a planning guardrail applied to revenue BEFORE paid
+  // growth. This keeps the target economically meaningful without solving a circular
+  // equation that can explode when Target % x ROAS approaches 100%.
+  const pct = Math.max(0, targetAdSpendPct(yearKey));
+  return prePaidEcommerceRevenue(yearKey) * pct;
+}
+
+function reinvestmentCapByYear(yearKey) {
+  if (yearKey !== "y2029") return Infinity;
+  const acq = getBlock(STATE.commercial, "Acquisition");
+  const rows = acq ? acq.rows : [];
+  const reinvestRow = getRow(rows, "2029 Ad Reinvestment %");
+  const pct = parsePercent(reinvestRow && reinvestRow[yearKey] ? reinvestRow[yearKey] : "20%");
+  const priorGross = ecommerceBuild("y2028").total;
+  // Ceci review: reinvestment is a ceiling/management guardrail, NOT an amount
+  // added on top of the normal ad budget. Treating it as additive caused the
+  // artificial 2029 paid-growth spike.
+  return pct > 0 && priorGross > 0 ? priorGross * pct : Infinity;
 }
 
 function targetAdSpendPct(yearKey) {
@@ -649,11 +670,24 @@ function roasForYear(yearKey) {
 }
 
 function totalAdSpendByYear(yearKey) {
-  // Base operating budget + phased funding allocation in every forecast year.
-  // 2029 also includes the management reinvestment amount discussed in review.
+  // One consistent 2026-2029 rule:
+  // 1) honor the base budget + any one-time funding allocation still being deployed;
+  // 2) once the funding burst runs down, maintain a rational strategic budget using
+  //    the editable Target Ad Spend % against pre-paid ecommerce revenue;
+  // 3) in 2029, the separate reinvestment % is a CAP, never an additive second spend.
+  // This removes the old $12M -> $1M -> $25M paid-growth whiplash while preserving
+  // Ceci's funding allocations and editable planning assumptions.
   const operatingSpend = baseAdSpendByYear(yearKey) + incrementalAdSpendByYear(yearKey);
-  if (yearKey === "y2029") return operatingSpend + totalAdSpendManualOrEditable(yearKey);
-  return operatingSpend;
+  const directOverride = totalAdSpendManualOrEditable(yearKey);
+  if (directOverride > 0) return directOverride;
+
+  const strategicBudget = strategicAdBudgetByYear(yearKey);
+  let plannedSpend = Math.max(operatingSpend, strategicBudget);
+
+  if (yearKey === "y2029") {
+    plannedSpend = Math.min(plannedSpend, reinvestmentCapByYear(yearKey));
+  }
+  return Math.max(baseAdSpendByYear(yearKey), plannedSpend);
 }
 
 function privateLabelLaunchStart() {
@@ -675,8 +709,9 @@ function computedCommercialValue(row, key) {
     return formatMoney(incrementalAdSpendByYear(key));
   }
   if (row.driver === "Total Ad Spend") {
-    // 2026–2028 are calculated from Target Ad Spend % of Ecommerce Gross Sales.
-    // 2029 uses Default Logic: Prior Year Ecommerce Gross Sales × Reinvestment %.
+    // Calculated with one consistent 2026-2029 planning rule. Funding-driven spend
+    // is honored first; target % sustains a rational budget after the funding burst.
+    // 2029 reinvestment is a cap, not a second additive budget.
     return formatMoney(totalAdSpendByYear(key));
   }
   if (row.driver === "Target Ad Spend % of Ecommerce Gross Sales") {
@@ -2824,7 +2859,7 @@ function migrateKnownStaleModelValues() {
         }
       }
     }
-    if (state.meta) state.meta.version = "2.15.2";
+    if (state.meta) state.meta.version = "2.15.3";
     // Never overwrite the user's saved scenario inputs here. Actuals month is refreshed
     // from the connected source in refreshActualsFromSheets().
   };
