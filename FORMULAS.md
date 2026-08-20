@@ -3,7 +3,7 @@
 ## Ecommerce Revenue Build
 Annual Base Ecommerce Revenue = Base Ecommerce Monthly Run Rate × 12
 
-Organic Growth Revenue = Base Ecommerce Revenue × Organic Growth %
+Organic Growth Revenue (2027+) = Current-Year Carried-Forward Base Ecommerce Revenue × Prior-Year Organic Growth Assumption
 
 Paid Growth Revenue = Total Ad Spend × ROAS
 
@@ -12,6 +12,8 @@ Gross Dover Opportunity = Dover Market Opportunity × Dover Target Capture % × 
 Net Dover Capture = Gross Dover Opportunity × (1 - Paid Ads Overlap %)
 
 Total Ecommerce Gross Sales = Base Ecommerce Revenue + Organic Growth Revenue + Paid Growth Revenue + Net Dover Capture
+
+2026 Organic Growth revenue output = $0 because 2026 is Actuals + FCS; the 2026 Organic Growth assumption is used to calculate 2027 growth.
 
 ## Carryover / Next-Year Base
 Latest Easy Numbers Test logic:

@@ -915,10 +915,13 @@ function baseEcommerceRevenue(year) {
 function organicGrowthRevenue(year) {
   const years = yearKeys();
   const idx = years.indexOf(year);
-  // Actual 2026 already contains its realized organic performance. Do not add it again.
+  // 2026 is Actuals + FCS, so we do not add a synthetic organic-growth revenue layer to 2026.
+  // The growth assumption selected for the PRIOR planning year drives the NEXT year's growth,
+  // but it is applied to the NEW/CARRIED-FORWARD base of that next year. This is the key fix
+  // requested by Ceci: 2027 must start from its newly calculated base, not from the old 2026 base.
   if (idx <= 0) return 0;
   const priorYear = years[idx - 1];
-  return baseEcommerceRevenue(priorYear) * organicGrowthPct(priorYear);
+  return baseEcommerceRevenue(year) * organicGrowthPct(priorYear);
 }
 
 function incrementalPaidGrowth(year) {
@@ -2803,7 +2806,25 @@ function migrateKnownStaleModelValues() {
         ["y2026","y2027","y2028","y2029"].forEach(y => { opp[y] = "$130M"; });
       }
     }
-    if (state.meta) state.meta.version = "2.15.1";
+    // Repair the known stale Organic Growth migration from v2.15.1.
+    // In that build the 2026 Organic Growth input could remain 0%, which made 2027 Organic Revenue = $0.
+    // 2026 revenue output itself still remains $0 organic because organicGrowthRevenue(y2026) returns 0.
+    // Here we only restore the *planning assumption* used to create 2027 growth.
+    if (market) {
+      const org = getRow(market.rows || [], "Organic Growth %");
+      if (org) {
+        const current2026 = parsePercent(org.y2026 || "0%");
+        if (current2026 === 0) {
+          const selectedScenario = String((state.meta && state.meta.fundingScenario) || "");
+          const label = selectedScenario === "Base $0" ? "Base" : selectedScenario;
+          const fundingRow = (state.funding || []).find(r => String(r.scenario || "") === label) || (state.funding || [])[0];
+          const restored = (fundingRow && fundingRow.organicGrowthDefault) || (state.meta && state.meta.organicGrowth) || "10%";
+          org.y2026 = restored;
+          if (state.meta) state.meta.organicGrowth = restored;
+        }
+      }
+    }
+    if (state.meta) state.meta.version = "2.15.2";
     // Never overwrite the user's saved scenario inputs here. Actuals month is refreshed
     // from the connected source in refreshActualsFromSheets().
   };

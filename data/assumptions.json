@@ -3,7 +3,7 @@
     "modelStatus": "Draft",
     "fundingScenario": "$3M",
     "fundingDate": "Oct-26",
-    "version": "2.15.1",
+    "version": "2.15.2",
     "lastUpdate": "2026-07-11",
     "organicGrowth": "10%",
     "doverCapture": "20%",
@@ -302,11 +302,11 @@
         {
           "driver": "Organic Growth %",
           "current": "Actual YoY Growth H1 from Sheets",
-          "y2026": "0%",
+          "y2026": "10%",
           "y2027": "10%",
           "y2028": "10%",
           "y2029": "10%",
-          "note": "Baseline/current is Actual YoY Growth; forecast years are editable Organic Growth Assumptions by funding scenario."
+          "note": "2026 is the planning assumption that drives 2027 Organic Growth; the 2026 Organic Growth revenue output remains $0 because 2026 is Actuals + FCS. 2027\u20132029 assumptions remain editable and each drives the following year."
         },
         {
           "driver": "Dover Market Opportunity (Gross)",
