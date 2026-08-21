@@ -1,42 +1,7 @@
 {
-  "generated_at": "2026-08-21T06:11:53.232Z",
-  "marketing": {
-    "corro": {
-      "adSpend": null,
-      "attributedPurchases": null
-    },
-    "cavali": {
-      "adSpend": null,
-      "attributedPurchases": null
-    }
-  },
-  "financial": {
-    "corro": {
-      "gm1": null,
-      "markupPct": null,
-      "inventoryTurns": null,
-      "outboundShippingPct": null,
-      "shippingRevenuePct": null,
-      "packagingPct": null,
-      "conciergeGm1": null,
-      "wellingtonGm1": null
-    },
-    "cavali": {
-      "gm1": null,
-      "markupPct": null,
-      "inventoryTurns": null
-    }
-  },
-  "retention": {
-    "returningRevenue": null,
-    "totalCustomerRevenue": null,
-    "returningCustomersPct": null,
-    "purchaseFrequency": null
-  },
-  "cavali": {
-    "signatureMembers": null,
-    "signatureBoxesPerMemberYear": null,
-    "premierMembers": null,
-    "premierBoxesPerMemberYear": null
-  }
+  "generated_at":"",
+  "marketing":{"corro":{"adSpend":null,"attributedPurchases":null},"cavali":{"adSpend":null,"attributedPurchases":null}},
+  "financial":{"corro":{"cogs":null,"grossProfit":null,"gm1":null,"markupPct":null,"inventoryTurns":null,"outboundShippingPct":null,"packagingPct":null},"cavali":{"cogs":null,"grossProfit":null,"gm1":null,"markupPct":null,"inventoryTurns":null}},
+  "retention":{"returningRevenue":null,"totalCustomerRevenue":null,"returningCustomersPct":null,"purchaseFrequency":null},
+  "cavali":{"signatureMembers":null,"signatureBoxesPerMemberYear":null,"premierMembers":null,"premierBoxesPerMemberYear":null}
 }
