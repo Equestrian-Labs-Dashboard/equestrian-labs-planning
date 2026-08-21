@@ -31,6 +31,11 @@ jobs:
       - name: Validate Shopify actuals generated
         run: |
           node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync('data/shopify_actuals.json','utf8'));const b=d.brands||{};if(!d.generated_at||!b.corro||!b.cavali)throw new Error('Shopify actuals were not generated for both Corro and Cavali; deployment stopped to protect the dashboard.');console.log('Validated Shopify actuals:',d.generated_at,'Corro orders:',b.corro.orderCount,'Cavali orders:',b.cavali.orderCount)"
+      - name: Sync Cavali Smartrr actuals
+        continue-on-error: true
+        env:
+          SMARTRR_API_KEY_CAVALI: ${{ secrets.SMARTRR_API_KEY_CAVALI }}
+        run: node scripts/sync-smartrr-cavali.mjs
       - name: Sync connected Google Sheets actuals
         continue-on-error: true
         env:
@@ -45,7 +50,7 @@ jobs:
         run: |
           git config user.name "dashboard-bot"
           git config user.email "dashboard-bot@users.noreply.github.com"
-          git add data/shopify_actuals.json data/connected_actuals.json
+          git add data/shopify_actuals.json data/connected_actuals.json data/cavali_smartrr_actuals.json
           git diff --cached --quiet || git commit -m "Refresh strategic model actuals"
           git push || true
       - uses: actions/configure-pages@v5
