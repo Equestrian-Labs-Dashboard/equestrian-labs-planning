@@ -1,18 +1,19 @@
 {
-  "generated_at": "2026-08-21T07:24:13.277Z",
+  "generated_at": "2026-08-21T13:20:51.748Z",
   "available": true,
   "source": "smartrr_purchase_state",
+  "tierClassification": false,
   "signature": {
-    "active": 0,
-    "paused": 0,
-    "cancelled": 0,
+    "active": null,
+    "paused": null,
+    "cancelled": null,
     "boxesPerMemberYear": 5.236134453781513,
     "boxesSource": "shopify_ytd_annualized"
   },
   "premier": {
-    "active": 0,
-    "paused": 0,
-    "cancelled": 0,
+    "active": null,
+    "paused": null,
+    "cancelled": null,
     "boxesPerMemberYear": 3.3865546218487395,
     "boxesSource": "shopify_ytd_annualized"
   },
@@ -26,5 +27,5 @@
     "paused": 3,
     "cancelled": 525
   },
-  "note": "Active members come from Smartrr purchase-state status. Boxes/member/year uses Smartrr cadence when present; otherwise Shopify YTD annualized subscription box units."
+  "note": "Smartrr returned statuses but no tier-identifying product text; app must use Shopify observed tiers instead of false zeros."
 }

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-21T07:24:07.275Z",
+  "generated_at": "2026-08-21T13:20:47.033Z",
   "source": "github_actions_shopify_sync",
   "date_range": {
     "start": "2024-01-01",
@@ -11,7 +11,7 @@
       "store": "equestrian-labs.myshopify.com",
       "source": "shopify_admin_graphql",
       "apiVersion": "2026-07",
-      "orderCount": 20764,
+      "orderCount": 20765,
       "kpis_daily": [
         {
           "period": "2024-01",
@@ -573,21 +573,21 @@
         },
         {
           "period": "2026-08",
-          "gross_sales": 24279.620000000028,
-          "net_sales": 23537.630000000023,
+          "gross_sales": 24391.600000000028,
+          "net_sales": 23649.610000000022,
           "total_discounts": 741.9900000000001,
           "total_returns": 0,
-          "shipping_income": 883.1300000000006,
-          "nb_orders": 167,
-          "nb_units": 404,
-          "cogs": 14059.519999999993,
-          "gross_profit": 9478.11000000003,
-          "pct_gm": 0.4026790292820484,
-          "realized_markup_pct": 0.6741417914694124,
-          "costed_units": 397,
+          "shipping_income": 893.1200000000006,
+          "nb_orders": 168,
+          "nb_units": 406,
+          "cogs": 14139.519999999993,
+          "gross_profit": 9510.09000000003,
+          "pct_gm": 0.4021246016319094,
+          "realized_markup_pct": 0.6725893099624339,
+          "costed_units": 399,
           "uncosted_units": 7,
-          "unique_customers": 141,
-          "cost_coverage_pct": 0.9826732673267327
+          "unique_customers": 142,
+          "cost_coverage_pct": 0.9827586206896551
         }
       ],
       "revenue_share": [
@@ -3557,28 +3557,28 @@
         },
         {
           "period": "2026-08",
-          "gross_sales": 7885.7899999999945,
-          "net_sales": 7263.929999999996,
+          "gross_sales": 7997.769999999994,
+          "net_sales": 7375.909999999995,
           "total_discounts": 621.8600000000001,
           "total_returns": 0,
-          "shipping_income": 490.55000000000024,
-          "nb_orders": 79,
-          "nb_units": 188,
-          "cogs": 4781.14,
-          "gross_profit": 2482.7899999999954,
-          "pct_gm": 0.3417970712823495,
-          "realized_markup_pct": 0.5192882868939197,
-          "costed_units": 187,
+          "shipping_income": 500.54000000000025,
+          "nb_orders": 80,
+          "nb_units": 190,
+          "cogs": 4861.14,
+          "gross_profit": 2514.769999999995,
+          "pct_gm": 0.340943693727282,
+          "realized_markup_pct": 0.517321039920676,
+          "costed_units": 189,
           "uncosted_units": 1,
           "channel": "Wellington",
-          "unique_customers": 65,
-          "cost_coverage_pct": 0.9946808510638298
+          "unique_customers": 66,
+          "cost_coverage_pct": 0.9947368421052631
         }
       ],
       "yearly_unique_customers": {
         "2024": 5772,
         "2025": 6150,
-        "2026": 2494
+        "2026": 2495
       },
       "channel_yearly_unique_customers": {
         "2024": {
@@ -3601,25 +3601,25 @@
           "e-commerce": 839,
           "Legacy": 313,
           "Shopify Collective": 438,
-          "Wellington": 904
+          "Wellington": 905
         }
       },
       "membership_observed": {},
       "derived": {
         "brand": "corro",
         "totals": {
-          "grossSales": 3962532.540000003,
-          "netSales": 3737001.870000004,
-          "cogs": 2054756.07,
-          "shippingIncome": 112406.16999999924,
-          "units": 225249,
-          "orders": 20343,
-          "costedUnits": 64024,
+          "grossSales": 3962644.520000003,
+          "netSales": 3737113.850000004,
+          "cogs": 2054836.07,
+          "shippingIncome": 112416.15999999923,
+          "units": 225251,
+          "orders": 20344,
+          "costedUnits": 64026,
           "hasUsableCosts": false,
-          "costCoveragePct": 0.28423655598914976,
+          "costCoveragePct": 0.2842429112412376,
           "gm1": null,
           "markupPct": null,
-          "shippingRevenuePct": 0.030079238360134705
+          "shippingRevenuePct": 0.0300810102427035
         },
         "channels": {
           "e-commerce": {
@@ -3651,18 +3651,18 @@
             "shippingRevenuePct": 0.008701167179799284
           },
           "Wellington": {
-            "grossSales": 1256288.6200000006,
-            "netSales": 1147536.3100000003,
-            "cogs": 692010.59,
-            "shippingIncome": 40830.61000000003,
-            "units": 68854,
-            "orders": 7337,
-            "costedUnits": 30334,
+            "grossSales": 1256400.6000000006,
+            "netSales": 1147648.2900000003,
+            "cogs": 692090.59,
+            "shippingIncome": 40840.60000000003,
+            "units": 68856,
+            "orders": 7338,
+            "costedUnits": 30336,
             "hasUsableCosts": false,
-            "costCoveragePct": 0.44055537804630085,
+            "costCoveragePct": 0.44057162774485886,
             "gm1": null,
             "markupPct": null,
-            "shippingRevenuePct": 0.03558110505453202
+            "shippingRevenuePct": 0.035586338040899286
           },
           "Legacy": {
             "grossSales": 298611.16000000003,
@@ -3708,13 +3708,13 @@
           }
         },
         "inventory": {
-          "inventoryUnits": 318501,
-          "costedInventoryUnits": 317887,
-          "costCoveragePct": 0.9980722195534708,
-          "inventoryCostValue": 24894001.880000062,
-          "retailValue": 40177898.1799998,
-          "annualizedCogs": 591739.9467226892,
-          "inventoryTurns": 0.02377038250318826,
+          "inventoryUnits": 318127,
+          "costedInventoryUnits": 317513,
+          "costCoveragePct": 0.9980699531947933,
+          "inventoryCostValue": 24577496.190000065,
+          "retailValue": 39726026.67999979,
+          "annualizedCogs": 591864.9887394959,
+          "inventoryTurns": 0.024081581954646387,
           "methodology": "Annualized current-year COGS divided by current inventory cost value. Uses Shopify InventoryItem.unitCost when cost coverage is sufficient."
         }
       },
