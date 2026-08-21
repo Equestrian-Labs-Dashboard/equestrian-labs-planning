@@ -1,8 +1,9 @@
 {
-  "generated_at": "2026-08-21T19:23:26.283Z",
+  "generated_at": "2026-08-21T21:51:22.051Z",
   "available": true,
   "source": "smartrr_purchase_state",
   "tierClassification": false,
+  "classificationCoverage": 0,
   "signature": {
     "active": null,
     "paused": null,
@@ -27,5 +28,5 @@
     "paused": 3,
     "cancelled": 525
   },
-  "note": "Smartrr returned statuses but no tier-identifying product text; app must use Shopify observed tiers instead of false zeros."
+  "note": "Smartrr tier classification is missing or incomplete (<80% coverage); app must use Shopify observed tiers instead of understating members/revenue."
 }
