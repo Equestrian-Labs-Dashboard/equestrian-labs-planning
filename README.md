@@ -49,9 +49,11 @@ The first forecast year uses closed Shopify actual months plus remaining months 
 - Tab 5 has no independent calculations; it reads the same model outputs used by Tabs 1–4.
 
 
-## v3.1 Actuals month filters
-
-- Corro Month: Jan 2026 onward only.
-- Cavali Month: current month onward only.
-- Month filters affect Baseline / Current monthly actuals.
-- 2026 FCS remains based on closed YTD actuals plus the remaining-month forecast.
+## v3.2 safe month-filter correction (2026-08-21)
+- Restores the last working model logic as the base.
+- Corro month selector starts at Jan 2026.
+- Cavali month selector starts at the current month.
+- Month selectors change Baseline / Current display only; they do NOT replace 2026 Actuals + FCS calculations.
+- 2026 FCS remains closed YTD actuals + remaining months at the editable run rate.
+- Existing Tabs 1–6, Display Year, scenario persistence, Paid Ads, Dover, COGS/Inventory separation, Cavali and Board logic are preserved.
+- Only one GitHub Pages workflow remains and it declares the github-pages environment.

@@ -37,44 +37,50 @@ function roas(y){return n(STATE.commercial.roasByYear[y]??STATE.meta.roas)}
 function doverGross(y){return n(STATE.commercial.doverMarketOpportunity)*n(STATE.commercial.doverTargetCapturePct[y])*n(STATE.commercial.doverRampPct[y])}
 function doverNet(y){return doverGross(y)*(1-n(STATE.commercial.paidAdsOverlapPct[y]))}
 function monthLabel(period){if(!period)return '—';const [y,m]=String(period).split('-');const names=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return `${names[n(m)-1]||m} ${y}`}
-function selectedCorroMonth(){return STATE.meta.corroMonth||DataService.latestClosedMonth(ACTUALS.shopify.brands?.corro?.kpis_daily||[])||'2026-01'}
-function selectedCavaliMonth(){const current=DataService.currentPeriod();return !STATE.meta.cavaliMonth||STATE.meta.cavaliMonth==='current'?current:STATE.meta.cavaliMonth}
-function monthlyActuals(){
- const corroBrand=ACTUALS.shopify.brands?.corro||{}, cavBrand=ACTUALS.shopify.brands?.cavali||{};
+function selectedCorroMonth(){
+ const opts=DataService.availableMonths(ACTUALS.shopify.brands?.corro||{},'2026-01');
+ const saved=STATE.meta.corroMonth;
+ if(saved&&opts.includes(saved))return saved;
+ return DataService.latestClosedMonth(ACTUALS.shopify.brands?.corro?.kpis_daily||[])||opts.at(-1)||'2026-01';
+}
+function selectedCavaliMonth(){
+ const current=DataService.currentPeriod();
+ const opts=DataService.availableMonths(ACTUALS.shopify.brands?.cavali||{},current);
+ const saved=STATE.meta.cavaliMonth;
+ if(saved&&opts.includes(saved))return saved;
+ return opts.includes(current)?current:(opts[0]||current);
+}
+function monthlyDisplayActuals(){
  const cm=selectedCorroMonth(), vm=selectedCavaliMonth();
+ const corro=ACTUALS.shopify.brands?.corro||{}, cav=ACTUALS.shopify.brands?.cavali||{};
  return {
   corroMonth:cm,cavaliMonth:vm,
-  corro:DataService.aggregateMonth(corroBrand,cm),
-  cav:DataService.aggregateMonth(cavBrand,vm),
-  ecom:DataService.channelMonth(corroBrand,'e-commerce',cm),
-  con:DataService.channelMonth(corroBrand,'Concierge',cm),
-  well:DataService.channelMonth(corroBrand,'Wellington',cm)
+  corro:DataService.aggregateMonth(corro,cm),
+  cav:DataService.aggregateMonth(cav,vm),
+  ecom:DataService.channelMonth(corro,'e-commerce',cm),
+  con:DataService.channelMonth(corro,'Concierge',cm),
+  well:DataService.channelMonth(corro,'Wellington',cm)
  };
 }
-function monthOptions(){
- const current=DataService.currentPeriod();
- const corroBrand=ACTUALS.shopify.brands?.corro||{}, cavBrand=ACTUALS.shopify.brands?.cavali||{};
- let corro=DataService.availableMonths(corroBrand,'2026-01');
- if(!corro.length)corro=DataService.monthRange('2026-01',current);
- // Cavali starts at the current month by business rule. Future months appear automatically as data arrives.
- let cav=DataService.availableMonths(cavBrand,current);
- if(!cav.length)cav=[current];
- return {corro,cav};
-}
 function populateMonthFilters(){
- const opts=monthOptions(), cs=$('#corroMonth'), vs=$('#cavaliMonth');
- if(!cs||!vs)return;
- const previousCorro=STATE.meta.corroMonth;
- const previousCav=STATE.meta.cavaliMonth==='current'?DataService.currentPeriod():STATE.meta.cavaliMonth;
- cs.innerHTML=opts.corro.map(p=>`<option value="${p}">${monthLabel(p)}</option>`).join('');
- vs.innerHTML=opts.cav.map(p=>`<option value="${p}">${monthLabel(p)}</option>`).join('');
- const latestClosed=DataService.latestClosedMonth(ACTUALS.shopify.brands?.corro?.kpis_daily||[]);
- const defaultCorro=latestClosed&&latestClosed>='2026-01'?latestClosed:opts.corro.at(-1);
- STATE.meta.corroMonth=opts.corro.includes(previousCorro)?previousCorro:defaultCorro;
+ const cs=$('#corroMonth'),vs=$('#cavaliMonth'); if(!cs||!vs)return;
  const current=DataService.currentPeriod();
- STATE.meta.cavaliMonth=opts.cav.includes(previousCav)?previousCav:(opts.cav.includes(current)?current:opts.cav[0]);
- cs.value=STATE.meta.corroMonth;
- vs.value=STATE.meta.cavaliMonth;
+ let corro=DataService.availableMonths(ACTUALS.shopify.brands?.corro||{},'2026-01');
+ if(!corro.length)corro=DataService.monthRange('2026-01',current);
+ let cav=DataService.availableMonths(ACTUALS.shopify.brands?.cavali||{},current);
+ if(!cav.length)cav=[current];
+ cs.innerHTML=corro.map(p=>`<option value="${p}">${monthLabel(p)}</option>`).join('');
+ vs.innerHTML=cav.map(p=>`<option value="${p}">${monthLabel(p)}</option>`).join('');
+ const csel=selectedCorroMonth(),vsel=selectedCavaliMonth();
+ STATE.meta.corroMonth=csel; STATE.meta.cavaliMonth=vsel; cs.value=csel;vs.value=vsel;
+}
+function displayActualEngine(name,key){
+ const a=monthlyDisplayActuals();
+ if(name==='Ecommerce'){if(key==='orders')return a.ecom.orders;if(key==='aov')return a.ecom.orders?a.ecom.grossSales/a.ecom.orders:null;}
+ if(name==='Concierge'){if(key==='orders')return a.con.orders;if(key==='aov')return a.con.orders?a.con.grossSales/a.con.orders:null;if(key==='uniqueCustomers')return a.con.uniqueCustomers;}
+ if(name==='Wellington'){if(key==='orders')return a.well.orders;if(key==='aov')return a.well.orders?a.well.grossSales/a.well.orders:null;}
+ if(name==='Cavali'){if(key==='orders')return a.cav.orders;if(key==='aov')return a.cav.orders?a.cav.grossSales/a.cav.orders:null;}
+ return actualEngine(name,key);
 }
 function actual2026(){
  const corro=DataService.aggregateClosed(ACTUALS.shopify.brands?.corro||{},2026); const cav=DataService.aggregateClosed(ACTUALS.shopify.brands?.cavali||{},2026);
@@ -90,34 +96,7 @@ function organicRevenue(y){if(y==='2026')return 0;return baseEcommerce(y)*n(STAT
 function paidRevenue(y){return totalAds(y)*roas(y)}
 function ecommerceBuild(y){const base=baseEcommerce(y),organic=organicRevenue(y),paid=paidRevenue(y),dover=doverNet(y);return {base,organic,paid,dover,total:base+organic+paid+dover}}
 function connected(path, fallback=null){let o=ACTUALS.connected;for(const k of path.split('.'))o=o?.[k];return o??fallback}
-function actualEngine(name,key){
- const a=monthlyActuals();
- if(name==='Ecommerce'){
-  if(key==='orders')return a.ecom.orders;
-  if(key==='aov')return a.ecom.orders?a.ecom.grossSales/a.ecom.orders:null;
-  if(key==='gm1')return connected('financial.corro.gm1',null);
- }
- if(name==='Concierge'){
-  if(key==='orders')return a.con.orders;
-  if(key==='aov')return a.con.orders?a.con.grossSales/a.con.orders:null;
-  if(key==='gm1')return connected('financial.corro.conciergeGm1',null);
- }
- if(name==='Wellington'){
-  if(key==='orders')return a.well.orders;
-  if(key==='aov')return a.well.orders?a.well.grossSales/a.well.orders:null;
-  if(key==='gm1')return connected('financial.corro.wellingtonGm1',null);
- }
- if(name==='Cavali'){
-  if(key==='orders')return a.cav.orders;
-  if(key==='aov')return a.cav.orders?a.cav.grossSales/a.cav.orders:null;
-  if(key==='gm1')return connected('financial.cavali.gm1',.397);
-  if(key==='signatureMembers')return connected('cavali.signatureMembers',null);
-  if(key==='signatureBoxes')return connected('cavali.signatureBoxesPerMemberYear',null);
-  if(key==='premierMembers')return connected('cavali.premierMembers',null);
-  if(key==='premierBoxes')return connected('cavali.premierBoxesPerMemberYear',null);
- }
- return null
-}
+function actualEngine(name,key){const a=actual2026();if(name==='Ecommerce'){if(key==='orders')return a.ecom.orders;if(key==='aov')return a.ecom.orders?a.ecom.grossSales/a.ecom.orders:null;if(key==='gm1')return connected('financial.corro.gm1',null)}if(name==='Concierge'){if(key==='orders')return a.con.orders;if(key==='aov')return a.con.orders?a.con.grossSales/a.con.orders:null;if(key==='gm1')return connected('financial.corro.conciergeGm1',null)}if(name==='Wellington'){if(key==='orders')return a.well.orders;if(key==='aov')return a.well.orders?a.well.grossSales/a.well.orders:null;if(key==='gm1')return connected('financial.corro.wellingtonGm1',null)}if(name==='Cavali'){if(key==='orders')return a.cav.orders;if(key==='gm1')return connected('financial.cavali.gm1',.397);if(key==='signatureMembers')return connected('cavali.signatureMembers',null);if(key==='signatureBoxes')return connected('cavali.signatureBoxesPerMemberYear',null);if(key==='premierMembers')return connected('cavali.premierMembers',null);if(key==='premierBoxes')return connected('cavali.premierBoxesPerMemberYear',null)}return null}
 function engVal(name,key,y){const e=STATE.engines[name];const manual=e?.[key]?.[y];if(manual!==null&&manual!==undefined&&manual!=='')return n(manual);if(y==='2026'){const kmap={signatureBoxesPerMemberYear:'signatureBoxes',premierBoxesPerMemberYear:'premierBoxes'};const av=actualEngine(name,kmap[key]||key);if(av!==null&&av!==undefined&&av!=='')return n(av)}return 0}
 function engine(name,y){
  if(name==='Ecommerce'){const b=ecommerceBuild(y), gm=engVal(name,'gm1',y)||.30;return {sales:b.total,gm1:gm,orders:engVal(name,'orders',y),aov:engVal(name,'aov',y)}}
@@ -176,9 +155,9 @@ function renderTab1(){const y=STATE.meta.displayYear,f=financial(y),c=cashAll()[
  <div class="section"><div class="section-title">Section 1 — Funding & Allocation</div>${table(['Scenario','Date','Organic Growth','Payables','Inventory','Marketing','Embroidery','Private Label','Unallocated Capital'],fundingRows)}</div>
  <div class="section"><div class="section-title accent-green">Section 2 — Commercial Strategy</div><div class="card"><h3>Acquisition Strategy — Emma</h3>${table(['Driver','Baseline / Current',...YEARS],acqRows)}<p class="note">Paid Ads logic: Base Ad Spend is $20k/month ($240k/year). Incremental Ad Spend comes from the selected funding scenario Marketing allocation. Current ramp: ${YEARS.map(z=>fmtPct(r[z])).join(' / ')}. Paid Growth Revenue = Total Ad Spend × ROAS.</p></div><div class="card"><h3>Retention Strategy — Berna</h3>${table(['Driver','Baseline / Current',...YEARS],retRows)}<p class="note">Carryover applies only once when calculating the following year's Base Ecommerce Revenue.</p></div><div class="card"><h3>Market Growth Strategy</h3>${table(['Driver','Baseline / Current',...YEARS],marketRows)}<p class="note">Dover market opportunity stays at $130M unless management explicitly changes the market-size assumption.</p></div></div>
  <div id="enginesMagic"></div><div id="purchasingMagic"></div><div id="operationsMagic"></div><div id="initiativesMagic"></div>`; renderEngineSections();renderPurchasing();renderOperations();renderInitiatives();}
-function engineRows(name){const e=STATE.engines[name];const curr=(label,key,fmt='number')=>{let v=actualEngine(name,key);return v===null?'Data unavailable':fmt==='pct'?fmtPct(v):fmt==='money'?fmtMoney(v):Number(v).toLocaleString()};const editable=(key,y,fmt='number')=>{const raw=(e[key]?.[y]!==null&&e[key]?.[y]!==undefined&&e[key]?.[y]!=='')?e[key][y]:engVal(name,key,y);const shown=fmt==='pct'?fmtPct(raw):fmt==='money'?fmtMoney(raw):esc(raw??'');return `<td class="editable" contenteditable="true" data-engine="${name}" data-key="${key}" data-year="${y}" data-format="${fmt}">${shown}</td>`};
+function engineRows(name){const e=STATE.engines[name];const curr=(label,key,fmt='number')=>{let v=displayActualEngine(name,key);return v===null?'Data unavailable':fmt==='pct'?fmtPct(v):fmt==='money'?fmtMoney(v):Number(v).toLocaleString()};const editable=(key,y,fmt='number')=>{const raw=(e[key]?.[y]!==null&&e[key]?.[y]!==undefined&&e[key]?.[y]!=='')?e[key][y]:engVal(name,key,y);const shown=fmt==='pct'?fmtPct(raw):fmt==='money'?fmtMoney(raw):esc(raw??'');return `<td class="editable" contenteditable="true" data-engine="${name}" data-key="${key}" data-year="${y}" data-format="${fmt}">${shown}</td>`};
  if(name==='Ecommerce')return [`<tr><td>Orders</td><td class="baseline">${curr('Orders','orders')}</td>${YEARS.map(y=>y==='2026'?`<td>${curr('','orders')}</td>`:editable('orders',y)).join('')}</tr>`,`<tr><td>AOV</td><td class="baseline">${curr('','aov','money')}</td>${YEARS.map(y=>y==='2026'?`<td>${curr('','aov','money')}</td>`:editable('aov',y,'money')).join('')}</tr>`,`<tr><td>GM1 %</td><td class="baseline">${curr('','gm1','pct')}</td>${YEARS.map(y=>y==='2026'?`<td>${curr('','gm1','pct')}</td>`:editable('gm1',y,'pct')).join('')}</tr>`];
- if(name==='Concierge')return [`<tr><td>Active Clients</td><td class="baseline">${monthlyActuals().con.uniqueCustomers||'Data unavailable'}</td>${YEARS.map(y=>editable('activeClients',y)).join('')}</tr>`,`<tr><td>Orders per Client</td><td class="baseline">${monthlyActuals().con.uniqueCustomers?(monthlyActuals().con.orders/monthlyActuals().con.uniqueCustomers).toFixed(2):'Data unavailable'}</td>${YEARS.map(y=>editable('ordersPerClient',y)).join('')}</tr>`,`<tr><td>AOV</td><td class="baseline">${curr('','aov','money')}</td>${YEARS.map(y=>editable('aov',y,'money')).join('')}</tr>`,`<tr><td>GM1 %</td><td class="baseline">${curr('','gm1','pct')}</td>${YEARS.map(y=>editable('gm1',y,'pct')).join('')}</tr>`];
+ if(name==='Concierge')return [`<tr><td>Active Clients</td><td class="baseline">${displayActualEngine('Concierge','uniqueCustomers')||'Data unavailable'}</td>${YEARS.map(y=>editable('activeClients',y)).join('')}</tr>`,`<tr><td>Orders per Client</td><td class="baseline">${displayActualEngine('Concierge','uniqueCustomers')?(displayActualEngine('Concierge','orders')/displayActualEngine('Concierge','uniqueCustomers')).toFixed(2):'Data unavailable'}</td>${YEARS.map(y=>editable('ordersPerClient',y)).join('')}</tr>`,`<tr><td>AOV</td><td class="baseline">${curr('','aov','money')}</td>${YEARS.map(y=>editable('aov',y,'money')).join('')}</tr>`,`<tr><td>GM1 %</td><td class="baseline">${curr('','gm1','pct')}</td>${YEARS.map(y=>editable('gm1',y,'pct')).join('')}</tr>`];
  if(name==='Wellington'||name==='Embroidery')return [`<tr><td>Orders</td><td class="baseline">${name==='Wellington'?curr('','orders'):'—'}</td>${YEARS.map(y=>editable('orders',y)).join('')}</tr>`,`<tr><td>AOV</td><td class="baseline">${name==='Wellington'?curr('','aov','money'):'—'}</td>${YEARS.map(y=>editable('aov',y,'money')).join('')}</tr>`,`<tr><td>GM1 %</td><td class="baseline">${name==='Wellington'?curr('','gm1','pct'):'—'}</td>${YEARS.map(y=>editable('gm1',y,'pct')).join('')}</tr>`];
  if(name==='Private Label')return [`<tr><td>Units Sold</td><td class="baseline">—</td>${YEARS.map(y=>editable('units',y)).join('')}</tr>`,`<tr><td>Average Selling Price</td><td class="baseline">—</td>${YEARS.map(y=>editable('asp',y,'money')).join('')}</tr>`,`<tr><td>GM1 %</td><td class="baseline">—</td>${YEARS.map(y=>editable('gm1',y,'pct')).join('')}</tr>`];
  if(name==='Cavali')return [`<tr><td>Signature Active Members</td><td class="baseline">${curr('','signatureMembers')}</td>${YEARS.map(y=>editable('signatureMembers',y)).join('')}</tr>`,`<tr><td>Signature Boxes per Member / Year</td><td class="baseline">${curr('','signatureBoxes')}</td>${YEARS.map(y=>editable('signatureBoxesPerMemberYear',y)).join('')}</tr>`,`<tr><td>Signature Price</td><td class="baseline">$99</td>${YEARS.map(y=>editable('signaturePrice',y,'money')).join('')}</tr>`,`<tr><td>Premier Active Members</td><td class="baseline">${curr('','premierMembers')}</td>${YEARS.map(y=>editable('premierMembers',y)).join('')}</tr>`,`<tr><td>Premier Boxes per Member / Year</td><td class="baseline">${curr('','premierBoxes')}</td>${YEARS.map(y=>editable('premierBoxesPerMemberYear',y)).join('')}</tr>`,`<tr><td>Premier Price</td><td class="baseline">$199</td>${YEARS.map(y=>editable('premierPrice',y,'money')).join('')}</tr>`,`<tr><td>GM1 %</td><td class="baseline">${curr('','gm1','pct')}</td>${YEARS.map(y=>editable('gm1',y,'pct')).join('')}</tr>`,`<tr><td>Cavali Ad Spend</td><td class="baseline">Connected source when available</td>${YEARS.map(y=>editable('adSpend',y,'money')).join('')}</tr>`,`<tr><td>Cavali ROAS</td><td class="baseline">Paid-growth assumption</td>${YEARS.map(y=>editable('roas',y)).join('')}</tr>`];return []}
@@ -193,7 +172,7 @@ function renderTab5(){const y=STATE.meta.displayYear,f=financial(y),c=cashAll()[
 function renderTab6(){const r=paidRamp(),tests=[['Funding allocation balances',Math.abs(n(scenario().funding)-['payables','inventory','marketing','embroidery','privateLabel'].reduce((s,k)=>s+n(scenario()[k]),0))<1],['Paid Ads ramp totals 100%',Math.abs(YEARS.reduce((s,y)=>s+r[y],0)-1)<1e-8],['Dover ramp totals 100%',Math.abs(YEARS.reduce((s,y)=>s+n(STATE.commercial.doverRampPct[y]),0)-1)<1e-8],['Dover market base is fixed at $130M',n(STATE.commercial.doverMarketOpportunity)===130000000],['2026 Organic Growth revenue is zero',organicRevenue('2026')===0],['COGS equals Net Sales - GP1',YEARS.every(y=>Math.abs(portfolio(y).cogs-(portfolio(y).net-portfolio(y).gp1))<.01)],['Portfolio shares reconcile',YEARS.every(y=>Math.abs(portfolio(y).items.reduce((s,x)=>s+x.sales,0)-portfolio(y).gross)<.01)],['Tab 5 uses selected Display Year',true],['Cash runway uses operating cash out only',true],['Cavali subscription formula uses Members × Boxes/Member/Year × Price',true]];$('#tab6').innerHTML=`<div class="section"><div class="section-title accent-purple">Formula QA</div>${table(['Test','Status'],tests.map(([t,ok])=>`<tr><td>${t}</td><td class="${ok?'qa-pass':'qa-fail'}">${ok?'PASS':'FAIL'}</td></tr>`))}<div class="card"><h3>Documented Logic</h3><p>Paid Ads: Base $20k/month + incremental Marketing allocation phased by Funding Date. Oct-26 ramp = 5% / 40% / 30% / 25%; Jan-27 = 0% / 40% / 35% / 25%.</p><p>Carryover applies once to the following year's Ecommerce base.</p><p>COGS is recognized with sales; funding inventory belongs to Cash Flow timing.</p><p>Cavali subscription revenue = Signature + Premier member economics. Paid Cavali growth is separate.</p><p>Markup is calculated on cost and is not Gross Margin.</p></div></div>`}
 function renderAll(){renderTab1();renderTab2();renderTab3();renderTab4();renderTab5();renderTab6();bindEditable();syncHeader()}
 function bindEditable(){$$('[contenteditable][data-group]').forEach(td=>td.onblur=()=>editCell(td.dataset.group,td.dataset.path,td.dataset.year,td.textContent,td.dataset.format));$$('[contenteditable][data-engine]').forEach(td=>td.onblur=()=>{const v=parseUserValue(td.textContent,td.dataset.format);STATE.engines[td.dataset.engine][td.dataset.key][td.dataset.year]=v;save();renderAll()});$$('[contenteditable][data-funding]').forEach(td=>td.onblur=()=>{const row=STATE.fundingScenarios[td.dataset.funding],k=td.dataset.fkey;if(k==='date'){row[k]=td.textContent.trim()}else{row[k]=parseUserValue(td.textContent,td.dataset.format)??0}if(td.dataset.funding===STATE.meta.fundingScenario&&k==='date')STATE.meta.fundingDate=row[k];save();renderAll()});$$('[contenteditable][data-initiative]').forEach(td=>td.onblur=()=>{STATE.initiatives[n(td.dataset.initiative)][td.dataset.ikey]=td.textContent.trim();save();renderAll()})}
-function syncHeader(){const m=STATE.meta;$('#statusSelect').value=m.status;$('#fundingScenario').value=m.fundingScenario;$('#displayYear').value=m.displayYear;$('#fundingDate').value=m.fundingDate;$('#baseEcommerce').value=m.baseEcommerceMonthly;$('#doverCapture').value=m.doverCapture;$('#roas').value=m.roas;$('#lastUpdated').value=m.lastUpdated||'';if($('#corroMonth'))$('#corroMonth').value=selectedCorroMonth();if($('#cavaliMonth'))$('#cavaliMonth').value=selectedCavaliMonth();const sh=ACTUALS.shopify.generated_at?`Shopify refreshed ✓ · Corro ${monthLabel(selectedCorroMonth())} · Cavali ${monthLabel(selectedCavaliMonth())} · FCS through ${actual2026().corro.lastClosedMonth||'latest closed month'}`:'Actuals source not generated';$('#sourceStatus').textContent=sh}
+function syncHeader(){const m=STATE.meta;$('#statusSelect').value=m.status;$('#fundingScenario').value=m.fundingScenario;$('#displayYear').value=m.displayYear;$('#fundingDate').value=m.fundingDate;$('#baseEcommerce').value=m.baseEcommerceMonthly;$('#doverCapture').value=m.doverCapture;$('#roas').value=m.roas;$('#lastUpdated').value=m.lastUpdated||'';if($('#corroMonth'))$('#corroMonth').value=selectedCorroMonth();if($('#cavaliMonth'))$('#cavaliMonth').value=selectedCavaliMonth();const sh=ACTUALS.shopify.generated_at?`Shopify refreshed ✓ · Corro current: ${monthLabel(selectedCorroMonth())} · Cavali current: ${monthLabel(selectedCavaliMonth())} · 2026 FCS through ${actual2026().corro.lastClosedMonth||'latest closed month'}`:'Actuals source not generated';$('#sourceStatus').textContent=sh}
 function wire(){
  $$('.tabs button').forEach(b=>b.onclick=()=>{$$('.tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.tab-panel').forEach(x=>x.classList.remove('active'));$(`#tab${b.dataset.tab}`).classList.add('active')});
  $('#saveBtn').onclick=save;$('#refreshBtn').onclick=async()=>{const d=await DataService.loadAll();ACTUALS={shopify:d.shopify,connected:d.connected};STATE.meta.lastUpdated=new Date().toISOString().slice(0,10);populateMonthFilters();renderAll();flash('Actuals refreshed ✓')};
@@ -204,6 +183,6 @@ function wire(){
  $('#fundingScenario').onchange=e=>{STATE.meta.fundingScenario=e.target.value;STATE.meta.fundingDate=scenario().date==='-'?STATE.meta.fundingDate:scenario().date;save();renderAll()};
  $('#displayYear').onchange=e=>{STATE.meta.displayYear=e.target.value;save();renderAll()};$('#corroMonth').onchange=e=>{STATE.meta.corroMonth=e.target.value;save();renderAll()};$('#cavaliMonth').onchange=e=>{STATE.meta.cavaliMonth=e.target.value;save();renderAll()};$('#fundingDate').onchange=e=>{STATE.meta.fundingDate=e.target.value;save();renderAll()};$('#baseEcommerce').onchange=e=>{STATE.meta.baseEcommerceMonthly=n(e.target.value);save();renderAll()};$('#doverCapture').onchange=e=>{STATE.meta.doverCapture=n(e.target.value);YEARS.forEach(y=>STATE.commercial.doverTargetCapturePct[y]=n(e.target.value));save();renderAll()};$('#roas').onchange=e=>{STATE.meta.roas=n(e.target.value);YEARS.forEach(y=>STATE.commercial.roasByYear[y]=n(e.target.value));save();renderAll()};
 }
-async function init(){const d=await DataService.loadAll();BASE=clone(d.assumptions);ACTUALS={shopify:d.shopify,connected:d.connected};STATE=loadSaved('Draft')||clone(BASE);if(!STATE.meta.corroMonth)STATE.meta.corroMonth='2026-01';if(!STATE.meta.cavaliMonth)STATE.meta.cavaliMonth='current';Object.keys(STATE.fundingScenarios).forEach(k=>$('#fundingScenario').insertAdjacentHTML('beforeend',`<option>${k}</option>`));populateMonthFilters();if(localStorage.getItem('eqlabs-theme')==='dark'){document.documentElement.dataset.theme='dark';$('#themeBtn').textContent='☾'}wire();renderAll();window.runModelQA=()=>{renderTab6();return {paidRamp:paidRamp(),cash:cashAll(),years:Object.fromEntries(YEARS.map(y=>[y,{ecommerce:ecommerceBuild(y),portfolio:portfolio(y),financial:financial(y),cash:cashAll()[y]}]))}}}
+async function init(){const d=await DataService.loadAll();BASE=clone(d.assumptions);ACTUALS={shopify:d.shopify,connected:d.connected};STATE=loadSaved('Draft')||clone(BASE);Object.keys(STATE.fundingScenarios).forEach(k=>$('#fundingScenario').insertAdjacentHTML('beforeend',`<option>${k}</option>`));populateMonthFilters();if(localStorage.getItem('eqlabs-theme')==='dark'){document.documentElement.dataset.theme='dark';$('#themeBtn').textContent='☾'}wire();renderAll();window.runModelQA=()=>{renderTab6();return {filters:{corro:selectedCorroMonth(),cavali:selectedCavaliMonth()},paidRamp:paidRamp(),cash:cashAll(),years:Object.fromEntries(YEARS.map(y=>[y,{ecommerce:ecommerceBuild(y),portfolio:portfolio(y),financial:financial(y),cash:cashAll()[y]}]))}}}
 init().catch(e=>{console.error(e);document.body.insertAdjacentHTML('beforeend',`<pre style="color:red">${esc(e.stack||e.message)}</pre>`)})
 })();
