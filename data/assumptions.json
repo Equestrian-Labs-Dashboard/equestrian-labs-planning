@@ -1,6 +1,6 @@
 {
   "meta": {
-    "version": "4.3",
+    "version": "4.4",
     "displayYear": "2026",
     "status": "Draft",
     "fundingScenario": "$3M",
@@ -284,18 +284,6 @@
         "2027": 0.1,
         "2028": 0.12,
         "2029": 0.15
-      },
-      "adSpend": {
-        "2026": 0,
-        "2027": 0,
-        "2028": 0,
-        "2029": 0
-      },
-      "roas": {
-        "2026": 4,
-        "2027": 4,
-        "2028": 4.2,
-        "2029": 4.5
       }
     },
     "Private Label": {
@@ -359,19 +347,19 @@
   },
   "operations": {
     "outboundShippingPct": {
-      "2026": null,
+      "2026": 0.03,
       "2027": 0.03,
       "2028": 0.03,
       "2029": 0.03
     },
     "shippingRevenuePct": {
-      "2026": null,
+      "2026": 0.02,
       "2027": 0.02,
       "2028": 0.02,
       "2029": 0.02
     },
     "packagingPct": {
-      "2026": null,
+      "2026": 0.02,
       "2027": 0.02,
       "2028": 0.02,
       "2029": 0.02
@@ -436,14 +424,6 @@
       "status": "ACTIVE",
       "launchDate": "2026",
       "investment": "$305.64"
-    },
-    {
-      "initiative": "Cavali Paid Growth",
-      "owner": "Angela / Marketing",
-      "fundingTrigger": "\u2265$1M",
-      "status": "ACTIVE",
-      "launchDate": "Oct-26",
-      "investment": "Scenario"
     },
     {
       "initiative": "Embroidery",

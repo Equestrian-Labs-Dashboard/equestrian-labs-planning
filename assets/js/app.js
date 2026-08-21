@@ -17,7 +17,7 @@ function fmtPct(v){return valid(v)?`${(n(v)*100).toFixed(1).replace(".0","")}%`:
 function fmtX(v){return valid(v)?`${n(v).toFixed(1)}x`:"—"}
 function fmtNum(v,d=0){return valid(v)?Number(v).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}):"Data unavailable"}
 function parseUserValue(t,f="number"){let raw=String(t??"").trim().toLowerCase().replace(/[$,%x,]/g,"");if(!raw)return null;let mult=1;if(raw.endsWith("m")){mult=1e6;raw=raw.slice(0,-1)}else if(raw.endsWith("k")){mult=1e3;raw=raw.slice(0,-1)}let v=parseFloat(raw);if(!Number.isFinite(v))return null;v*=mult;if(f==="pct")v=v>1?v/100:v;return v}
-function storageKey(status=STATE.meta?.status||"Draft"){return `eqlabs-strategic-model:v43:${status}`}
+function storageKey(status=STATE.meta?.status||"Draft"){return `eqlabs-strategic-model:v44:${status}`}
 function loadSaved(status){try{const x=localStorage.getItem(storageKey(status));return x?JSON.parse(x):null}catch{return null}}
 function save(){STATE.meta.lastUpdated=new Date().toISOString().slice(0,10);localStorage.setItem(storageKey(),JSON.stringify(STATE));if($("#lastUpdated"))$("#lastUpdated").value=STATE.meta.lastUpdated;flash("Saved ✓")}
 function flash(t){const e=$("#sourceStatus");if(!e)return;const old=e.textContent;e.textContent=t;setTimeout(()=>e.textContent=old,1600)}
@@ -255,10 +255,81 @@ function wire(){
  $("#roas").onchange=e=>{STATE.meta.roas=n(e.target.value);YEARS.forEach(y=>STATE.commercial.roasByYear[y]=n(e.target.value));save();renderAll()}
 }
 function applyFinalDefaults(s){
- s.meta.version="4.3";
+ s.meta.version="4.4";
  if(s.engines?.Ecommerce?.gm1){s.engines.Ecommerce.gm1["2027"]=.37;s.engines.Ecommerce.gm1["2028"]=.42;s.engines.Ecommerce.gm1["2029"]=.46}
  return s
 }
+
+// ===== v4.4 Ceci 2026 corrections =====
+function reliableCoverageMargin(a,minCoverage=.80,maxMargin=.75){
+  if(!a)return null;
+  const sales=firstPositive(a.netSales,a.grossSales),cogs=firstPositive(a.cogs),units=firstPositive(a.units),costed=firstValid(a.costedUnits);
+  if(sales===null||cogs===null||sales<=cogs)return null;
+  if(units!==null&&costed!==null&&n(costed)/n(units)<minCoverage)return null;
+  const gm=(sales-cogs)/sales;
+  return gm>0&&gm<=maxMargin?gm:null;
+}
+function saneActualMargin(v,max=.75){const r=rate(v);return r!==null&&r>0&&r<=max?r:null}
+actualGm1=function(name){
+  const a=actual2026(),m=monthlyDisplayActuals();
+  if(name==="Cavali")return firstPositive(reliableCoverageMargin(a.cav,.80,.70),saneActualMargin(connected("financial.cavali.gm1",null),.70),saneActualMargin(shopifyDerived("cavali","totals.gm1",null),.70),reliableCoverageMargin(m.cav,.80,.70),.397);
+  if(name==="Ecommerce")return firstPositive(reliableCoverageMargin(a.corro),reliableCoverageMargin(a.ecom),saneActualMargin(connected("financial.corro.gm1",null)),saneActualMargin(shopifyDerived("corro","totals.gm1",null)),saneActualMargin(connected("financial.corro.ecommerceGm1",null)),reliableCoverageMargin(m.ecom),.32);
+  if(name==="Concierge")return firstPositive(reliableCoverageMargin(a.con),saneActualMargin(connected("financial.corro.conciergeGm1",null)),saneActualMargin(shopifyDerived("corro","channels.Concierge.gm1",null)),reliableCoverageMargin(m.con),.35);
+  if(name==="Wellington")return firstPositive(reliableCoverageMargin(a.well),saneActualMargin(connected("financial.corro.wellingtonGm1",null)),saneActualMargin(shopifyDerived("corro","channels.Wellington.gm1",null)),reliableCoverageMargin(m.well),.45);
+  return null;
+};
+const _engValV43=engVal;
+engVal=function(name,key,y){
+  if(name==="Cavali"&&y==="2026"&&["signatureMembers","signatureBoxesPerMemberYear","premierMembers","premierBoxesPerMemberYear"].includes(key)){
+    const manual=STATE.engines?.Cavali?.[key]?.[y]; if(valid(manual))return n(manual);
+    const map={signatureBoxesPerMemberYear:"signatureBoxes",premierBoxesPerMemberYear:"premierBoxes"},av=actualEngine(name,map[key]||key); if(valid(av))return n(av);
+  }
+  return _engValV43(name,key,y);
+};
+const _engineV43=engine;
+engine=function(name,y){
+  if(name!=="Cavali")return _engineV43(name,y);
+  const sm=engVal(name,"signatureMembers",y),sb=engVal(name,"signatureBoxesPerMemberYear",y),sp=engVal(name,"signaturePrice",y),pm=engVal(name,"premierMembers",y),pb=engVal(name,"premierBoxesPerMemberYear",y),pp=engVal(name,"premierPrice",y);
+  const signatureRevenue=sm*sb*sp,premierRevenue=pm*pb*pp,sales=signatureRevenue+premierRevenue;
+  return{sales,subscription:sales,signatureRevenue,premierRevenue,paid:0,gm1:engVal(name,"gm1",y)||.397,sm,sb,sp,pm,pb,pp,orders:actualEngine(name,"orders")};
+};
+operationsPct=function(key,y){
+  if(y==="2026"){
+    const map={outboundShippingPct:"financial.corro.outboundShippingPct",packagingPct:"financial.corro.packagingPct",shippingRevenuePct:"financial.corro.shippingRevenuePct"},v=rate(connected(map[key],null));
+    if(v!==null&&v>0)return v;
+  }
+  return n(STATE.operations[key][y]);
+};
+const _portfolioV43=portfolio;
+portfolio=function(y){
+  const items=Object.keys(STATE.engines).map(name=>({name,...engine(name,y)})),gross=items.reduce((s,x)=>s+x.sales,0),disc=discountsRate(y),net=gross*(1-disc);let gp1=0;
+  items.forEach(x=>{x.net=x.sales*(1-disc);x.gp1=x.net*x.gm1;gp1+=x.gp1});
+  const cogs=Math.max(0,net-gp1),outbound=net*operationsPct("outboundShippingPct",y),packaging=net*operationsPct("packagingPct",y),shipRev=net*operationsPct("shippingRevenuePct",y),gp2=gp1-outbound-packaging+shipRev,advertising=totalAds(y),gp3=gp2-advertising;
+  return{items,gross,disc,net,cogs,gp1,outbound,packaging,shipRev,gp2,advertising,gp3};
+};
+const _engineRowsV43=engineRows;
+engineRows=function(name){
+  if(name!=="Cavali")return _engineRowsV43(name);
+  const e=STATE.engines.Cavali;
+  const edit=(key,y,fmt="number")=>{const raw=valid(e[key]?.[y])?e[key][y]:engVal(name,key,y);return `<td class="editable" contenteditable="true" data-engine="Cavali" data-key="${key}" data-year="${y}" data-format="${fmt}">${fmt==="pct"?fmtPct(raw):fmt==="money"?fmtMoney(raw):fmtNum(raw,key.includes("Boxes")?1:0)}</td>`};
+  const calc=(label,fn)=>`<tr><td>${label}</td><td class="baseline">Calculated</td>${YEARS.map(y=>`<td class="calculated">${fmtMoney(fn(engine("Cavali",y)))}</td>`).join("")}</tr>`;
+  return[
+    `<tr><td>Signature Active Members</td><td class="baseline">${fmtNum(cavaliMembers("signature"))}</td>${YEARS.map(y=>edit("signatureMembers",y)).join("")}</tr>`,
+    `<tr><td>Signature Boxes per Member / Year</td><td class="baseline">${fmtNum(cavaliBoxes("signature"),1)}</td>${YEARS.map(y=>edit("signatureBoxesPerMemberYear",y)).join("")}</tr>`,
+    `<tr><td>Signature Price</td><td class="baseline">$99</td>${YEARS.map(y=>edit("signaturePrice",y,"money")).join("")}</tr>`,calc("Signature Revenue",x=>x.signatureRevenue),
+    `<tr><td>Premier Active Members</td><td class="baseline">${fmtNum(cavaliMembers("premier"))}</td>${YEARS.map(y=>edit("premierMembers",y)).join("")}</tr>`,
+    `<tr><td>Premier Boxes per Member / Year</td><td class="baseline">${fmtNum(cavaliBoxes("premier"),1)}</td>${YEARS.map(y=>edit("premierBoxesPerMemberYear",y)).join("")}</tr>`,
+    `<tr><td>Premier Price</td><td class="baseline">$199</td>${YEARS.map(y=>edit("premierPrice",y,"money")).join("")}</tr>`,calc("Premier Revenue",x=>x.premierRevenue),calc("Total Cavali Revenue",x=>x.sales),
+    `<tr><td>GM1 %</td><td class="baseline">${fmtPct(actualGm1("Cavali"))}</td><td class="calculated">${fmtPct(actualGm1("Cavali"))}</td>${YEARS.slice(1).map(y=>edit("gm1",y,"pct")).join("")}</tr>`
+  ];
+};
+renderOperations=function(){
+  const p=STATE.operations,labels=["Outbound Shipping Cost %","Shipping Revenue %","Packaging Cost %"],keys=["outboundShippingPct","shippingRevenuePct","packagingPct"];
+  const rows=keys.map((k,i)=>{const a=rate(connected("financial.corro."+k,null)),src=a!==null&&a>0?fmtPct(a):"Manual / scenario";return `<tr><td>${labels[i]}</td><td class="baseline">${src}</td>${YEARS.map(y=>field(p,k,y,"pct")).join("")}</tr>`});
+  $("#operationsMagic").innerHTML=`<div class="section"><div class="section-title accent-purple">Section 5 — Operations Strategy</div><p class="note">2026 is editable and saved. GP2 = GP1 − Outbound Shipping − Packaging + Shipping Revenue; GP3 = GP2 − Advertising.</p>${table(["Driver","Source / Current",...YEARS],rows)}</div>`;
+};
+// ===== end v4.4 =====
+
 async function init(){const d=await DataService.loadAll();BASE=applyFinalDefaults(clone(d.assumptions));ACTUALS={shopify:d.shopify,connected:d.connected,smartrr:d.smartrr||{}};STATE=loadSaved("Draft")||clone(BASE);applyFinalDefaults(STATE);Object.keys(STATE.fundingScenarios).forEach(k=>$("#fundingScenario").insertAdjacentHTML("beforeend",`<option>${k}</option>`));populateMonthFilters();if(localStorage.getItem("eqlabs-theme")==="dark"){document.documentElement.dataset.theme="dark";$("#themeBtn").textContent="☾"}wire();renderAll();window.runModelQA=()=>({paidRamp:paidRamp(),years:Object.fromEntries(YEARS.map(y=>[y,{ecommerce:ecommerceBuild(y),portfolio:portfolio(y),financial:financial(y),cash:cashAll()[y]}])),cavali:{signatureMembers:actualEngine("Cavali","signatureMembers"),signatureBoxes:actualEngine("Cavali","signatureBoxes"),premierMembers:actualEngine("Cavali","premierMembers"),premierBoxes:actualEngine("Cavali","premierBoxes"),gm1:actualGm1("Cavali")}})}
 init().catch(e=>{console.error(e);document.body.insertAdjacentHTML("beforeend",`<pre class="fatal">${esc(e.stack||e.message)}</pre>`)});
 })();
