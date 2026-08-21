@@ -1,0 +1,260 @@
+
+/* =========================================================
+   Strategic Operating Model — Section 4/5 visual refinement
+   Safe visual-only override. Load AFTER the main stylesheet.
+   ========================================================= */
+
+:root {
+  --som-card-bg: #ffffff;
+  --som-soft-bg: #f7f9fc;
+  --som-border: #dfe7f3;
+  --som-blue-soft: #eaf2ff;
+  --som-yellow-soft: #fff3c9;
+  --som-text: #0f2747;
+  --som-muted: #6d7c93;
+  --som-shadow: 0 10px 28px rgba(19, 45, 83, .08);
+}
+
+/* ---------- Purchasing section container ---------- */
+.som-purchasing-section,
+.som-operations-section {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto 28px;
+  padding: 0;
+}
+
+.som-purchasing-section .som-section-title,
+.som-operations-section .som-section-title {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 16px;
+  margin: 0 0 12px;
+  border-left: 4px solid #7f56d9;
+  background: linear-gradient(90deg, rgba(127,86,217,.08), rgba(127,86,217,0));
+  border-radius: 8px;
+  color: var(--som-text);
+  font-weight: 800;
+  letter-spacing: .01em;
+}
+
+/* ---------- Main commercial terms table ---------- */
+.som-purchasing-section .som-main-table-wrap,
+.som-operations-section .som-main-table-wrap {
+  background: var(--som-card-bg);
+  border: 1px solid var(--som-border);
+  border-radius: 14px;
+  box-shadow: var(--som-shadow);
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.som-purchasing-section table,
+.som-operations-section table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.som-purchasing-section th,
+.som-purchasing-section td,
+.som-operations-section th,
+.som-operations-section td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--som-border);
+  vertical-align: middle;
+  line-height: 1.3;
+}
+
+.som-purchasing-section tr:last-child td,
+.som-operations-section tr:last-child td {
+  border-bottom: 0;
+}
+
+.som-purchasing-section thead th,
+.som-operations-section thead th {
+  background: var(--som-blue-soft);
+  color: var(--som-text);
+  font-weight: 800;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .025em;
+}
+
+.som-purchasing-section th:first-child,
+.som-purchasing-section td:first-child,
+.som-operations-section th:first-child,
+.som-operations-section td:first-child {
+  width: 36%;
+  text-align: left;
+}
+
+.som-purchasing-section th:nth-child(2),
+.som-purchasing-section td:nth-child(2),
+.som-operations-section th:nth-child(2),
+.som-operations-section td:nth-child(2) {
+  width: 22%;
+}
+
+.som-purchasing-section th:nth-child(n+3),
+.som-purchasing-section td:nth-child(n+3),
+.som-operations-section th:nth-child(n+3),
+.som-operations-section td:nth-child(n+3) {
+  text-align: right;
+}
+
+.som-purchasing-section td:nth-child(2),
+.som-operations-section td:nth-child(2) {
+  background: #f3f5f8;
+  color: var(--som-muted);
+  font-style: italic;
+}
+
+.som-purchasing-section td:nth-child(n+3),
+.som-operations-section td:nth-child(n+3) {
+  background: var(--som-yellow-soft);
+  color: var(--som-text);
+  font-weight: 600;
+}
+
+/* Current year should look like an actual, not another forecast assumption. */
+.som-purchasing-section td.som-current-actual,
+.som-operations-section td.som-current-actual {
+  background: #ffffff !important;
+  color: var(--som-text);
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* ---------- Empty/unavailable values ---------- */
+.som-unavailable {
+  color: #9aa6b7 !important;
+  font-style: italic;
+  font-weight: 500 !important;
+  background: #f8fafc !important;
+}
+
+.som-missing-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #7a879a;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.som-missing-source::before {
+  content: "•";
+  color: #c0c7d2;
+}
+
+/* ---------- Bottom information cards ---------- */
+.som-purchasing-subgrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.som-purchasing-subcard {
+  min-height: 112px;
+  padding: 18px 20px;
+  border: 1px solid var(--som-border);
+  border-radius: 14px;
+  background: var(--som-card-bg);
+  box-shadow: var(--som-shadow);
+}
+
+.som-purchasing-subcard h3,
+.som-purchasing-subcard h4 {
+  margin: 0 0 10px;
+  color: var(--som-text);
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.som-purchasing-subcard p {
+  margin: 0;
+  color: #34455f;
+  line-height: 1.5;
+  font-size: 13px;
+}
+
+.som-payment-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.som-payment-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 10px;
+  border: 1px solid #dbe3ee;
+  border-radius: 999px;
+  background: var(--som-soft-bg);
+  color: var(--som-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ---------- Methodology line ---------- */
+.som-method-note {
+  margin: 10px 4px 0;
+  color: #7a8799;
+  font-size: 11px;
+  font-style: italic;
+  line-height: 1.45;
+}
+
+/* ---------- Section spacing ---------- */
+.som-purchasing-section + .som-operations-section {
+  margin-top: 24px;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+  .som-purchasing-section,
+  .som-operations-section {
+    max-width: 100%;
+  }
+
+  .som-purchasing-subgrid {
+    grid-template-columns: 1fr;
+  }
+
+  .som-purchasing-section .som-main-table-wrap,
+  .som-operations-section .som-main-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .som-purchasing-section table,
+  .som-operations-section table {
+    min-width: 760px;
+  }
+}
+
+@media (max-width: 640px) {
+  .som-purchasing-section .som-section-title,
+  .som-operations-section .som-section-title {
+    padding: 0 12px;
+    min-height: 38px;
+    font-size: 13px;
+  }
+
+  .som-purchasing-subcard {
+    min-height: auto;
+    padding: 14px 15px;
+  }
+
+  .som-purchasing-section th,
+  .som-purchasing-section td,
+  .som-operations-section th,
+  .som-operations-section td {
+    padding: 10px 11px;
+    font-size: 12px;
+  }
+}
