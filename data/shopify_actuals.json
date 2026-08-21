@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-21T13:20:47.033Z",
+  "generated_at": "2026-08-21T13:32:37.409Z",
   "source": "github_actions_shopify_sync",
   "date_range": {
     "start": "2024-01-01",
@@ -3708,13 +3708,13 @@
           }
         },
         "inventory": {
-          "inventoryUnits": 318127,
-          "costedInventoryUnits": 317513,
-          "costCoveragePct": 0.9980699531947933,
-          "inventoryCostValue": 24577496.190000065,
-          "retailValue": 39726026.67999979,
+          "inventoryUnits": 324773,
+          "costedInventoryUnits": 324159,
+          "costCoveragePct": 0.998109448753437,
+          "inventoryCostValue": 24960417.970000066,
+          "retailValue": 40273048.29999979,
           "annualizedCogs": 591864.9887394959,
-          "inventoryTurns": 0.024081581954646387,
+          "inventoryTurns": 0.023712142539073607,
           "methodology": "Annualized current-year COGS divided by current inventory cost value. Uses Shopify InventoryItem.unitCost when cost coverage is sufficient."
         }
       },
