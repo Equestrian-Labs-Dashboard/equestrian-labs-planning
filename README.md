@@ -47,3 +47,11 @@ The first forecast year uses closed Shopify actual months plus remaining months 
 - Cavali uses Signature and Premier wording and Boxes per Member / Year.
 - Tabs 3 and 5 use the selected Display Year and the complete portfolio.
 - Tab 5 has no independent calculations; it reads the same model outputs used by Tabs 1–4.
+
+
+## v3.1 Actuals month filters
+
+- Corro Month: Jan 2026 onward only.
+- Cavali Month: current month onward only.
+- Month filters affect Baseline / Current monthly actuals.
+- 2026 FCS remains based on closed YTD actuals plus the remaining-month forecast.

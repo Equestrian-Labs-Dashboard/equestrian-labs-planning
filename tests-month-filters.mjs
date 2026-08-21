@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+const app=fs.readFileSync('assets/js/app.js','utf8');
+const data=fs.readFileSync('assets/js/dataService.js','utf8');
+const html=fs.readFileSync('index.html','utf8');
+const ok=(name,cond)=>{if(!cond){console.error('FAIL',name);process.exitCode=1}else console.log('PASS',name)};
+ok('Corro month filter exists',html.includes('id="corroMonth"'));
+ok('Cavali month filter exists',html.includes('id="cavaliMonth"'));
+ok('Corro filter starts at 2026-01',app.includes("availableMonths(corroBrand,'2026-01')"));
+ok('Cavali filter starts at current month',app.includes('availableMonths(cavBrand,current)'));
+ok('Monthly exact aggregation exists',data.includes('function aggregateMonth')&&data.includes('function channelMonth'));
+ok('2026 FCS still uses closed YTD',app.includes('DataService.aggregateClosed')&&app.includes('remainingMonths'));
+ok('Monthly filters persist',app.includes('STATE.meta.corroMonth')&&app.includes('STATE.meta.cavaliMonth'));
