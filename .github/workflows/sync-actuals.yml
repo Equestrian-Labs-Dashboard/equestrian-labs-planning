@@ -28,6 +28,9 @@ jobs:
           SHOPIFY_CAVALI_STORE: ${{ secrets.SHOPIFY_CAVALI_STORE }}
           SHOPIFY_CAVALI_TOKEN: ${{ secrets.SHOPIFY_CAVALI_TOKEN }}
         run: node scripts/sync-shopify-actuals.mjs
+      - name: Validate Shopify actuals generated
+        run: |
+          node -e "const fs=require('fs');const d=JSON.parse(fs.readFileSync('data/shopify_actuals.json','utf8'));const b=d.brands||{};if(!d.generated_at||!b.corro||!b.cavali)throw new Error('Shopify actuals were not generated for both Corro and Cavali; deployment stopped to protect the dashboard.');console.log('Validated Shopify actuals:',d.generated_at,'Corro orders:',b.corro.orderCount,'Cavali orders:',b.cavali.orderCount)"
       - name: Sync connected Google Sheets actuals
         continue-on-error: true
         env:
