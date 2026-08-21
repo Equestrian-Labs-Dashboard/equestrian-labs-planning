@@ -1,11 +1,12 @@
 {
-  "name": "atletix-github-native",
+  "name": "equestrian-labs-strategic-operating-model",
   "version": "3.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
-    "build:data": "node scripts/build-data.mjs"
-  },
-  "engines": {
-    "node": ">=20"
+    "sync:shopify": "node scripts/sync-shopify-actuals.mjs",
+    "sync:connected": "node scripts/sync-connected-data.mjs",
+    "check": "node --check assets/js/app.js && node --check assets/js/dataService.js && node --check scripts/sync-shopify-actuals.mjs && node --check scripts/sync-connected-data.mjs",
+    "test": "node tests/model-qa.mjs"
   }
 }

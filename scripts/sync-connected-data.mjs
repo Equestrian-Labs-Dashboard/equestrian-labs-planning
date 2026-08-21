@@ -1,97 +1,14 @@
 #!/usr/bin/env node
-/**
- * Secure Google Sheets sync for GitHub Pages.
- * Reads private sheets with the GOOGLE_CREDENTIALS service account and writes
- * a token-free data/connected_actuals.json consumed by the browser.
- */
-import fs from "node:fs/promises";
-import crypto from "node:crypto";
-
-const required = (name) => {
-  const value = process.env[name];
-  if (!value) throw new Error(`Missing required environment variable: ${name}`);
-  return value;
-};
-
-const credentials = JSON.parse(required("GOOGLE_CREDENTIALS"));
-const sheetIds = {
-  corro: required("SHEET_ID_CORRO"),
-  cavali: required("SHEET_ID_CAVALI"),
-};
-
-const tabs = {
-  corro: ["kpis_daily", "revenue_share", "ad_spend", "new_vs_returning", "products_q1_2026"],
-  cavali: ["kpis_daily", "revenue_share", "ad_spend", "new_vs_returning", "smartrr_product_volume", "smartrr_subscribers", "products_q1_2026"],
-};
-
-function base64url(value) {
-  return Buffer.from(value).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-}
-
-async function accessToken() {
-  const now = Math.floor(Date.now() / 1000);
-  const header = base64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-  const payload = base64url(JSON.stringify({
-    iss: credentials.client_email,
-    scope: "https://www.googleapis.com/auth/spreadsheets.readonly",
-    aud: credentials.token_uri || "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3600,
-  }));
-  const unsigned = `${header}.${payload}`;
-  const signature = crypto.sign("RSA-SHA256", Buffer.from(unsigned), credentials.private_key);
-  const assertion = `${unsigned}.${base64url(signature)}`;
-  const body = new URLSearchParams({
-    grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-    assertion,
-  });
-  const response = await fetch(credentials.token_uri || "https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body,
-  });
-  const json = await response.json();
-  if (!response.ok || !json.access_token) throw new Error(`Google token error: ${JSON.stringify(json).slice(0, 1000)}`);
-  return json.access_token;
-}
-
-function rowsToObjects(values = []) {
-  if (!values.length) return [];
-  const headers = values[0].map(v => String(v ?? "").trim());
-  return values.slice(1).filter(row => row.some(v => String(v ?? "").trim() !== "")).map(row => {
-    const out = {};
-    headers.forEach((header, index) => { if (header) out[header] = row[index] ?? ""; });
-    return out;
-  });
-}
-
-async function readTab(token, spreadsheetId, tab) {
-  const range = encodeURIComponent(`'${tab}'`);
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?majorDimension=ROWS`;
-  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (response.status === 400 || response.status === 404) {
-    console.warn(`Optional tab unavailable: ${tab}`);
-    return [];
-  }
-  const json = await response.json();
-  if (!response.ok) throw new Error(`Google Sheets ${tab}: HTTP ${response.status} ${JSON.stringify(json).slice(0, 1000)}`);
-  return rowsToObjects(json.values || []);
-}
-
-async function main() {
-  const token = await accessToken();
-  const brands = {};
-  for (const brand of Object.keys(sheetIds)) {
-    brands[brand] = {};
-    for (const tab of tabs[brand]) {
-      brands[brand][tab] = await readTab(token, sheetIds[brand], tab);
-      console.log(`${brand}/${tab}: ${brands[brand][tab].length} rows`);
-    }
-  }
-  const output = { generated_at: new Date().toISOString(), source: "google_sheets_service_account", brands };
-  await fs.mkdir("data", { recursive: true });
-  await fs.writeFile("data/connected_actuals.json", JSON.stringify(output, null, 2));
-  console.log("Wrote data/connected_actuals.json");
-}
-
-main().catch(error => { console.error(error); process.exit(1); });
+import fs from 'node:fs/promises';
+import crypto from 'node:crypto';
+const creds=JSON.parse(process.env.GOOGLE_CREDENTIALS||'{}');
+const ids={ads:process.env.ADS_SHEET_ID,corro:process.env.SHEET_ID_CORRO,cavali:process.env.SHEET_ID_CAVALI};
+function b64(x){return Buffer.from(typeof x==='string'?x:JSON.stringify(x)).toString('base64url')}
+async function token(){if(!creds.client_email||!creds.private_key)throw new Error('Missing GOOGLE_CREDENTIALS');const now=Math.floor(Date.now()/1000),head={alg:'RS256',typ:'JWT'},payload={iss:creds.client_email,scope:'https://www.googleapis.com/auth/spreadsheets.readonly',aud:'https://oauth2.googleapis.com/token',iat:now,exp:now+3600};const input=`${b64(head)}.${b64(payload)}`;const sig=crypto.sign('RSA-SHA256',Buffer.from(input),creds.private_key);const assertion=`${input}.${sig.toString('base64url')}`;const r=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'urn:ietf:params:oauth:grant-type:jwt-bearer',assertion})});const j=await r.json();if(!r.ok)throw new Error(JSON.stringify(j));return j.access_token}
+async function spreadsheet(id,t){if(!id)return[];const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${id}?includeGridData=true`,{headers:{Authorization:`Bearer ${t}`}});const j=await r.json();if(!r.ok)throw new Error(JSON.stringify(j));return j.sheets||[]}
+const cell=c=>c?.formattedValue??c?.effectiveValue?.numberValue??c?.effectiveValue?.stringValue??'';
+function rows(sheets){const out=[];for(const sh of sheets)for(const g of sh.data||[])for(const rr of g.rowData||[])out.push((rr.values||[]).map(cell));return out}
+const norm=x=>String(x||'').trim().toLowerCase().replace(/[_-]+/g,' ');
+function findMetric(rs,patterns){for(const r of rs){const joined=norm(r.join(' | '));if(patterns.some(p=>joined.includes(p))){for(let i=r.length-1;i>=0;i--){const v=Number(String(r[i]).replace(/[$,%x,]/g,''));if(Number.isFinite(v)&&String(r[i]).trim()!=='')return String(r[i]).includes('%')?v/100:v}}}return null}
+async function main(){const t=await token();const [ads,corro,cavali]=await Promise.all([spreadsheet(ids.ads,t),spreadsheet(ids.corro,t),spreadsheet(ids.cavali,t)]);const ar=rows(ads),cr=rows(corro),vr=rows(cavali);const out={generated_at:new Date().toISOString(),marketing:{corro:{adSpend:findMetric(ar,['ad spend','marketing spend','google ads','meta ads']),attributedPurchases:findMetric(ar,['attributed purchases','new customers','acquired customers'])},cavali:{adSpend:findMetric(vr,['ad spend','marketing spend']),attributedPurchases:findMetric(vr,['attributed purchases','new members','acquired members'])}},financial:{corro:{gm1:findMetric(cr,['gm1','gross margin']),markupPct:findMetric(cr,['markup']),inventoryTurns:findMetric(cr,['inventory turns']),outboundShippingPct:findMetric(cr,['outbound shipping']),shippingRevenuePct:findMetric(cr,['shipping revenue']),packagingPct:findMetric(cr,['packaging cost']),conciergeGm1:findMetric(cr,['concierge gm','concierge gross margin']),wellingtonGm1:findMetric(cr,['wellington gm','wellington gross margin'])},cavali:{gm1:findMetric(vr,['gross margin','gm1']),markupPct:findMetric(vr,['markup']),inventoryTurns:findMetric(vr,['inventory turns'])}},retention:{returningRevenue:findMetric(cr,['returning revenue','recurrent revenue']),totalCustomerRevenue:findMetric(cr,['total customer revenue']),returningCustomersPct:findMetric(cr,['returning customers']),purchaseFrequency:findMetric(cr,['purchase frequency'])},cavali:{signatureMembers:findMetric(vr,['signature active members','signature members']),signatureBoxesPerMemberYear:findMetric(vr,['signature boxes per member','signature boxes per year']),premierMembers:findMetric(vr,['premier active members','premier members']),premierBoxesPerMemberYear:findMetric(vr,['premier boxes per member','premier boxes per year'])}};await fs.mkdir('data',{recursive:true});await fs.writeFile('data/connected_actuals.json',JSON.stringify(out,null,2));console.log('Wrote data/connected_actuals.json')}
+main().catch(e=>{console.error(e);process.exit(1)})

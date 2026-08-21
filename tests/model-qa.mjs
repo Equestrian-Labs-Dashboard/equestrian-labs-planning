@@ -1,0 +1,16 @@
+import fs from 'node:fs';
+const a=JSON.parse(fs.readFileSync(new URL('../data/assumptions.json',import.meta.url),'utf8'));
+const Y=['2026','2027','2028','2029'];
+const sum=o=>Y.reduce((s,y)=>s+Number(o[y]||0),0);
+const checks=[]; const ok=(name,val)=>checks.push([name,!!val]);
+ok('Dover base = $130M',a.commercial.doverMarketOpportunity===130000000);
+ok('Dover ramp totals 100%',Math.abs(sum(a.commercial.doverRampPct)-1)<1e-9);
+ok('Vendor mix totals 100%',Math.abs(a.purchasing.vendorMix.prepaid+a.purchasing.vendorMix.lt15+a.purchasing.vendorMix.d30_45-1)<1e-9);
+ok('2026 organic revenue assumption = 0%',a.commercial.organicGrowthPct['2026']===0);
+ok('Base ad spend = $20k/month',a.commercial.baseAdSpendMonthly===20000);
+ok('$3M allocation balances',(()=>{const x=a.fundingScenarios['$3M'];return x.payables+x.inventory+x.marketing+x.embroidery+x.privateLabel===x.funding})());
+ok('G&A remains flat 2026-2029',new Set(Object.values(a.opex.generalAdministrative)).size===1);
+ok('S&M is not advertising',Object.values(a.opex.salesMarketing).every(v=>Number(v)>=0));
+ok('Cavali uses Premier wording in data model',!!a.engines.Cavali.premierMembers);
+for(const [name,val] of checks)console.log(`${val?'PASS':'FAIL'}  ${name}`);
+if(checks.some(x=>!x[1]))process.exit(1);
