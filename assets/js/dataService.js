@@ -1,20 +1,11 @@
 (function(){
   async function getJson(url, fallback={}) {
-    const cacheKey=`eqlabs:last-good:${url}`;
     try {
-      const sep=url.includes('?')?'&':'?';
-      const r = await fetch(`${url}${sep}_=${Date.now()}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}});
+      const r = await fetch(url,{cache:'no-store'});
       if(!r.ok) throw new Error(`${r.status} ${url}`);
-      const data=await r.json();
-      const valid=data && typeof data==='object';
-      if(valid){try{localStorage.setItem(cacheKey,JSON.stringify(data))}catch{}}
-      return valid?data:fallback;
+      return await r.json();
     } catch(e) {
       console.warn('Data source unavailable:',url,e.message);
-      try {
-        const cached=localStorage.getItem(cacheKey);
-        if(cached){console.warn('Using last-known-good cached source:',url);return JSON.parse(cached)}
-      } catch {}
       return fallback;
     }
   }
@@ -72,10 +63,13 @@
     return {grossSales:sum(rows,'gross_sales'),netSales:sum(rows,'net_sales'),orders:sum(rows,'nb_orders'),units:sum(rows,'nb_units'),uniqueCustomers:sum(rows,'unique_customers')};
   }
   async function loadAll(){
-    const [assumptions,shopify,connected]=await Promise.all([
-      getJson('data/assumptions.json',{}), getJson('data/shopify_actuals.json',{brands:{}}), getJson('data/connected_actuals.json',{})
+    const [assumptions,shopify,connected,smartrr]=await Promise.all([
+      getJson('data/assumptions.json',{}),
+      getJson('data/shopify_actuals.json',{brands:{}}),
+      getJson('data/connected_actuals.json',{}),
+      getJson('data/cavali_smartrr_actuals.json',{})
     ]);
-    return {assumptions,shopify,connected};
+    return {assumptions,shopify,connected,smartrr};
   }
   window.DataService={loadAll,aggregateClosed,channelClosed,currentPeriod,monthRange,availableMonths,aggregateMonth,channelMonth,latestClosedMonth};
 })();
