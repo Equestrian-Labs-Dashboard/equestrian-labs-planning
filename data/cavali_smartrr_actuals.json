@@ -1,15 +1,30 @@
 {
-  "generated_at": "",
-  "available": false,
-  "source": "pending_workflow",
+  "generated_at": "2026-08-21T07:24:13.277Z",
+  "available": true,
+  "source": "smartrr_purchase_state",
   "signature": {
-    "active": null,
-    "paused": null,
-    "boxesPerMemberYear": null
+    "active": 0,
+    "paused": 0,
+    "cancelled": 0,
+    "boxesPerMemberYear": 5.236134453781513,
+    "boxesSource": "shopify_ytd_annualized"
   },
   "premier": {
-    "active": null,
-    "paused": null,
-    "boxesPerMemberYear": null
-  }
+    "active": 0,
+    "paused": 0,
+    "cancelled": 0,
+    "boxesPerMemberYear": 3.3865546218487395,
+    "boxesSource": "shopify_ytd_annualized"
+  },
+  "other": {
+    "active": 398,
+    "paused": 3,
+    "cancelled": 525
+  },
+  "totals": {
+    "active": 398,
+    "paused": 3,
+    "cancelled": 525
+  },
+  "note": "Active members come from Smartrr purchase-state status. Boxes/member/year uses Smartrr cadence when present; otherwise Shopify YTD annualized subscription box units."
 }

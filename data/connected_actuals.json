@@ -1,7 +1,61 @@
 {
-  "generated_at":"",
-  "marketing":{"corro":{"adSpend":null,"attributedPurchases":null},"cavali":{"adSpend":null,"attributedPurchases":null}},
-  "financial":{"corro":{"cogs":null,"grossProfit":null,"gm1":null,"markupPct":null,"inventoryTurns":null,"outboundShippingPct":null,"packagingPct":null},"cavali":{"cogs":null,"grossProfit":null,"gm1":null,"markupPct":null,"inventoryTurns":null}},
-  "retention":{"returningRevenue":null,"totalCustomerRevenue":null,"returningCustomersPct":null,"purchaseFrequency":null},
-  "cavali":{"signatureMembers":null,"signatureBoxesPerMemberYear":null,"premierMembers":null,"premierBoxesPerMemberYear":null}
+  "generated_at": "2026-08-21T07:24:23.277Z",
+  "source": "connected_actuals_with_shopify_fallback",
+  "marketing": {
+    "corro": {
+      "adSpend": 0,
+      "attributedPurchases": 0
+    },
+    "cavali": {
+      "adSpend": 0,
+      "attributedPurchases": 0
+    }
+  },
+  "financial": {
+    "corro": {
+      "gm1": 0,
+      "markupPct": 0,
+      "inventoryTurns": 0,
+      "outboundShippingPct": 0,
+      "shippingRevenuePct": 0,
+      "packagingPct": 0,
+      "conciergeGm1": 0,
+      "wellingtonGm1": 0
+    },
+    "cavali": {
+      "gm1": 0,
+      "markupPct": 0,
+      "inventoryTurns": 0
+    }
+  },
+  "retention": {
+    "returningRevenue": 0,
+    "totalCustomerRevenue": 0,
+    "returningCustomersPct": 0,
+    "purchaseFrequency": 0
+  },
+  "cavali": {
+    "signatureMembers": 0,
+    "signatureBoxesPerMemberYear": 0,
+    "premierMembers": 0,
+    "premierBoxesPerMemberYear": 0
+  },
+  "source_map": {
+    "financial": {
+      "corro": {
+        "gm1": "shopify_product_cost",
+        "markupPct": "shopify_realized_markup",
+        "inventoryTurns": "shopify_cogs_inventory",
+        "conciergeGm1": "shopify_product_cost_channel",
+        "wellingtonGm1": "shopify_product_cost_channel"
+      },
+      "cavali": {
+        "gm1": "shopify_product_cost"
+      }
+    },
+    "cavali": {
+      "members": "shopify_observed_tier_customers",
+      "boxesPerMemberYear": "shopify_order_units_annualized"
+    }
+  }
 }
