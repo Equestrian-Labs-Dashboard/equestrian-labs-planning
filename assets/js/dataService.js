@@ -1,11 +1,20 @@
 (function(){
   async function getJson(url, fallback={}) {
+    const cacheKey=`eqlabs:last-good:${url}`;
     try {
-      const r = await fetch(url,{cache:'no-store'});
+      const sep=url.includes('?')?'&':'?';
+      const r = await fetch(`${url}${sep}_=${Date.now()}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}});
       if(!r.ok) throw new Error(`${r.status} ${url}`);
-      return await r.json();
+      const data=await r.json();
+      const valid=data && typeof data==='object';
+      if(valid){try{localStorage.setItem(cacheKey,JSON.stringify(data))}catch{}}
+      return valid?data:fallback;
     } catch(e) {
       console.warn('Data source unavailable:',url,e.message);
+      try {
+        const cached=localStorage.getItem(cacheKey);
+        if(cached){console.warn('Using last-known-good cached source:',url);return JSON.parse(cached)}
+      } catch {}
       return fallback;
     }
   }
