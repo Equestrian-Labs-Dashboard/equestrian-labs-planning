@@ -49,6 +49,23 @@
   }
   function aggregateMonth(brand,period){ return aggregateRows(rows(brand).filter(x=>x.period===period)); }
   function channelMonth(brand,channel,period){ return aggregateRows(channelRows(brand,channel).filter(x=>x.period===period)); }
+  // YTD / cutoff helpers: the selected month is a THROUGH date, never an isolated month.
+  function aggregateThrough(brand,period,year=2026){
+    const start=`${year}-01`;
+    const rs=rows(brand).filter(x=>x.period && x.period>=start && x.period<=period);
+    const a=aggregateRows(rs);
+    a.monthsClosed=new Set(rs.map(x=>x.period)).size;
+    a.lastClosedMonth=period;
+    return a;
+  }
+  function channelThrough(brand,channel,period,year=2026){
+    const start=`${year}-01`;
+    const rs=channelRows(brand,channel).filter(x=>x.period && x.period>=start && x.period<=period);
+    const a=aggregateRows(rs);
+    a.monthsClosed=new Set(rs.map(x=>x.period)).size;
+    a.lastClosedMonth=period;
+    return a;
+  }
   async function loadAll(){
     const [assumptions,shopify,connected,smartrr]=await Promise.all([
       getJson("data/assumptions.json",{}),
@@ -58,5 +75,5 @@
     ]);
     return {assumptions,shopify,connected,smartrr};
   }
-  window.DataService={loadAll,currentPeriod,latestClosedMonth,aggregateClosed,channelClosed,monthRange,availableMonths,aggregateMonth,channelMonth};
+  window.DataService={loadAll,currentPeriod,latestClosedMonth,aggregateClosed,channelClosed,monthRange,availableMonths,aggregateMonth,channelMonth,aggregateThrough,channelThrough};
 })();
