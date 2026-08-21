@@ -1,75 +1,62 @@
-(function(){
-  async function getJson(url, fallback={}) {
+(() => {
+  "use strict";
+  async function getJson(path, fallback={}) {
     try {
-      const r = await fetch(url,{cache:'no-store'});
-      if(!r.ok) throw new Error(`${r.status} ${url}`);
-      return await r.json();
-    } catch(e) {
-      console.warn('Data source unavailable:',url,e.message);
-      return fallback;
-    }
+      const r = await fetch(`${path}?v=${Date.now()}`, {cache:"no-store"});
+      return r.ok ? await r.json() : fallback;
+    } catch { return fallback; }
   }
-  function latestClosedMonth(rows){
-    const now=new Date();
-    const current=`${now.getUTCFullYear()}-${String(now.getUTCMonth()+1).padStart(2,'0')}`;
-    return [...rows].filter(r=>String(r.period||'')<current).sort((a,b)=>String(a.period).localeCompare(String(b.period))).at(-1)?.period || null;
+  function rows(brand){ return Array.isArray(brand?.kpis_daily) ? brand.kpis_daily : []; }
+  function currentPeriod(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; }
+  function latestClosedMonth(rs){
+    const cur=currentPeriod();
+    return [...new Set((rs||[]).map(x=>x.period).filter(p=>p && p<cur))].sort().at(-1)||null;
   }
-  function sum(rows, key){return rows.reduce((s,r)=>s+Number(r?.[key]||0),0)}
-  function aggregateClosed(brand,year=2026){
-    const rows=(brand?.kpis_daily||[]).filter(r=>String(r.period||'').startsWith(`${year}-`));
-    const closed=latestClosedMonth(rows);
-    const use=closed?rows.filter(r=>r.period<=closed):rows;
+  function sum(rs,key){ return (rs||[]).reduce((s,x)=>s+(Number(x?.[key])||0),0); }
+  function aggregateRows(rs){
+    const orders=sum(rs,"nb_orders"), grossSales=sum(rs,"gross_sales"), netSales=sum(rs,"net_sales");
     return {
-      lastClosedMonth:closed,
-      monthsClosed:new Set(use.map(r=>r.period)).size,
-      grossSales:sum(use,'gross_sales'), netSales:sum(use,'net_sales'), discounts:sum(use,'total_discounts'),
-      returns:sum(use,'total_returns'), shippingIncome:sum(use,'shipping_income'), orders:sum(use,'nb_orders'),
-      units:sum(use,'nb_units'), uniqueCustomers:Number(brand?.yearly_unique_customers?.[String(year)] ?? sum(use,'unique_customers'))
+      grossSales, netSales, orders, units:sum(rs,"nb_units"),
+      discounts:sum(rs,"total_discounts"), returns:sum(rs,"total_returns"),
+      shippingIncome:sum(rs,"shipping_income"), cogs:sum(rs,"cogs"),
+      costedUnits:sum(rs,"costed_units"), uniqueCustomers:sum(rs,"unique_customers")
     };
+  }
+  function aggregateClosed(brand,year=2026){
+    const last=latestClosedMonth(rows(brand));
+    const rs=rows(brand).filter(x=>String(x.period||"").startsWith(`${year}-`) && (!last || x.period<=last));
+    const a=aggregateRows(rs);
+    a.monthsClosed=new Set(rs.map(x=>x.period)).size;
+    a.lastClosedMonth=last;
+    return a;
+  }
+  function channelRows(brand, channel){
+    return (Array.isArray(brand?.revenue_share)?brand.revenue_share:[]).filter(x=>String(x.channel||"").toLowerCase()===String(channel).toLowerCase());
   }
   function channelClosed(brand,channel,year=2026){
-    const all=(brand?.revenue_share||[]).filter(r=>String(r.period||'').startsWith(`${year}-`));
-    const closed=latestClosedMonth(brand?.kpis_daily||[]);
-    const rows=all.filter(r=>(!closed||r.period<=closed) && String(r.channel||'').toLowerCase()===String(channel).toLowerCase());
-    return {grossSales:sum(rows,'gross_sales'),netSales:sum(rows,'net_sales'),orders:sum(rows,'nb_orders'),units:sum(rows,'nb_units'),uniqueCustomers:Number(brand?.channel_yearly_unique_customers?.[String(year)]?.[channel] ?? sum(rows,'unique_customers'))};
-  }
-
-  function currentPeriod(){
-    const now=new Date();
-    return `${now.getUTCFullYear()}-${String(now.getUTCMonth()+1).padStart(2,'0')}`;
+    const last=latestClosedMonth(rows(brand));
+    const rs=channelRows(brand,channel).filter(x=>String(x.period||"").startsWith(`${year}-`) && (!last || x.period<=last));
+    return aggregateRows(rs);
   }
   function monthRange(start,end){
-    const out=[]; let [y,m]=String(start).split('-').map(Number); const [ey,em]=String(end).split('-').map(Number);
-    while(y<ey || (y===ey && m<=em)){out.push(`${y}-${String(m).padStart(2,'0')}`);m++;if(m===13){m=1;y++;}}
+    const out=[]; let [y,m]=start.split("-").map(Number); const [ey,em]=end.split("-").map(Number);
+    while(y<ey || (y===ey && m<=em)){ out.push(`${y}-${String(m).padStart(2,"0")}`); if(++m>12){m=1;y++;} }
     return out;
   }
-  function availableMonths(brand,start='2026-01'){
-    const set=new Set();
-    for(const r of (brand?.kpis_daily||[])){const p=String(r?.period||'');if(/^\d{4}-\d{2}$/.test(p)&&p>=start)set.add(p)}
-    for(const r of (brand?.revenue_share||[])){const p=String(r?.period||'');if(/^\d{4}-\d{2}$/.test(p)&&p>=start)set.add(p)}
-    return [...set].sort();
+  function availableMonths(brand,start="2026-01"){
+    const all=[...new Set(rows(brand).map(x=>x.period).filter(Boolean))].sort();
+    return all.filter(x=>x>=start);
   }
-  function aggregateMonth(brand,period){
-    const rows=(brand?.kpis_daily||[]).filter(r=>String(r.period||'')===String(period));
-    return {
-      period,
-      grossSales:sum(rows,'gross_sales'), netSales:sum(rows,'net_sales'), discounts:sum(rows,'total_discounts'),
-      returns:sum(rows,'total_returns'), shippingIncome:sum(rows,'shipping_income'), orders:sum(rows,'nb_orders'),
-      units:sum(rows,'nb_units'), uniqueCustomers:sum(rows,'unique_customers')
-    };
-  }
-  function channelMonth(brand,channel,period){
-    const rows=(brand?.revenue_share||[]).filter(r=>String(r.period||'')===String(period) && String(r.channel||'').toLowerCase()===String(channel).toLowerCase());
-    return {grossSales:sum(rows,'gross_sales'),netSales:sum(rows,'net_sales'),orders:sum(rows,'nb_orders'),units:sum(rows,'nb_units'),uniqueCustomers:sum(rows,'unique_customers')};
-  }
+  function aggregateMonth(brand,period){ return aggregateRows(rows(brand).filter(x=>x.period===period)); }
+  function channelMonth(brand,channel,period){ return aggregateRows(channelRows(brand,channel).filter(x=>x.period===period)); }
   async function loadAll(){
     const [assumptions,shopify,connected,smartrr]=await Promise.all([
-      getJson('data/assumptions.json',{}),
-      getJson('data/shopify_actuals.json',{brands:{}}),
-      getJson('data/connected_actuals.json',{}),
-      getJson('data/cavali_smartrr_actuals.json',{})
+      getJson("data/assumptions.json",{}),
+      getJson("data/shopify_actuals.json",{brands:{}}),
+      getJson("data/connected_actuals.json",{}),
+      getJson("data/cavali_smartrr_actuals.json",{})
     ]);
     return {assumptions,shopify,connected,smartrr};
   }
-  window.DataService={loadAll,aggregateClosed,channelClosed,currentPeriod,monthRange,availableMonths,aggregateMonth,channelMonth,latestClosedMonth};
+  window.DataService={loadAll,currentPeriod,latestClosedMonth,aggregateClosed,channelClosed,monthRange,availableMonths,aggregateMonth,channelMonth};
 })();

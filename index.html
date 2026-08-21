@@ -4,34 +4,54 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Equestrian Labs — Strategic Operating Model</title>
-  <link rel="stylesheet" href="assets/css/styles.css?v=340" />
+  <link rel="stylesheet" href="assets/css/styles.css?v=420" />
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><small>EQUESTRIAN LABS</small><h1>Strategic Operating Model <span class="version">v3.4</span></h1><div>2026 – 2029</div></div>
-  <div class="legend"><span>■ Editable</span><span>□ Calculated</span><span>□ Baseline / Historical</span><span id="sourceStatus">Actuals loading…</span></div>
-  <div class="controls">
-    <label>MODEL STATUS<select id="statusSelect"><option>Draft</option><option>Budget</option><option>Forecast</option><option>Board</option></select></label>
-    <label>FUNDING SCENARIO<select id="fundingScenario"></select></label>
-    <label>DISPLAY YEAR<select id="displayYear"><option>2026</option><option>2027</option><option>2028</option><option>2029</option></select></label>
-    <label>CORRO MONTH<select id="corroMonth"></select></label>
-    <label>CAVALI MONTH<select id="cavaliMonth"></select></label>
-    <label>FUNDING DATE<select id="fundingDate"><option>Jul-26</option><option>Oct-26</option><option>Jan-27</option></select></label>
-    <label>BASE ECOMMERCE<input id="baseEcommerce" type="number" step="1000" /></label>
-    <label>DOVER CAPTURE<input id="doverCapture" type="number" step="0.01" min="0" max="1" /></label>
-    <label>ROAS<input id="roas" type="number" step="0.1" min="0" /></label>
-    <label>LAST UPDATED<input id="lastUpdated" readonly /></label>
+  <div class="topbar-inner">
+    <div class="brand">
+      <small>EQUESTRIAN LABS</small>
+      <h1>Strategic Operating Model <span class="version">v4.2</span></h1>
+      <div>2026 – 2029</div>
+    </div>
+
+    <div class="legend">
+      <span>■ Editable</span><span>□ Calculated</span><span>□ Baseline / Historical</span>
+      <span id="sourceStatus">Actuals loading…</span>
+    </div>
+
+    <div class="controls">
+      <label>MODEL STATUS<select id="statusSelect"><option>Draft</option><option>Budget</option><option>Forecast</option><option>Board</option></select></label>
+      <label>FUNDING SCENARIO<select id="fundingScenario"></select></label>
+      <label>DISPLAY YEAR<select id="displayYear"><option>2026</option><option>2027</option><option>2028</option><option>2029</option></select></label>
+      <label>CORRO MONTH<select id="corroMonth"></select></label>
+      <label>CAVALI MONTH<select id="cavaliMonth"></select></label>
+      <label>FUNDING DATE<select id="fundingDate"><option>Jul-26</option><option>Oct-26</option><option>Jan-27</option></select></label>
+      <label>BASE ECOMMERCE<input id="baseEcommerce" type="number" step="1000" /></label>
+      <label>DOVER CAPTURE<input id="doverCapture" type="number" step="0.01" min="0" max="1" /></label>
+      <label>ROAS<input id="roas" type="number" step="0.1" min="0" /></label>
+      <label>LAST UPDATED<input id="lastUpdated" readonly /></label>
+    </div>
+
+    <div class="actions">
+      <button id="saveBtn" class="primary">Save</button>
+      <button id="refreshBtn">Refresh Actuals</button>
+      <button id="downloadBtn">Download</button>
+      <button id="publishBtn">Publish To…</button>
+      <button id="themeBtn" aria-label="Toggle theme">☀</button>
+    </div>
+
+    <nav class="tabs">
+      <button data-tab="1" class="active">01 · Magic Page</button>
+      <button data-tab="2">02 · Growth & Margin Engine</button>
+      <button data-tab="3">03 · Financial Summary</button>
+      <button data-tab="4">04 · Commercial Cash Flow</button>
+      <button data-tab="5">05 · Board Dashboard</button>
+      <button data-tab="6">06 · Formula QA</button>
+    </nav>
   </div>
-  <div class="actions"><button id="saveBtn" class="primary">Save</button><button id="refreshBtn">Refresh Actuals</button><button id="downloadBtn">Download</button><button id="publishBtn">Publish To…</button><button id="themeBtn" aria-label="Toggle theme">☀</button></div>
-  <nav class="tabs">
-    <button data-tab="1" class="active">01 · Magic Page</button>
-    <button data-tab="2">02 · Growth & Margin Engine</button>
-    <button data-tab="3">03 · Financial Summary</button>
-    <button data-tab="4">04 · Commercial Cash Flow</button>
-    <button data-tab="5">05 · Board Dashboard</button>
-    <button data-tab="6">06 · Formula QA</button>
-  </nav>
 </header>
+
 <main id="app">
   <section id="tab1" class="tab-panel active"></section>
   <section id="tab2" class="tab-panel"></section>
@@ -40,14 +60,8 @@
   <section id="tab5" class="tab-panel"></section>
   <section id="tab6" class="tab-panel"></section>
 </main>
-<script src="assets/js/dataService.js?v=340"></script>
-<script src="assets/js/app.js?v=340"></script>
 
-<!-- Consolidated Ceci fixes -->
-<script src="assets/js/ceci-final-hotfix-v2.17.js?v=217"></script>
-
-<!-- Ceci meeting review 2026-08-21:
-     GM1 / COGS / Cavali / Markup / Annual GP -->
-<script src="assets/js/ceci-model-review-2026-08-21-v4.1.js?v=41"></script>
+<script src="assets/js/dataService.js?v=420"></script>
+<script src="assets/js/app.js?v=420"></script>
 </body>
 </html>
