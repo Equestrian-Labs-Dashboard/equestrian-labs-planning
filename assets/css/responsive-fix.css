@@ -1,0 +1,450 @@
+
+/* =========================================================
+   Sponsorship Tracker — Responsive + Table Layout Fix
+   Load this file AFTER the existing dashboard stylesheet.
+   ========================================================= */
+
+/* ---------- Global sizing ---------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+}
+
+/* ---------- Main application shell ---------- */
+/* Covers the common class names used in dashboard layouts. */
+.app,
+.app-shell,
+.dashboard-shell,
+.layout,
+.page-shell {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.main,
+.main-content,
+.content,
+.page-content,
+.dashboard-content {
+  min-width: 0;
+  width: 100%;
+}
+
+/* Keep the page readable on large screens instead of stretching endlessly. */
+.main-inner,
+.content-inner,
+.page-inner,
+.dashboard-inner,
+main > .container,
+main > .content-wrapper {
+  width: min(100%, 1480px);
+  margin-inline: auto;
+  padding-inline: clamp(16px, 2vw, 32px);
+}
+
+/* ---------- Sidebar ---------- */
+.sidebar,
+.app-sidebar,
+.side-nav,
+aside.sidebar {
+  flex: 0 0 clamp(210px, 15vw, 260px);
+  width: clamp(210px, 15vw, 260px);
+  min-width: 210px;
+}
+
+/* ---------- Header / actions ---------- */
+.page-header,
+.dashboard-header,
+.content-header,
+.toolbar,
+.header-actions {
+  min-width: 0;
+}
+
+.page-header,
+.dashboard-header,
+.content-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.header-actions,
+.toolbar-actions,
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+/* ---------- Filters ---------- */
+.filters,
+.filter-bar,
+.filters-grid,
+.filter-grid,
+.dashboard-filters {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.filters > *,
+.filter-bar > *,
+.filters-grid > *,
+.filter-grid > *,
+.dashboard-filters > * {
+  min-width: 0;
+}
+
+.filters input,
+.filters select,
+.filter-bar input,
+.filter-bar select,
+.filters-grid input,
+.filters-grid select,
+.filter-grid input,
+.filter-grid select,
+.dashboard-filters input,
+.dashboard-filters select {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ---------- KPI cards ---------- */
+.kpi-grid,
+.kpis,
+.metrics-grid,
+.cards-grid,
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+.kpi-card,
+.metric-card,
+.stat-card,
+.card {
+  min-width: 0;
+}
+
+/* ---------- Section cards ---------- */
+.panel,
+.section-card,
+.table-card,
+.card,
+.content-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* ---------- TABLES: desktop first ---------- */
+/*
+  Desktop behavior:
+  - table uses available width
+  - no unnecessary horizontal scrollbar
+  - columns wrap naturally
+  - rows remain readable
+*/
+.table-responsive,
+.table-wrap,
+.table-wrapper,
+.table-container,
+.data-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: visible;
+  overflow-y: visible;
+}
+
+table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+table th,
+table td {
+  min-width: 0;
+  padding: 11px 12px;
+  line-height: 1.35;
+  vertical-align: middle;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+table th {
+  font-size: clamp(11px, .8vw, 13px);
+}
+
+table td {
+  font-size: clamp(12px, .86vw, 14px);
+}
+
+/* Avoid oversized memo/vendor columns monopolizing the table. */
+table th:nth-child(1),
+table td:nth-child(1) {
+  width: 11%;
+}
+
+table th:nth-child(2),
+table td:nth-child(2) {
+  width: 16%;
+}
+
+table th:nth-child(3),
+table td:nth-child(3) {
+  width: 12%;
+}
+
+table th:nth-child(4),
+table td:nth-child(4) {
+  width: 15%;
+}
+
+table th:nth-child(5),
+table td:nth-child(5) {
+  width: 23%;
+}
+
+table th:nth-child(6),
+table td:nth-child(6) {
+  width: 9%;
+}
+
+table th:nth-child(7),
+table td:nth-child(7) {
+  width: 9%;
+}
+
+table th:nth-child(8),
+table td:nth-child(8) {
+  width: 8%;
+}
+
+/* Numeric/status cells remain compact. */
+table th:nth-last-child(-n+3),
+table td:nth-last-child(-n+3) {
+  white-space: nowrap;
+}
+
+/* ---------- Search / table controls ---------- */
+.table-toolbar,
+.section-toolbar,
+.table-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.table-toolbar input[type="search"],
+.section-toolbar input[type="search"],
+.table-header-actions input[type="search"] {
+  flex: 1 1 260px;
+  min-width: 200px;
+  max-width: 420px;
+}
+
+/* ---------- Laptop ---------- */
+@media (max-width: 1200px) {
+  .filters,
+  .filter-bar,
+  .filters-grid,
+  .filter-grid,
+  .dashboard-filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .kpi-grid,
+  .kpis,
+  .metrics-grid,
+  .cards-grid,
+  .stat-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .sidebar,
+  .app-sidebar,
+  .side-nav,
+  aside.sidebar {
+    flex-basis: 220px;
+    width: 220px;
+    min-width: 220px;
+  }
+}
+
+/* ---------- Tablet ---------- */
+@media (max-width: 900px) {
+  .sidebar,
+  .app-sidebar,
+  .side-nav,
+  aside.sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 1000;
+    width: 250px;
+    max-width: 82vw;
+    transform: translateX(-100%);
+    transition: transform .2s ease;
+  }
+
+  .sidebar.is-open,
+  .app-sidebar.is-open,
+  .side-nav.is-open,
+  aside.sidebar.is-open,
+  body.sidebar-open .sidebar,
+  body.sidebar-open .app-sidebar,
+  body.sidebar-open .side-nav {
+    transform: translateX(0);
+  }
+
+  .main,
+  .main-content,
+  .content,
+  .page-content,
+  .dashboard-content {
+    width: 100%;
+    margin-left: 0 !important;
+  }
+
+  .filters,
+  .filter-bar,
+  .filters-grid,
+  .filter-grid,
+  .dashboard-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kpi-grid,
+  .kpis,
+  .metrics-grid,
+  .cards-grid,
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /*
+    Only on tablet/mobile do we allow a horizontal table scroll.
+    This avoids the ugly scrollbar on desktop while preserving all columns.
+  */
+  .table-responsive,
+  .table-wrap,
+  .table-wrapper,
+  .table-container,
+  .data-table-wrap {
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  table {
+    min-width: 820px;
+  }
+
+  table th,
+  table td {
+    padding: 10px 11px;
+  }
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 640px) {
+  .main-inner,
+  .content-inner,
+  .page-inner,
+  .dashboard-inner,
+  main > .container,
+  main > .content-wrapper {
+    padding-inline: 12px;
+  }
+
+  .page-header,
+  .dashboard-header,
+  .content-header {
+    display: block;
+  }
+
+  .header-actions,
+  .toolbar-actions,
+  .page-actions {
+    margin-top: 12px;
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .header-actions > *,
+  .toolbar-actions > *,
+  .page-actions > * {
+    flex: 1 1 auto;
+  }
+
+  .filters,
+  .filter-bar,
+  .filters-grid,
+  .filter-grid,
+  .dashboard-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .kpi-grid,
+  .kpis,
+  .metrics-grid,
+  .cards-grid,
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-toolbar,
+  .section-toolbar,
+  .table-header-actions {
+    align-items: stretch;
+  }
+
+  .table-toolbar input[type="search"],
+  .section-toolbar input[type="search"],
+  .table-header-actions input[type="search"] {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
+  table {
+    min-width: 760px;
+  }
+}
+
+/* ---------- Very small phones ---------- */
+@media (max-width: 420px) {
+  table {
+    min-width: 720px;
+  }
+
+  table th,
+  table td {
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+}
