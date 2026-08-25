@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-24T10:58:40.618Z",
+  "generated_at": "2026-08-25T01:14:23.754Z",
   "available": true,
   "source": "smartrr_purchase_state",
   "tierClassification": false,
@@ -8,14 +8,14 @@
     "active": null,
     "paused": null,
     "cancelled": null,
-    "boxesPerMemberYear": 5.248132780082988,
+    "boxesPerMemberYear": 5.226446280991735,
     "boxesSource": "shopify_ytd_annualized"
   },
   "premier": {
     "active": null,
     "paused": null,
     "cancelled": null,
-    "boxesPerMemberYear": 3.3443983402489628,
+    "boxesPerMemberYear": 3.330578512396694,
     "boxesSource": "shopify_ytd_annualized"
   },
   "other": {

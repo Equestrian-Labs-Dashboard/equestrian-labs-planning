@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-08-24T10:58:35.961Z",
+  "generated_at": "2026-08-25T01:14:12.158Z",
   "source": "github_actions_shopify_sync",
   "date_range": {
     "start": "2024-01-01",
-    "end": "2026-08-24"
+    "end": "2026-08-25"
   },
   "brands": {
     "corro": {
@@ -11,7 +11,7 @@
       "store": "equestrian-labs.myshopify.com",
       "source": "shopify_admin_graphql",
       "apiVersion": "2026-07",
-      "orderCount": 20773,
+      "orderCount": 20777,
       "kpis_daily": [
         {
           "period": "2024-01",
@@ -418,14 +418,14 @@
           "shipping_income": 3624.969999999981,
           "nb_orders": 794,
           "nb_units": 2367,
-          "cogs": 78489.36999999995,
+          "cogs": 78456.86999999995,
           "gross_profit": null,
           "pct_gm": null,
           "realized_markup_pct": null,
-          "costed_units": 1875,
-          "uncosted_units": 492,
+          "costed_units": 1874,
+          "uncosted_units": 493,
           "unique_customers": 716,
-          "cost_coverage_pct": 0.7921419518377694
+          "cost_coverage_pct": 0.7917194761301225
         },
         {
           "period": "2025-12",
@@ -573,21 +573,21 @@
         },
         {
           "period": "2026-08",
-          "gross_sales": 25760.190000000028,
-          "net_sales": 25018.200000000023,
+          "gross_sales": 26391.95000000003,
+          "net_sales": 25649.960000000025,
           "total_discounts": 741.9900000000001,
           "total_returns": 0,
-          "shipping_income": 915.2000000000006,
-          "nb_orders": 175,
-          "nb_units": 429,
-          "cogs": 15000.809999999992,
-          "gross_profit": 10017.39000000003,
-          "pct_gm": 0.40040410581097047,
-          "realized_markup_pct": 0.6677899393432778,
-          "costed_units": 422,
+          "shipping_income": 935.1800000000006,
+          "nb_orders": 179,
+          "nb_units": 445,
+          "cogs": 15335.099999999991,
+          "gross_profit": 10314.860000000033,
+          "pct_gm": 0.4021394185410045,
+          "realized_markup_pct": 0.6726307621078467,
+          "costed_units": 438,
           "uncosted_units": 7,
-          "unique_customers": 148,
-          "cost_coverage_pct": 0.9836829836829837
+          "unique_customers": 152,
+          "cost_coverage_pct": 0.9842696629213483
         }
       ],
       "revenue_share": [
@@ -2690,15 +2690,15 @@
           "shipping_income": 1083.1200000000003,
           "nb_orders": 96,
           "nb_units": 349,
-          "cogs": 13538.190000000002,
-          "gross_profit": 12586.07,
-          "pct_gm": 0.48177709148507936,
-          "realized_markup_pct": 0.929671543980399,
-          "costed_units": 287,
-          "uncosted_units": 62,
+          "cogs": 13505.690000000002,
+          "gross_profit": 12618.57,
+          "pct_gm": 0.48302114586212197,
+          "realized_markup_pct": 0.9343150923795821,
+          "costed_units": 286,
+          "uncosted_units": 63,
           "channel": "Shopify Collective",
           "unique_customers": 85,
-          "cost_coverage_pct": 0.8223495702005731
+          "cost_coverage_pct": 0.8194842406876791
         },
         {
           "period": "2025-11",
@@ -3519,21 +3519,21 @@
         },
         {
           "period": "2026-08",
-          "gross_sales": 1605.2200000000003,
-          "net_sales": 1552.01,
+          "gross_sales": 1907.1100000000001,
+          "net_sales": 1853.9,
           "total_discounts": 53.209999999999994,
           "total_returns": 0,
           "shipping_income": 129.91,
-          "nb_orders": 15,
-          "nb_units": 35,
-          "cogs": 1028.5800000000002,
-          "gross_profit": 523.4299999999998,
-          "pct_gm": 0.3372594248748396,
-          "realized_markup_pct": 0.508886037060802,
-          "costed_units": 35,
+          "nb_orders": 16,
+          "nb_units": 38,
+          "cogs": 1211.68,
+          "gross_profit": 642.22,
+          "pct_gm": 0.3464156642753115,
+          "realized_markup_pct": 0.5300244288921168,
+          "costed_units": 38,
           "uncosted_units": 0,
           "channel": "Legacy",
-          "unique_customers": 15,
+          "unique_customers": 16,
           "cost_coverage_pct": 1
         },
         {
@@ -3557,28 +3557,28 @@
         },
         {
           "period": "2026-08",
-          "gross_sales": 8393.489999999994,
-          "net_sales": 7771.629999999996,
+          "gross_sales": 8723.359999999993,
+          "net_sales": 8101.499999999995,
           "total_discounts": 621.8600000000001,
           "total_returns": 0,
-          "shipping_income": 510.53000000000026,
-          "nb_orders": 82,
-          "nb_units": 197,
-          "cogs": 5153.860000000001,
-          "gross_profit": 2617.769999999995,
-          "pct_gm": 0.33683667390238553,
-          "realized_markup_pct": 0.5079241578156944,
-          "costed_units": 196,
+          "shipping_income": 530.5100000000002,
+          "nb_orders": 85,
+          "nb_units": 210,
+          "cogs": 5305.050000000001,
+          "gross_profit": 2796.4499999999944,
+          "pct_gm": 0.3451768191075722,
+          "realized_markup_pct": 0.5271298102751141,
+          "costed_units": 209,
           "uncosted_units": 1,
           "channel": "Wellington",
-          "unique_customers": 68,
-          "cost_coverage_pct": 0.9949238578680203
+          "unique_customers": 71,
+          "cost_coverage_pct": 0.9952380952380953
         }
       ],
       "yearly_unique_customers": {
         "2024": 5772,
         "2025": 6150,
-        "2026": 2498
+        "2026": 2502
       },
       "channel_yearly_unique_customers": {
         "2024": {
@@ -3599,27 +3599,27 @@
         "2026": {
           "Concierge": 208,
           "e-commerce": 840,
-          "Legacy": 314,
+          "Legacy": 315,
           "Shopify Collective": 439,
-          "Wellington": 905
+          "Wellington": 908
         }
       },
       "membership_observed": {},
       "derived": {
         "brand": "corro",
         "totals": {
-          "grossSales": 3964211.1100000027,
-          "netSales": 3738680.440000004,
-          "cogs": 2055796.36,
-          "shippingIncome": 112438.23999999923,
-          "units": 225276,
-          "orders": 20351,
-          "costedUnits": 64051,
+          "grossSales": 3964842.870000003,
+          "netSales": 3739312.200000004,
+          "cogs": 2056098.1500000001,
+          "shippingIncome": 112458.21999999924,
+          "units": 225292,
+          "orders": 20355,
+          "costedUnits": 64066,
           "hasUsableCosts": false,
-          "costCoveragePct": 0.28432234237113585,
+          "costCoveragePct": 0.2843687303588232,
           "gm1": null,
           "markupPct": null,
-          "shippingRevenuePct": 0.03007431145947288
+          "shippingRevenuePct": 0.03007457360741345
         },
         "channels": {
           "e-commerce": {
@@ -3651,32 +3651,32 @@
             "shippingRevenuePct": 0.008699821110746063
           },
           "Wellington": {
-            "grossSales": 1256796.3200000005,
-            "netSales": 1148044.0100000002,
-            "cogs": 692383.3099999999,
-            "shippingIncome": 40850.590000000026,
-            "units": 68863,
-            "orders": 7340,
-            "costedUnits": 30343,
+            "grossSales": 1257126.1900000006,
+            "netSales": 1148373.8800000004,
+            "cogs": 692534.5,
+            "shippingIncome": 40870.57000000003,
+            "units": 68876,
+            "orders": 7343,
+            "costedUnits": 30356,
             "hasUsableCosts": false,
-            "costCoveragePct": 0.4406284942567126,
+            "costCoveragePct": 0.4407340728265288,
             "gm1": null,
             "markupPct": null,
-            "shippingRevenuePct": 0.035582773521025575
+            "shippingRevenuePct": 0.03558995089647982
           },
           "Legacy": {
-            "grossSales": 298920.14,
-            "netSales": 277997.4,
-            "cogs": 146107.74999999997,
+            "grossSales": 299222.03,
+            "netSales": 278299.29000000004,
+            "cogs": 146290.84999999998,
             "shippingIncome": 13203.820000000007,
-            "units": 27964,
-            "orders": 2139,
-            "costedUnits": 3435,
+            "units": 27967,
+            "orders": 2140,
+            "costedUnits": 3438,
             "hasUsableCosts": false,
-            "costCoveragePct": 0.12283650407667,
+            "costCoveragePct": 0.12293059677477026,
             "gm1": null,
             "markupPct": null,
-            "shippingRevenuePct": 0.04749619960474453
+            "shippingRevenuePct": 0.04744467727531754
           },
           "Drop ship": {
             "grossSales": 3479.23,
@@ -3695,26 +3695,26 @@
           "Shopify Collective": {
             "grossSales": 522113.68000000005,
             "netSales": 499453.42000000004,
-            "cogs": 248763.60000000003,
+            "cogs": 248731.10000000003,
             "shippingIncome": 9699.71,
             "units": 4648,
             "orders": 1680,
-            "costedUnits": 3534,
+            "costedUnits": 3533,
             "hasUsableCosts": false,
-            "costCoveragePct": 0.7603270223752151,
+            "costCoveragePct": 0.7601118760757315,
             "gm1": null,
             "markupPct": null,
             "shippingRevenuePct": 0.019420649877620214
           }
         },
         "inventory": {
-          "inventoryUnits": 320431,
-          "costedInventoryUnits": 319817,
-          "costCoveragePct": 0.9980838308403369,
-          "inventoryCostValue": 24721606.930000067,
-          "retailValue": 39953380.59999978,
-          "annualizedCogs": 585979.6481327802,
-          "inventoryTurns": 0.02370313749393388,
+          "inventoryUnits": 328464,
+          "costedInventoryUnits": 327850,
+          "costCoveragePct": 0.9981306931657655,
+          "inventoryCostValue": 25507675.610000055,
+          "retailValue": 41010676.11999976,
+          "annualizedCogs": 584072.1119008265,
+          "inventoryTurns": 0.022897896336420642,
           "methodology": "Annualized current-year COGS divided by current inventory cost value. Uses Shopify InventoryItem.unitCost when cost coverage is sufficient."
         }
       },
@@ -5079,8 +5079,8 @@
             "boxes": 39,
             "orders": 30,
             "boxesPerMemberYtd": 2.1666666666666665,
-            "annualizedBoxesPerMember": 3.3443983402489628,
-            "elapsedMonths": 7.774193548387097,
+            "annualizedBoxesPerMember": 3.330578512396694,
+            "elapsedMonths": 7.806451612903226,
             "netSales": 6965,
             "cogs": null,
             "gm1": null,
@@ -5091,8 +5091,8 @@
             "boxes": 68,
             "orders": 28,
             "boxesPerMemberYtd": 3.4,
-            "annualizedBoxesPerMember": 5.248132780082988,
-            "elapsedMonths": 7.774193548387097,
+            "annualizedBoxesPerMember": 5.226446280991735,
+            "elapsedMonths": 7.806451612903226,
             "netSales": 6633,
             "cogs": null,
             "gm1": null,
@@ -5203,13 +5203,13 @@
           }
         },
         "inventory": {
-          "inventoryUnits": 39703,
-          "costedInventoryUnits": 34114,
-          "costCoveragePct": 0.859229781124852,
-          "inventoryCostValue": 634918.8499999996,
-          "retailValue": 2526752.9899999998,
-          "annualizedCogs": 44901.66572614108,
-          "inventoryTurns": 0.07072032233117839,
+          "inventoryUnits": 39736,
+          "costedInventoryUnits": 34147,
+          "costCoveragePct": 0.8593466881417354,
+          "inventoryCostValue": 638897.0199999998,
+          "retailValue": 2532793.16,
+          "annualizedCogs": 44716.121652892565,
+          "inventoryTurns": 0.06998956052869457,
           "methodology": "Annualized current-year COGS divided by current inventory cost value. Uses Shopify InventoryItem.unitCost when cost coverage is sufficient."
         },
         "cavali": {
@@ -5219,8 +5219,8 @@
               "boxes": 39,
               "orders": 30,
               "boxesPerMemberYtd": 2.1666666666666665,
-              "annualizedBoxesPerMember": 3.3443983402489628,
-              "elapsedMonths": 7.774193548387097,
+              "annualizedBoxesPerMember": 3.330578512396694,
+              "elapsedMonths": 7.806451612903226,
               "netSales": 6965,
               "cogs": null,
               "gm1": null,
@@ -5231,8 +5231,8 @@
               "boxes": 68,
               "orders": 28,
               "boxesPerMemberYtd": 3.4,
-              "annualizedBoxesPerMember": 5.248132780082988,
-              "elapsedMonths": 7.774193548387097,
+              "annualizedBoxesPerMember": 5.226446280991735,
+              "elapsedMonths": 7.806451612903226,
               "netSales": 6633,
               "cogs": null,
               "gm1": null,
