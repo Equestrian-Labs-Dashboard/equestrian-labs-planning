@@ -296,11 +296,21 @@ actualGm1=function(name){
 };
 const _engValV43=engVal;
 engVal=function(name,key,y){
-  // Cavali 2026: do not revive old manual members that created the $22k.
-  // Keep the Growth & Margin Engine table as the single source of truth.
-  if(name==="Cavali" && y==="2026" &&
-     ["signatureMembers","signatureBoxesPerMemberYear","premierMembers","premierBoxesPerMemberYear"].includes(key)){
-    return 0;
+  if(name==="Cavali" && y==="2026"){
+    // 2026 Cavali must come from Shopify observed subscription tiers.
+    // Smartrr tier classification is incomplete, so use Shopify membership_observed.
+    if(key==="signatureMembers"){
+      return n(cavaliMembers("signature"));
+    }
+    if(key==="premierMembers"){
+      return n(cavaliMembers("premier"));
+    }
+    if(key==="signatureBoxesPerMemberYear"){
+      return n(cavaliBoxes("signature"));
+    }
+    if(key==="premierBoxesPerMemberYear"){
+      return n(cavaliBoxes("premier"));
+    }
   }
   return _engValV43(name,key,y);
 };
@@ -309,13 +319,12 @@ const _engineV43=engine;
 engine=function(name,y){
   if(name!=="Cavali")return _engineV43(name,y);
 
-  // Cavali follows the driver table. 2026 is intentionally pre-launch.
-  const sm=engVal(name,"signatureMembers",y),
-        sb=engVal(name,"signatureBoxesPerMemberYear",y),
-        sp=engVal(name,"signaturePrice",y),
-        pm=engVal(name,"premierMembers",y),
-        pb=engVal(name,"premierBoxesPerMemberYear",y),
-        pp=engVal(name,"premierPrice",y);
+  const sm=engVal(name,"signatureMembers",y);
+  const sb=engVal(name,"signatureBoxesPerMemberYear",y);
+  const sp=engVal(name,"signaturePrice",y);
+  const pm=engVal(name,"premierMembers",y);
+  const pb=engVal(name,"premierBoxesPerMemberYear",y);
+  const pp=engVal(name,"premierPrice",y);
 
   const signatureRevenue=sm*sb*sp;
   const premierRevenue=pm*pb*pp;
@@ -332,6 +341,7 @@ engine=function(name,y){
     orders:actualEngine("Cavali","orders")
   };
 };
+
 operationsPct=function(key,y){
   if(y==="2026"){
     const map={outboundShippingPct:"financial.corro.outboundShippingPct",packagingPct:"financial.corro.packagingPct",shippingRevenuePct:"financial.corro.shippingRevenuePct"},v=rate(connected(map[key],null));
