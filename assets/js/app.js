@@ -296,15 +296,17 @@ actualGm1=function(name){
 };
 const _engValV43=engVal;
 engVal=function(name,key,y){
-  if(name==="Cavali"&&y==="2026"&&["signatureMembers","signatureBoxesPerMemberYear","premierMembers","premierBoxesPerMemberYear"].includes(key)){
-    const manual=STATE.engines?.Cavali?.[key]?.[y]; if(valid(manual))return n(manual);
-    const map={signatureBoxesPerMemberYear:"signatureBoxes",premierBoxesPerMemberYear:"premierBoxes"},av=actualEngine(name,map[key]||key); if(valid(av))return n(av);
+  // FIX: Cavali 2026 must not inherit old manual/frozen values creating the $22k TBA2 contribution.
+  if(name==="Cavali" && y==="2026" && ["signatureMembers","signatureBoxesPerMemberYear","premierMembers","premierBoxesPerMemberYear"].includes(key)){
+    return 0;
   }
   return _engValV43(name,key,y);
 };
 const _engineV43=engine;
 engine=function(name,y){
   if(name!=="Cavali")return _engineV43(name,y);
+  // FIX: Cavali remains historical only in 2026 forecast.
+  if(y==="2026") return {sales:0,subscription:0,signatureRevenue:0,premierRevenue:0,paid:0,gm1:0,sm:0,sb:0,sp:0,pm:0,pb:0,pp:0,orders:actualEngine(name,"orders")};
   const sm=engVal(name,"signatureMembers",y),sb=engVal(name,"signatureBoxesPerMemberYear",y),sp=engVal(name,"signaturePrice",y),pm=engVal(name,"premierMembers",y),pb=engVal(name,"premierBoxesPerMemberYear",y),pp=engVal(name,"premierPrice",y);
   const signatureRevenue=sm*sb*sp,premierRevenue=pm*pb*pp,sales=signatureRevenue+premierRevenue;
   return{sales,subscription:sales,signatureRevenue,premierRevenue,paid:0,gm1:engVal(name,"gm1",y)||.397,sm,sb,sp,pm,pb,pp,orders:actualEngine(name,"orders")};
