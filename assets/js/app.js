@@ -110,7 +110,7 @@ function actualEngine(name,key){const a=actual2026();
 function displayActualEngine(name,key){const a=monthlyDisplayActuals();if(name==="Ecommerce"){if(key==="orders")return a.ecom.orders;if(key==="aov")return a.ecom.orders?a.ecom.grossSales/a.ecom.orders:null;if(key==="gm1")return actualGm1(name)}if(name==="Concierge"){if(key==="orders")return a.con.orders;if(key==="aov")return a.con.orders?a.con.grossSales/a.con.orders:null;if(key==="uniqueCustomers")return a.con.uniqueCustomers;if(key==="gm1")return actualGm1(name)}if(name==="Wellington"){if(key==="orders")return a.well.orders;if(key==="aov")return a.well.orders?a.well.grossSales/a.well.orders:null;if(key==="gm1")return actualGm1(name)}if(name==="Cavali"){if(key==="orders")return a.cav.orders;if(key==="aov")return a.cav.orders?a.cav.grossSales/a.cav.orders:null;if(key==="gm1")return actualGm1(name)}return actualEngine(name,key)}
 function engVal(name,key,y){
   const e=STATE.engines[name], map={signatureBoxesPerMemberYear:"signatureBoxes",premierBoxesPerMemberYear:"premierBoxes"};
-  if(y==="2026" && !["signaturePrice","premierPrice","adSpend","roas","units","asp","signatureMembers","premierMembers","signatureBoxesPerMemberYear","premierBoxesPerMemberYear","activeClients","ordersPerClient","orders","aov"].includes(key)){
+  if(y==="2026" && !["signaturePrice","premierPrice","adSpend","roas","units","asp"].includes(key)){
     const av=actualEngine(name,map[key]||key); if(valid(av))return n(av);
   }
   const manual=e?.[key]?.[y]; if(valid(manual))return n(manual);
@@ -123,8 +123,10 @@ function ecommerceBuild(y){const base=baseEcommerce(y),organic=organicRevenue(y)
 function engine(name,y){
   if(name==="Ecommerce"){const b=ecommerceBuild(y),gm=engVal(name,"gm1",y)||.30;return{sales:b.total,gm1:gm,orders:engVal(name,"orders",y),aov:engVal(name,"aov",y)}}
   if(name==="Concierge"){
+    if(y==="2026"){const a=actual2026(),m=Math.max(1,a.monthsClosed),src=a.con;const sales=n(src.grossSales)*(12/m),active=n(src.uniqueCustomers),opc=active?n(src.orders)/active:0,aov=n(src.orders)?n(src.grossSales)/n(src.orders):engVal(name,"aov",y);return{sales,gm1:engVal(name,"gm1",y)||.35,active,opc,aov,actualYtdSales:n(src.grossSales),cutoff:a.corroCutoff}}
     const active=n(STATE.engines[name].activeClients[y]),opc=n(STATE.engines[name].ordersPerClient[y]),aov=engVal(name,"aov",y);return{sales:active*opc*aov,gm1:engVal(name,"gm1",y)||.35,active,opc,aov}}
   if(name==="Wellington"){
+    if(y==="2026"){const a=actual2026(),m=Math.max(1,a.monthsClosed),src=a.well,aov=n(src.orders)?n(src.grossSales)/n(src.orders):engVal(name,"aov",y),orders=n(src.orders)*(12/m);return{sales:n(src.grossSales)*(12/m),gm1:engVal(name,"gm1",y)||.45,orders,aov,actualYtdSales:n(src.grossSales),cutoff:a.corroCutoff}}
     const orders=engVal(name,"orders",y),aov=engVal(name,"aov",y);return{sales:orders*aov,gm1:engVal(name,"gm1",y)||.45,orders,aov}}
   if(name==="Embroidery"){const orders=engVal(name,"orders",y),aov=engVal(name,"aov",y);return{sales:orders*aov,gm1:engVal(name,"gm1",y)||.60,orders,aov}}
   if(name==="Private Label"){const units=engVal(name,"units",y),asp=engVal(name,"asp",y);return{sales:units*asp,gm1:engVal(name,"gm1",y)||.70,units,asp}}
