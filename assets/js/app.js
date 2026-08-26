@@ -121,10 +121,10 @@ function organicRevenue(y){return y==="2026"?0:baseEcommerce(y)*n(STATE.commerci
 function paidRevenue(y){return totalAds(y)*roas(y)}
 function ecommerceBuild(y){const base=baseEcommerce(y),organic=organicRevenue(y),paid=paidRevenue(y),dover=doverNet(y);return{base,organic,paid,dover,total:base+organic+paid+dover}}
 function engine(name,y){
-  if(name==="Ecommerce"){const b=ecommerceBuild(y),gm=engVal(name,"gm1",y)||.30;return{sales:b.total,gm1:gm,orders:engVal(name,"orders",y),aov:engVal(name,"aov",y)}}
+  if(name==="Ecommerce"){const b=ecommerceBuild(y),gm=engVal(name,"gm1",y)||.30,aov=engVal(name,"aov",y),sales=b.total,orders=y==="2026"?(aov?sales/aov:0):engVal(name,"orders",y);return{sales,gm1:gm,orders,aov}}
   if(name==="Concierge"){
-    if(y==="2026"){const a=actual2026(),m=Math.max(1,a.monthsClosed),src=a.con;const sales=n(src.grossSales)*(12/m),active=n(src.uniqueCustomers),opc=active?n(src.orders)/active:0,aov=n(src.orders)?n(src.grossSales)/n(src.orders):engVal(name,"aov",y);return{sales,gm1:engVal(name,"gm1",y)||.35,active,opc,aov,actualYtdSales:n(src.grossSales),cutoff:a.corroCutoff}}
-    const active=n(STATE.engines[name].activeClients[y]),opc=n(STATE.engines[name].ordersPerClient[y]),aov=engVal(name,"aov",y);return{sales:active*opc*aov,gm1:engVal(name,"gm1",y)||.35,active,opc,aov}}
+    if(y==="2026"){const a=actual2026(),m=Math.max(1,a.monthsClosed),src=a.con;const sales=n(src.grossSales)*(12/m),active=n(src.uniqueCustomers),aov=n(src.orders)?n(src.grossSales)/n(src.orders):engVal(name,"aov",y),opc=active?(n(src.orders)*(12/m))/active:0;return{sales,gm1:engVal(name,"gm1",y)||.35,activeClients:active,ordersPerClient:opc,aov,actualYtdSales:n(src.grossSales),cutoff:a.corroCutoff}}
+    const active=n(STATE.engines[name].activeClients[y]),opc=n(STATE.engines[name].ordersPerClient[y]),aov=engVal(name,"aov",y);return{sales:active*opc*aov,gm1:engVal(name,"gm1",y)||.35,activeClients:active,ordersPerClient:opc,aov}}
   if(name==="Wellington"){
     if(y==="2026"){const a=actual2026(),m=Math.max(1,a.monthsClosed),src=a.well,aov=n(src.orders)?n(src.grossSales)/n(src.orders):engVal(name,"aov",y),orders=n(src.orders)*(12/m);return{sales:n(src.grossSales)*(12/m),gm1:engVal(name,"gm1",y)||.45,orders,aov,actualYtdSales:n(src.grossSales),cutoff:a.corroCutoff}}
     const orders=engVal(name,"orders",y),aov=engVal(name,"aov",y);return{sales:orders*aov,gm1:engVal(name,"gm1",y)||.45,orders,aov}}
@@ -170,14 +170,18 @@ function actualFmt(name,key,fmt="number",display=false){const v=display?displayA
 function engineRows(name){
  const e=STATE.engines[name];
  const editable=(key,y,fmt="number")=>{const raw=valid(e[key]?.[y])?e[key][y]:engVal(name,key,y);return `<td class="editable" contenteditable="true" data-engine="${name}" data-key="${key}" data-year="${y}" data-format="${fmt}">${fmt==="pct"?fmtPct(raw):fmt==="money"?fmtMoney(raw):esc(raw??"")}</td>`};
- const actualThenFuture=(key,fmt="number")=>`<td class="calculated">${actualFmt(name,key,fmt)}</td>`+YEARS.slice(1).map(y=>editable(key,y,fmt)).join("");
+ const actualThenFuture=(key,fmt="number")=>{
+   const v26 = engine(name, "2026")[key];
+   let fmtVal = fmt==="pct"?fmtPct(v26):fmt==="money"?fmtMoney(v26):fmtNum(v26,key==="ordersPerClient"?2:0);
+   return `<td class="calculated">${fmtVal}</td>`+YEARS.slice(1).map(y=>editable(key,y,fmt)).join("");
+ };
  if(name==="Ecommerce")return[
   `<tr><td>Orders</td><td class="baseline">${actualFmt(name,"orders","number",true)}</td>${actualThenFuture("orders")}</tr>`,
   `<tr><td>AOV</td><td class="baseline">${actualFmt(name,"aov","money",true)}</td>${actualThenFuture("aov","money")}</tr>`,
   `<tr><td>GM1 %</td><td class="baseline">${fmtPct(actualGm1(name))}</td>${actualThenFuture("gm1","pct")}</tr>`];
- if(name==="Concierge"){const mc=displayActualEngine(name,"uniqueCustomers"),ac=actual2026().con.uniqueCustomers||null,ao=actual2026().con.orders||null,opc=ac&&ao?ao/ac:null;return[
-  `<tr><td>Active Clients</td><td class="baseline">${valid(mc)?fmtNum(mc):"Data unavailable"}</td><td class="calculated">${valid(ac)?fmtNum(ac):"Data unavailable"}</td>${YEARS.slice(1).map(y=>editable("activeClients",y)).join("")}</tr>`,
-  `<tr><td>Orders per Client</td><td class="baseline">${valid(mc)&&n(mc)?(n(displayActualEngine(name,"orders"))/n(mc)).toFixed(2):"Data unavailable"}</td><td class="calculated">${opc===null?"Data unavailable":opc.toFixed(2)}</td>${YEARS.slice(1).map(y=>editable("ordersPerClient",y)).join("")}</tr>`,
+ if(name==="Concierge"){const mc=displayActualEngine(name,"uniqueCustomers"),ao=displayActualEngine(name,"orders"),opc=mc&&ao?n(ao)/n(mc):null;return[
+  `<tr><td>Active Clients</td><td class="baseline">${valid(mc)?fmtNum(mc):"Data unavailable"}</td>${actualThenFuture("activeClients")}</tr>`,
+  `<tr><td>Orders per Client</td><td class="baseline">${valid(opc)?opc.toFixed(2):"Data unavailable"}</td>${actualThenFuture("ordersPerClient")}</tr>`,
   `<tr><td>AOV</td><td class="baseline">${actualFmt(name,"aov","money",true)}</td>${actualThenFuture("aov","money")}</tr>`,
   `<tr><td>GM1 %</td><td class="baseline">${fmtPct(actualGm1(name))}</td>${actualThenFuture("gm1","pct")}</tr>`]}
  if(name==="Wellington")return[
