@@ -359,7 +359,16 @@ const _engineRowsV43=engineRows;
 engineRows=function(name){
   if(name!=="Cavali")return _engineRowsV43(name);
   const e=STATE.engines.Cavali;
-  const edit=(key,y,fmt="number")=>{const raw=valid(e[key]?.[y])?e[key][y]:engVal(name,key,y);return `<td class="editable" contenteditable="true" data-engine="Cavali" data-key="${key}" data-year="${y}" data-format="${fmt}">${fmt==="pct"?fmtPct(raw):fmt==="money"?fmtMoney(raw):fmtNum(raw,key.includes("Boxes")?1:0)}</td>`};
+  const edit=(key,y,fmt="number")=>{
+    let raw;
+    if(y==="2026" && !["signaturePrice","premierPrice"].includes(key)){
+      const av=actualEngine("Cavali",key.replace("PerMemberYear",""));
+      raw = valid(av) ? av : (valid(e[key]?.[y])?e[key][y]:engVal(name,key,y));
+    } else {
+      raw = valid(e[key]?.[y])?e[key][y]:engVal(name,key,y);
+    }
+    return `<td class="editable" contenteditable="true" data-engine="Cavali" data-key="${key}" data-year="${y}" data-format="${fmt}">${fmt==="pct"?fmtPct(raw):fmt==="money"?fmtMoney(raw):fmtNum(raw,key.includes("Boxes")?1:0)}</td>`;
+  };
   const calc=(label,fn)=>`<tr><td>${label}</td><td class="baseline">Calculated</td>${YEARS.map(y=>`<td class="calculated">${fmtMoney(fn(engine("Cavali",y)))}</td>`).join("")}</tr>`;
   return[
     `<tr><td>Signature Active Members</td><td class="baseline">${fmtNum(cavaliMembers("signature"))}</td>${YEARS.map(y=>edit("signatureMembers",y)).join("")}</tr>`,
