@@ -130,7 +130,7 @@ function engine(name,y){
     const orders=engVal(name,"orders",y),aov=engVal(name,"aov",y);return{sales:orders*aov,gm1:engVal(name,"gm1",y)||.45,orders,aov}}
   if(name==="Embroidery"){const orders=engVal(name,"orders",y),aov=engVal(name,"aov",y);return{sales:orders*aov,gm1:engVal(name,"gm1",y)||.60,orders,aov}}
   if(name==="Private Label"){const units=engVal(name,"units",y),asp=engVal(name,"asp",y);return{sales:units*asp,gm1:engVal(name,"gm1",y)||.70,units,asp}}
-  if(name==="Cavali"){const sm=engVal(name,"signatureMembers",y),sb=engVal(name,"signatureBoxesPerMemberYear",y),sp=engVal(name,"signaturePrice",y),pm=engVal(name,"premierMembers",y),pb=engVal(name,"premierBoxesPerMemberYear",y),pp=engVal(name,"premierPrice",y),subscription=sm*sb*sp+pm*pb*pp,ads=n(STATE.engines[name].adSpend[y]),paid=ads*n(STATE.engines[name].roas[y]);return{sales:subscription+paid,subscription,paid,gm1:engVal(name,"gm1",y)||.397,sm,sb,sp,pm,pb,pp,orders:actualEngine(name,"orders")}}
+  if(name==="Cavali"){const sm=engVal(name,"signatureMembers",y),sb=engVal(name,"signatureBoxesPerMemberYear",y),sp=engVal(name,"signaturePrice",y),pm=engVal(name,"premierMembers",y),pb=engVal(name,"premierBoxesPerMemberYear",y),pp=engVal(name,"premierPrice",y),subscription=sm*sb*sp+pm*pb*pp,paid=0;return{sales:subscription+paid,subscription,paid,gm1:engVal(name,"gm1",y)||.397,sm,sb,sp,pm,pb,pp,orders:actualEngine(name,"orders")}}
   return{sales:0,gm1:0}
 }
 function discountsRate(y){if(y==="2026"){const a=actual2026().corro;if(a.grossSales)return clamp((a.grossSales-a.netSales)/a.grossSales,0,.8)}return n(STATE.purchasing.discountsReturnsPct[y])}
