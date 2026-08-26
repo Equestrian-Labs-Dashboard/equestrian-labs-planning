@@ -296,22 +296,6 @@ actualGm1=function(name){
 };
 const _engValV43=engVal;
 engVal=function(name,key,y){
-  if(name==="Cavali" && y==="2026"){
-    // 2026 Cavali must come from Shopify observed subscription tiers.
-    // Smartrr tier classification is incomplete, so use Shopify membership_observed.
-    if(key==="signatureMembers"){
-      return n(cavaliMembers("signature"));
-    }
-    if(key==="premierMembers"){
-      return n(cavaliMembers("premier"));
-    }
-    if(key==="signatureBoxesPerMemberYear"){
-      return n(cavaliBoxes("signature"));
-    }
-    if(key==="premierBoxesPerMemberYear"){
-      return n(cavaliBoxes("premier"));
-    }
-  }
   return _engValV43(name,key,y);
 };
 
