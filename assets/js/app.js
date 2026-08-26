@@ -271,6 +271,21 @@ function wire(){
 function applyFinalDefaults(s){
  s.meta.version="4.5";
  if(s.engines?.Ecommerce?.gm1){s.engines.Ecommerce.gm1["2027"]=.37;s.engines.Ecommerce.gm1["2028"]=.42;s.engines.Ecommerce.gm1["2029"]=.46}
+ try {
+   if (typeof BASE !== "undefined" && BASE && BASE.engines) {
+     ["Cavali", "Concierge", "Wellington"].forEach(name => {
+       if (s.engines?.[name] && BASE.engines?.[name]) {
+         Object.keys(BASE.engines[name]).forEach(key => {
+           if (typeof BASE.engines[name][key] === "object" && BASE.engines[name][key] !== null) {
+             if (s.engines[name][key]["2026"] == null || s.engines[name][key]["2026"] === 0) {
+               s.engines[name][key]["2026"] = BASE.engines[name][key]["2026"];
+             }
+           }
+         });
+       }
+     });
+   }
+ } catch(e) {}
  return s
 }
 
