@@ -11,7 +11,7 @@ const OUT="data/cavali_smartrr_actuals.json", SHOPIFY="data/shopify_actuals.json
 async function readJson(p,f={}){try{return JSON.parse(await fs.readFile(p,"utf8"))}catch{return f}}
 function deepStrings(o,out=[],d=0){if(o==null||d>9)return out;if(typeof o==="string"||typeof o==="number")out.push(String(o));else if(Array.isArray(o))o.slice(0,500).forEach(v=>deepStrings(v,out,d+1));else if(typeof o==="object")Object.entries(o).forEach(([k,v])=>{out.push(k);deepStrings(v,out,d+1)});return out}
 function txt(o){return deepStrings(o).join(" ").toLowerCase()}
-function family(o){const t=txt(o);if(/premier|premium/.test(t))return"premier";if(/signature/.test(t))return"signature";return"other"}
+function family(o){const t=txt(o);if(/premier|premium/.test(t))return"premier";if(/signature|welcome box|dedicated equestrian/.test(t))return"signature";return"other"}
 function cadence(o){const t=txt(o);if(/weekly/.test(t))return 52;if(/bi[- ]?weekly|every 2 weeks/.test(t))return 26;if(/monthly/.test(t))return 12;if(/bi[- ]?monthly|every 2 months/.test(t))return 6;if(/quarterly|every 3 months/.test(t))return 4;if(/every 4 months/.test(t))return 3;if(/semi[- ]?annual|twice a year|every 6 months/.test(t))return 2;if(/annual|yearly|once a year/.test(t))return 1;return null}
 function idOf(s){return String(s?.id||s?.purchaseStateId||s?.shopifyId||s?.subscriptionId||s?.subscription_id||s?.externalSubscriptionId||JSON.stringify(s).slice(0,180))}
 function itemsOf(p){if(Array.isArray(p))return p;if(!p||typeof p!=="object")return[];for(const k of ["data","items","results","purchaseStates","purchaseState","subscriptions"]){const v=p[k];if(Array.isArray(v))return v;if(v&&typeof v==="object"){const x=itemsOf(v);if(x.length)return x}}return[]}

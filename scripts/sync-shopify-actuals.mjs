@@ -185,7 +185,7 @@ function cavaliTier(line) {
     .toLowerCase();
 
   if (/\bpremier\b|\bpremium\b/.test(text)) return "premier";
-  if (/\bsignature\b/.test(text)) return "signature";
+  if (/\bsignature\b|welcome box|dedicated equestrian/.test(text)) return "signature";
   return null;
 }
 
