@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-08-26T08:24:11.916Z",
+  "generated_at": "2026-08-31T17:41:34.435Z",
   "available": true,
   "source": "smartrr_purchase_state",
   "tierClassification": false,
-  "classificationCoverage": 0.16962025316455695,
+  "classificationCoverage": 0.17223650385604114,
   "signature": {
     "active": null,
     "paused": null,
@@ -15,18 +15,18 @@
     "active": null,
     "paused": null,
     "cancelled": null,
-    "boxesPerMemberYear": 3.316872427983539,
+    "boxesPerMemberYear": 3.25,
     "boxesSource": "shopify_ytd_annualized"
   },
   "other": {
-    "active": 328,
+    "active": 322,
     "paused": 3,
-    "cancelled": 478
+    "cancelled": 484
   },
   "totals": {
-    "active": 395,
+    "active": 389,
     "paused": 3,
-    "cancelled": 528
+    "cancelled": 534
   },
   "note": "Smartrr tier classification is missing or incomplete (<80% coverage); app must use Shopify observed tiers instead of understating members/revenue."
 }
