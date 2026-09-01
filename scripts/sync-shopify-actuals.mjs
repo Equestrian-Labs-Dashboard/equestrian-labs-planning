@@ -83,27 +83,32 @@ function host(s) {
 }
 
 async function gql(cfg, query, variables = {}) {
-  const response = await fetch(
-    `https://${host(cfg.store)}/admin/api/${API_VERSION}/graphql.json`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Shopify-Access-Token": cfg.token,
-      },
-      body: JSON.stringify({ query, variables }),
+  let attempt = 0;
+  while (attempt < 3) {
+    try {
+      const response = await fetch(
+        `https://${host(cfg.store)}/admin/api/${API_VERSION}/graphql.json`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Shopify-Access-Token": cfg.token,
+          },
+          body: JSON.stringify({ query, variables }),
+        }
+      );
+      const json = await response.json();
+      if (!response.ok || json.errors) {
+        throw new Error(`${cfg.label}: ${response.status} ${JSON.stringify(json.errors || json)}`);
+      }
+      return json.data;
+    } catch (e) {
+      attempt++;
+      if (attempt >= 3) throw e;
+      console.warn(`Shopify fetch failed for ${cfg.label} (attempt ${attempt}/3). Retrying in 3s...`);
+      await new Promise(r => setTimeout(r, 3000));
     }
-  );
-
-  const json = await response.json();
-
-  if (!response.ok || json.errors) {
-    throw new Error(
-      `${cfg.label}: ${response.status} ${JSON.stringify(json.errors || json)}`
-    );
   }
-
-  return json.data;
 }
 
 async function fetchOrders(cfg) {
