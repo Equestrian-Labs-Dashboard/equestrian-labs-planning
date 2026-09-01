@@ -221,9 +221,10 @@ function renderPurchasing(){const p=STATE.purchasing;
    markupFromMargin,
    .748
  );
+ const rawShopifyTurns = shopifyDerived("corro","inventory.inventoryTurns",null);
  const actualTurns=firstPositive(
    connected("financial.corro.inventoryTurns",null),
-   shopifyDerived("corro","inventory.inventoryTurns",null),
+   rawShopifyTurns !== null && rawShopifyTurns > 0.1 ? rawShopifyTurns : null,
    connected("inventory.corro.turns",null),
    1.36
  );
