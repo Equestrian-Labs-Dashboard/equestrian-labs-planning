@@ -1,0 +1,16 @@
+{
+  "report": "Financial Model",
+  "permission": "Financials",
+  "permissions": [
+    "financials_sales_channel",
+    "Financial Model",
+    "Returns Report"
+  ],
+  "aliases": [
+    "Financial Model Dashboard",
+    "Strategic Operating Model",
+    "Planning",
+    "Returns"
+  ],
+  "portal": "https://equestrian-labs-dashboard.pages.dev"
+}

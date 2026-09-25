@@ -176,16 +176,16 @@ function engineRows(name){
    return `<td class="calculated">${fmtVal}</td>`+YEARS.slice(1).map(y=>editable(key,y,fmt)).join("");
  };
  if(name==="Ecommerce")return[
-  `<tr><td>Orders</td><td class="baseline">${actualFmt(name,"orders","number",true)}</td>${actualThenFuture("orders")}</tr>`,
+  `<tr><td>Orders</td><td class="baseline">${fmtNum(engine(name,"2026").orders)}</td>${actualThenFuture("orders")}</tr>`,
   `<tr><td>AOV</td><td class="baseline">${actualFmt(name,"aov","money",true)}</td>${actualThenFuture("aov","money")}</tr>`,
   `<tr><td>GM1 %</td><td class="baseline">${fmtPct(actualGm1(name))}</td>${actualThenFuture("gm1","pct")}</tr>`];
  if(name==="Concierge"){const mc=displayActualEngine(name,"uniqueCustomers"),ao=displayActualEngine(name,"orders"),opc=mc&&ao?n(ao)/n(mc):null;return[
   `<tr><td>Active Clients</td><td class="baseline">${valid(mc)?fmtNum(mc):"Data unavailable"}</td>${actualThenFuture("activeClients")}</tr>`,
-  `<tr><td>Orders per Client</td><td class="baseline">${valid(opc)?opc.toFixed(2):"Data unavailable"}</td>${actualThenFuture("ordersPerClient")}</tr>`,
+  `<tr><td>Orders per Client</td><td class="baseline">${valid(engine(name,"2026").ordersPerClient)?engine(name,"2026").ordersPerClient.toFixed(2):"Data unavailable"}</td>${actualThenFuture("ordersPerClient")}</tr>`,
   `<tr><td>AOV</td><td class="baseline">${actualFmt(name,"aov","money",true)}</td>${actualThenFuture("aov","money")}</tr>`,
   `<tr><td>GM1 %</td><td class="baseline">${fmtPct(actualGm1(name))}</td>${actualThenFuture("gm1","pct")}</tr>`]}
  if(name==="Wellington")return[
-  `<tr><td>Orders</td><td class="baseline">${actualFmt(name,"orders","number",true)}</td>${actualThenFuture("orders")}</tr>`,
+  `<tr><td>Orders</td><td class="baseline">${fmtNum(engine(name,"2026").orders)}</td>${actualThenFuture("orders")}</tr>`,
   `<tr><td>AOV</td><td class="baseline">${actualFmt(name,"aov","money",true)}</td>${actualThenFuture("aov","money")}</tr>`,
   `<tr><td>GM1 %</td><td class="baseline">${fmtPct(actualGm1(name))}</td>${actualThenFuture("gm1","pct")}</tr>`];
  if(name==="Embroidery")return[
@@ -306,12 +306,20 @@ function reliableCoverageMargin(a,minCoverage=.80,maxMargin=.75){
   return gm>0&&gm<=maxMargin?gm:null;
 }
 function saneActualMargin(v,max=.75){const r=rate(v);return r!==null&&r>0&&r<=max?r:null}
+const FINANCIAL_REPORT_2026_GM1=.32;
+function vetted2026Margin(...values){
+  for(const value of values){
+    const r=rate(value);
+    if(r!==null&&r>=.20&&r<=.36)return r;
+  }
+  return FINANCIAL_REPORT_2026_GM1;
+}
 actualGm1=function(name){
   const a=actual2026(),m=monthlyDisplayActuals();
-  if(name==="Cavali")return firstPositive(reliableCoverageMargin(a.cav,.80,.70),saneActualMargin(connected("financial.cavali.gm1",null),.70),saneActualMargin(shopifyDerived("cavali","totals.gm1",null),.70),reliableCoverageMargin(m.cav,.80,.70),.397);
-  if(name==="Ecommerce")return firstPositive(reliableCoverageMargin(a.corro),reliableCoverageMargin(a.ecom),saneActualMargin(connected("financial.corro.gm1",null)),saneActualMargin(shopifyDerived("corro","totals.gm1",null)),saneActualMargin(connected("financial.corro.ecommerceGm1",null)),reliableCoverageMargin(m.ecom),.32);
-  if(name==="Concierge")return firstPositive(reliableCoverageMargin(a.con),saneActualMargin(connected("financial.corro.conciergeGm1",null)),saneActualMargin(shopifyDerived("corro","channels.Concierge.gm1",null)),reliableCoverageMargin(m.con),.35);
-  if(name==="Wellington")return firstPositive(reliableCoverageMargin(a.well),saneActualMargin(connected("financial.corro.wellingtonGm1",null)),saneActualMargin(shopifyDerived("corro","channels.Wellington.gm1",null)),reliableCoverageMargin(m.well),.45);
+  if(name==="Cavali")return vetted2026Margin(reliableCoverageMargin(a.cav,.80,.36),saneActualMargin(connected("financial.cavali.gm1",null),.36),saneActualMargin(shopifyDerived("cavali","totals.gm1",null),.36),reliableCoverageMargin(m.cav,.80,.36));
+  if(name==="Ecommerce")return vetted2026Margin(reliableCoverageMargin(a.ecom,.80,.36),saneActualMargin(connected("financial.corro.ecommerceGm1",null),.36),saneActualMargin(shopifyDerived("corro","channels.e-commerce.gm1",null),.36),reliableCoverageMargin(m.ecom,.80,.36));
+  if(name==="Concierge")return vetted2026Margin(reliableCoverageMargin(a.con,.80,.36),saneActualMargin(connected("financial.corro.conciergeGm1",null),.36),saneActualMargin(shopifyDerived("corro","channels.Concierge.gm1",null),.36),reliableCoverageMargin(m.con,.80,.36));
+  if(name==="Wellington")return vetted2026Margin(reliableCoverageMargin(a.well,.80,.36),saneActualMargin(connected("financial.corro.wellingtonGm1",null),.36),saneActualMargin(shopifyDerived("corro","channels.Wellington.gm1",null),.36),reliableCoverageMargin(m.well,.80,.36));
   return null;
 };
 const _engValV43=engVal;
@@ -340,7 +348,7 @@ engine=function(name,y){
     signatureRevenue,
     premierRevenue,
     paid:0,
-    gm1:engVal(name,"gm1",y)||.397,
+    gm1:engVal(name,"gm1",y)||FINANCIAL_REPORT_2026_GM1,
     sm,sb,sp,pm,pb,pp,
     orders:actualEngine("Cavali","orders")
   };
