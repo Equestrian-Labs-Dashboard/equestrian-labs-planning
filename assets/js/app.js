@@ -36,7 +36,7 @@ function shopifyDerived(brand,path,fallback=null){let o=ACTUALS.shopify?.brands?
 function shopifyPath(brand,path,fallback=null){let o=ACTUALS.shopify?.brands?.[brand];for(const k of path.split("."))o=o?.[k];return o??fallback}
 function smartrr(path,fallback=null){let o=ACTUALS.smartrr;for(const k of path.split("."))o=o?.[k];return o??fallback}
 function monthLabel(p){if(!p)return"—";const [y,m]=String(p).split("-"),names=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];return `${names[n(m)-1]||m} ${y}`}
-function selectedCorroMonth(){const opts=DataService.availableMonths(ACTUALS.shopify.brands?.corro||{},"2026-01"),saved=STATE.meta.corroMonth;if(saved&&opts.includes(saved))return saved;return DataService.latestClosedMonth(ACTUALS.shopify.brands?.corro?.kpis_daily||[])||opts.at(-1)||"2026-01"}
+function selectedCorroMonth(){const cur=DataService.currentPeriod(),opts=DataService.availableMonths(ACTUALS.shopify.brands?.corro||{},"2026-01"),saved=STATE.meta.corroMonth;if(saved&&opts.includes(saved))return saved;return opts.includes(cur)?cur:(DataService.latestClosedMonth(ACTUALS.shopify.brands?.corro?.kpis_daily||[])||opts.at(-1)||"2026-01")}
 function selectedCavaliMonth(){const cur=DataService.currentPeriod(),opts=DataService.availableMonths(ACTUALS.shopify.brands?.cavali||{},cur),saved=STATE.meta.cavaliMonth;if(saved&&opts.includes(saved))return saved;return opts.includes(cur)?cur:(opts[0]||cur)}
 function populateMonthFilters(){const a=$("#corroMonth"),b=$("#cavaliMonth");if(!a||!b)return;const cur=DataService.currentPeriod();let co=DataService.availableMonths(ACTUALS.shopify.brands?.corro||{},"2026-01");if(!co.length)co=DataService.monthRange("2026-01",cur);let ca=DataService.availableMonths(ACTUALS.shopify.brands?.cavali||{},cur);if(!ca.length)ca=[cur];a.innerHTML=co.map(p=>`<option value="${p}">${monthLabel(p)}</option>`).join("");b.innerHTML=ca.map(p=>`<option value="${p}">${monthLabel(p)}</option>`).join("");STATE.meta.corroMonth=selectedCorroMonth();STATE.meta.cavaliMonth=selectedCavaliMonth();a.value=STATE.meta.corroMonth;b.value=STATE.meta.cavaliMonth}
 function monthlyDisplayActuals(){
@@ -122,10 +122,10 @@ function organicRevenue(y){return y==="2026"?0:baseEcommerce(y)*n(STATE.commerci
 function paidRevenue(y){return totalAds(y)*roas(y)}
 function ecommerceBuild(y){const base=baseEcommerce(y),organic=organicRevenue(y),paid=paidRevenue(y),dover=doverNet(y);return{base,organic,paid,dover,total:base+organic+paid+dover}}
 function engine(name,y){
-  if(name==="Ecommerce"){const b=ecommerceBuild(y),gm=engVal(name,"gm1",y)||.30,aov=engVal(name,"aov",y),sales=b.total,orders=y==="2026"?(aov?sales/aov:0):engVal(name,"orders",y);return{sales,gm1:gm,orders,aov}}
+  if(name==="Ecommerce"){const b=ecommerceBuild(y),gm=engVal(name,"gm1",y)||.30,aov=engVal(name,"aov",y),sales=b.total,orders=aov?sales/aov:0;return{sales,gm1:gm,orders,aov}}
   if(name==="Concierge"){
-    if(y==="2026"){const a=actual2026(),m=Math.max(1,a.monthsClosed),src=a.con;const sales=n(src.grossSales)*(12/m),active=n(src.uniqueCustomers),aov=n(src.orders)?n(src.grossSales)/n(src.orders):engVal(name,"aov",y),opc=active?(n(src.orders)*(12/m))/active:0;return{sales,gm1:engVal(name,"gm1",y)||.35,activeClients:active,ordersPerClient:opc,aov,actualYtdSales:n(src.grossSales),cutoff:a.corroCutoff}}
-    const active=n(STATE.engines[name].activeClients[y]),opc=n(STATE.engines[name].ordersPerClient[y]),aov=engVal(name,"aov",y);return{sales:active*opc*aov,gm1:engVal(name,"gm1",y)||.35,activeClients:active,ordersPerClient:opc,aov}}
+    if(y==="2026"){const a=actual2026(),m=Math.max(1,a.monthsClosed),src=a.con,orders=n(src.orders),active=n(src.uniqueCustomers),aov=orders?n(src.grossSales)/orders:engVal(name,"aov",y),opc=active?orders/active:0,sales=n(src.grossSales)*(12/m);return{sales,gm1:engVal(name,"gm1",y)||.35,activeClients:active,ordersPerClient:opc,orders,aov,actualYtdSales:n(src.grossSales),cutoff:a.corroCutoff}}
+    const active=n(STATE.engines[name].activeClients[y]),opc=n(STATE.engines[name].ordersPerClient[y]),aov=engVal(name,"aov",y),orders=active*opc;return{sales:orders*aov,gm1:engVal(name,"gm1",y)||.35,activeClients:active,ordersPerClient:opc,orders,aov}}
   if(name==="Wellington"){
     if(y==="2026"){const a=actual2026(),m=Math.max(1,a.monthsClosed),src=a.well,aov=n(src.orders)?n(src.grossSales)/n(src.orders):engVal(name,"aov",y),orders=n(src.orders)*(12/m);return{sales:n(src.grossSales)*(12/m),gm1:engVal(name,"gm1",y)||.45,orders,aov,actualYtdSales:n(src.grossSales),cutoff:a.corroCutoff}}
     const orders=engVal(name,"orders",y),aov=engVal(name,"aov",y);return{sales:orders*aov,gm1:engVal(name,"gm1",y)||.45,orders,aov}}
@@ -307,6 +307,65 @@ function applyFinalDefaults(s){
  return s
 }
 
+const LEGACY_FORECAST_DEFAULTS={
+  commercial:{doverRampPct:{2026:.05,2027:.55,2028:.25,2029:.15}},
+  engines:{
+    Concierge:{activeClients:{2027:400,2028:600,2029:700},ordersPerClient:{2027:1.5,2028:1.8,2029:2},aov:{2027:450,2028:480,2029:500}},
+    Wellington:{orders:{2027:1200,2028:1400,2029:1600},aov:{2027:175,2028:190,2029:205}},
+    Cavali:{signatureMembers:{2027:500,2028:800,2029:1000},signatureBoxesPerMemberYear:{2027:5.2,2028:5.2,2029:5.2},premierMembers:{2027:50,2028:80,2029:150},premierBoxesPerMemberYear:{2027:3.3,2028:3.3,2029:3.3}},
+    "Private Label":{units:{2027:100,2028:1000,2029:1000}}
+  }
+};
+const FORECAST_GROWTH={2027:1.10,2028:1.25,2029:1.40};
+const FORECAST_AOV_GROWTH={2027:1.03,2028:1.06,2029:1.10};
+function sameNumber(a,b){return valid(a)&&valid(b)&&Math.abs(n(a)-n(b))<1e-9}
+function setDefaultIfLegacy(target,path,y,value,legacy){
+  const current=target?.[path]?.[y];
+  if(current===null||current===undefined||current===""||sameNumber(current,legacy)){
+    target[path][y]=value;
+  }
+}
+function applyActualBasedForecastDefaults(s){
+  const a=monthlyDisplayActuals();
+  if(!a?.corro?.monthsClosed)return s;
+  const smoothDover={2026:.05,2027:.20,2028:.35,2029:.40};
+  YEARS.forEach(y=>{
+    const old=LEGACY_FORECAST_DEFAULTS.commercial.doverRampPct[y];
+    if(sameNumber(s.commercial.doverRampPct[y],old))s.commercial.doverRampPct[y]=smoothDover[y];
+  });
+
+  const conOrders=n(a.con.orders),conClients=n(a.con.uniqueCustomers),conAov=conOrders?n(a.con.grossSales)/conOrders:null,conOpc=conClients?conOrders/conClients:null;
+  if(conClients>0){
+    YEARS.slice(1).forEach(y=>{
+      setDefaultIfLegacy(s.engines.Concierge,"activeClients",y,Math.round(conClients*FORECAST_GROWTH[y]),LEGACY_FORECAST_DEFAULTS.engines.Concierge.activeClients[y]);
+      setDefaultIfLegacy(s.engines.Concierge,"ordersPerClient",y,Number((conOpc*(1+(FORECAST_GROWTH[y]-1)/2)).toFixed(2)),LEGACY_FORECAST_DEFAULTS.engines.Concierge.ordersPerClient[y]);
+      if(conAov!==null)setDefaultIfLegacy(s.engines.Concierge,"aov",y,Math.round(conAov*FORECAST_AOV_GROWTH[y]),LEGACY_FORECAST_DEFAULTS.engines.Concierge.aov[y]);
+    });
+  }
+
+  const wellOrders=n(a.well.orders),wellAov=wellOrders?n(a.well.grossSales)/wellOrders:null;
+  if(wellOrders>0){
+    YEARS.slice(1).forEach(y=>{
+      setDefaultIfLegacy(s.engines.Wellington,"orders",y,Math.round(wellOrders*FORECAST_GROWTH[y]),LEGACY_FORECAST_DEFAULTS.engines.Wellington.orders[y]);
+      if(wellAov!==null)setDefaultIfLegacy(s.engines.Wellington,"aov",y,Math.round(wellAov*FORECAST_AOV_GROWTH[y]),LEGACY_FORECAST_DEFAULTS.engines.Wellington.aov[y]);
+    });
+  }
+
+  const sig=actualEngine("Cavali","signatureMembers"),sigBoxes=actualEngine("Cavali","signatureBoxes"),pre=actualEngine("Cavali","premierMembers"),preBoxes=actualEngine("Cavali","premierBoxes");
+  YEARS.slice(1).forEach(y=>{
+    if(valid(sig))setDefaultIfLegacy(s.engines.Cavali,"signatureMembers",y,Math.round(sig*FORECAST_GROWTH[y]),LEGACY_FORECAST_DEFAULTS.engines.Cavali.signatureMembers[y]);
+    if(valid(sigBoxes))setDefaultIfLegacy(s.engines.Cavali,"signatureBoxesPerMemberYear",y,Number(sigBoxes.toFixed(1)),LEGACY_FORECAST_DEFAULTS.engines.Cavali.signatureBoxesPerMemberYear[y]);
+    if(valid(pre))setDefaultIfLegacy(s.engines.Cavali,"premierMembers",y,Math.max(1,Math.round(pre*FORECAST_GROWTH[y])),LEGACY_FORECAST_DEFAULTS.engines.Cavali.premierMembers[y]);
+    if(valid(preBoxes))setDefaultIfLegacy(s.engines.Cavali,"premierBoxesPerMemberYear",y,Number(preBoxes.toFixed(1)),LEGACY_FORECAST_DEFAULTS.engines.Cavali.premierBoxesPerMemberYear[y]);
+  });
+
+  const pl=s.engines["Private Label"];
+  setDefaultIfLegacy(pl,"units","2027",100,LEGACY_FORECAST_DEFAULTS.engines["Private Label"].units["2027"]);
+  setDefaultIfLegacy(pl,"units","2028",250,LEGACY_FORECAST_DEFAULTS.engines["Private Label"].units["2028"]);
+  setDefaultIfLegacy(pl,"units","2029",500,LEGACY_FORECAST_DEFAULTS.engines["Private Label"].units["2029"]);
+  return s;
+}
+
 // ===== v4.4 Ceci 2026 corrections =====
 function reliableCoverageMargin(a,minCoverage=.80,maxMargin=.75){
   if(!a)return null;
@@ -411,6 +470,6 @@ renderOperations=function(){
 };
 // ===== end v4.4 =====
 
-async function init(){const d=await DataService.loadAll();BASE=applyFinalDefaults(clone(d.assumptions));ACTUALS={shopify:d.shopify,connected:d.connected,smartrr:d.smartrr||{}};STATE=loadSaved("Draft")||clone(BASE);applyFinalDefaults(STATE);Object.keys(STATE.fundingScenarios).forEach(k=>$("#fundingScenario").insertAdjacentHTML("beforeend",`<option>${k}</option>`));populateMonthFilters();if(localStorage.getItem("eqlabs-theme")==="dark"){document.documentElement.dataset.theme="dark";$("#themeBtn").textContent="☾"}wire();renderAll();window.runModelQA=()=>({paidRamp:paidRamp(),years:Object.fromEntries(YEARS.map(y=>[y,{ecommerce:ecommerceBuild(y),portfolio:portfolio(y),financial:financial(y),cash:cashAll()[y]}])),cavali:{signatureMembers:actualEngine("Cavali","signatureMembers"),signatureBoxes:actualEngine("Cavali","signatureBoxes"),premierMembers:actualEngine("Cavali","premierMembers"),premierBoxes:actualEngine("Cavali","premierBoxes"),gm1:actualGm1("Cavali")}})}
+async function init(){const d=await DataService.loadAll();BASE=applyFinalDefaults(clone(d.assumptions));ACTUALS={shopify:d.shopify,connected:d.connected,smartrr:d.smartrr||{}};STATE=loadSaved("Draft")||clone(BASE);applyFinalDefaults(STATE);const cur=DataService.currentPeriod(),corroOpts=DataService.availableMonths(ACTUALS.shopify.brands?.corro||{},"2026-01"),latestCorro=corroOpts.includes(cur)?cur:DataService.latestClosedMonth(ACTUALS.shopify.brands?.corro?.kpis_daily||[]);if(STATE.meta.corroMonth==="2026-01"&&latestCorro)STATE.meta.corroMonth=latestCorro;Object.keys(STATE.fundingScenarios).forEach(k=>$("#fundingScenario").insertAdjacentHTML("beforeend",`<option>${k}</option>`));populateMonthFilters();applyActualBasedForecastDefaults(STATE);if(localStorage.getItem("eqlabs-theme")==="dark"){document.documentElement.dataset.theme="dark";$("#themeBtn").textContent="☾"}wire();renderAll();window.runModelQA=()=>({paidRamp:paidRamp(),years:Object.fromEntries(YEARS.map(y=>[y,{ecommerce:ecommerceBuild(y),portfolio:portfolio(y),financial:financial(y),cash:cashAll()[y]}])),cavali:{signatureMembers:actualEngine("Cavali","signatureMembers"),signatureBoxes:actualEngine("Cavali","signatureBoxes"),premierMembers:actualEngine("Cavali","premierMembers"),premierBoxes:actualEngine("Cavali","premierBoxes"),gm1:actualGm1("Cavali")}})}
 init().catch(e=>{console.error(e);document.body.insertAdjacentHTML("beforeend",`<pre class="fatal">${esc(e.stack||e.message)}</pre>`)});
 })();

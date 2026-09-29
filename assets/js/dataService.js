@@ -62,6 +62,9 @@
     const start=`${year}-01`;
     const rs=channelRows(brand,channel).filter(x=>x.period && x.period>=start && x.period<=period);
     const a=aggregateRows(rs);
+    const latest=[...new Set(channelRows(brand,channel).map(x=>x.period).filter(p=>p&&p.startsWith(`${year}-`)))].sort().at(-1);
+    const exact=brand?.channel_yearly_unique_customers?.[String(year)]?.[channel];
+    if (latest && period>=latest && Number.isFinite(Number(exact))) a.uniqueCustomers=Number(exact);
     a.monthsClosed=new Set(rs.map(x=>x.period)).size;
     a.lastClosedMonth=period;
     return a;

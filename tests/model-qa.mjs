@@ -12,5 +12,12 @@ ok('$3M allocation balances',(()=>{const x=a.fundingScenarios['$3M'];return x.pa
 ok('G&A remains flat 2026-2029',new Set(Object.values(a.opex.generalAdministrative)).size===1);
 ok('S&M is not advertising',Object.values(a.opex.salesMarketing).every(v=>Number(v)>=0));
 ok('Cavali uses Premier wording in data model',!!a.engines.Cavali.premierMembers);
+ok('Dover ramp grows progressively after 2026',a.commercial.doverRampPct['2027']<a.commercial.doverRampPct['2028']&&a.commercial.doverRampPct['2028']<=a.commercial.doverRampPct['2029']);
+ok('Concierge 2027 clients do not use legacy jump default',a.engines.Concierge.activeClients['2027']<300);
+ok('Concierge orders/client stays plausible',a.engines.Concierge.ordersPerClient['2027']<2&&a.engines.Concierge.ordersPerClient['2029']<=2.1);
+ok('Wellington 2027 grows from actual base',a.engines.Wellington.orders['2027']>a.engines.Wellington.orders['2026']);
+ok('Cavali Signature 2027 grows from observed base',a.engines.Cavali.signatureMembers['2027']>a.engines.Cavali.signatureMembers['2026']);
+ok('Private Label ramps gradually after launch',a.engines['Private Label'].units['2028']<500&&a.engines['Private Label'].units['2029']<=500);
+ok('Embroidery legacy launch scale is preserved',a.engines.Embroidery.orders['2027']===30000);
 for(const [name,val] of checks)console.log(`${val?'PASS':'FAIL'}  ${name}`);
 if(checks.some(x=>!x[1]))process.exit(1);
