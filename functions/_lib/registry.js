@@ -16,7 +16,7 @@ const REPORT_ALIASES = {
   sales_reports: ["sales reports"],
   mud_fever: ["mud fever", "mud", "mudfever"],
   sku_savvy: ["sku savvy", "sku savy", "skusavvy", "skusavy", "sku", "operations"],
-  financials_sales_channel: ["financials", "financial", "financial model", "financial model dashboard", "planning", "strategic operating model", "financials per sales channel", "financials sales channel"],
+  financials_sales_channel: ["financials", "financial", "financial model", "financial model dashboard", "planning", "strategic operating model", "financials per sales channel", "financials sales channel", "returns", "returns report"],
   sales_by_channel: ["sales by channel", "sales by channel summary", "channel sales"],
   smartrr: ["smartrr", "smart rr", "other sales channel", "other sales channels", "subscription report", "subscriptions"],
   yagya: ["yagya", "yaya"],

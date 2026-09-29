@@ -2,13 +2,16 @@ import { authorize } from "./_lib/authz.js";
 import { queueAccessLog } from "./_lib/audit.js";
 import { canUseReport } from "./_lib/registry.js";
 
+const PROJECT_NAME = "Strategic Operating Model";
+const REPORT_KEY = "financials_sales_channel";
+
 function accessDeniedResponse() {
   return new Response(`
     <!doctype html>
     <html>
     <body style="font-family:Arial;text-align:center;padding:60px">
     <h1>Access denied</h1>
-    <p>You don't have permission to view the Financial Model.</p>
+    <p>You don't have permission to view the Strategic Operating Model.</p>
     <p>Please access through the Equestrian Labs Dashboard portal.</p>
     </body>
     </html>
@@ -23,21 +26,21 @@ function setupErrorResponse(error) {
     <html>
     <body style="font-family:Arial;text-align:center;padding:60px">
     <h1>Access setup error</h1>
-    <p>Financial Model could not validate the user registry.</p>
+    <p>Strategic Operating Model could not validate the user registry.</p>
     <pre style="white-space:pre-wrap;text-align:left;max-width:860px;margin:24px auto;padding:16px;background:#f5f5f5;border:1px solid #ddd">${message}</pre>
     </body>
     </html>
   `, {status:500, headers:{"Content-Type":"text/html"}});
 }
 
-function signInResponse(message = "Please sign in to view the Financial Model.") {
+function signInResponse(message = "Please sign in to view the Strategic Operating Model.") {
   return new Response(`
     <!doctype html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
-      <title>Financial Model Sign In</title>
+      <title>Strategic Operating Model Sign In</title>
       <script src="https://accounts.google.com/gsi/client" async defer></script>
       <style>
         body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:Arial,sans-serif;background:#f4f7fb;color:#081f3d}
@@ -50,7 +53,7 @@ function signInResponse(message = "Please sign in to view the Financial Model.")
     </head>
     <body>
       <main>
-        <h1>Financial Model</h1>
+        <h1>Strategic Operating Model</h1>
         <p>${message}</p>
         <div id="googleBtn"></div>
         <div id="status"></div>
@@ -103,29 +106,29 @@ export async function onRequest(context) {
   const url = new URL(context.request.url);
 
   // Protect the report pages
-  const protectedPaths = new Set(["/", "/index.html"]);
+  const protectedPaths = new Set(["/", "/index.html", "/returns.html"]);
   if (!protectedPaths.has(url.pathname) && !url.pathname.startsWith("/data/")) {
     return context.next();
   }
 
   try {
     const { user } = await authorize(context);
-    if (!canUseReport(user, "financials_sales_channel")) {
-      queueAccessLog(context, { project: "Financial Model", reportKey: "financials_sales_channel", action: "view", result: "denied", user });
+    if (!canUseReport(user, REPORT_KEY)) {
+      queueAccessLog(context, { project: PROJECT_NAME, reportKey: REPORT_KEY, action: "view", result: "denied", user });
       return accessDeniedResponse();
     }
-    queueAccessLog(context, { project: "Financial Model", reportKey: "financials_sales_channel", action: "view", result: "allowed", user });
+    queueAccessLog(context, { project: PROJECT_NAME, reportKey: REPORT_KEY, action: "view", result: "allowed", user });
     return context.next();
   } catch (e) {
     if (["session_missing", "session_expired", "session_invalid"].includes(e?.code)) {
-      queueAccessLog(context, { project: "Financial Model", reportKey: "financials_sales_channel", action: "view", result: e.code });
+      queueAccessLog(context, { project: PROJECT_NAME, reportKey: REPORT_KEY, action: "view", result: e.code });
       return signInResponse(e.code === "session_expired" ? "Your session expired. Please sign in again." : undefined);
     }
     if (!e?.status || Number(e.status) >= 500) {
-      queueAccessLog(context, { project: "Financial Model", reportKey: "financials_sales_channel", action: "view", result: "setup_error" });
+      queueAccessLog(context, { project: PROJECT_NAME, reportKey: REPORT_KEY, action: "view", result: "setup_error" });
       return setupErrorResponse(e);
     }
-    queueAccessLog(context, { project: "Financial Model", reportKey: "financials_sales_channel", action: "view", result: "denied" });
+    queueAccessLog(context, { project: PROJECT_NAME, reportKey: REPORT_KEY, action: "view", result: "denied" });
     return accessDeniedResponse();
   }
 }

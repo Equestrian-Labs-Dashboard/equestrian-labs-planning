@@ -1,9 +1,10 @@
 {
-  "report": "Financial Model",
+  "report": "Strategic Operating Model",
   "permission": "Financials",
   "permissions": [
     "financials_sales_channel",
     "Financial Model",
+    "Strategic Operating Model",
     "Returns Report"
   ],
   "aliases": [
