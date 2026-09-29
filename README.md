@@ -23,16 +23,13 @@ The first forecast year uses closed Shopify actual months plus remaining months 
 
 ## Deploy
 1. Replace the repository contents with this project, preserving only repository Secrets/Variables.
-2. Create or connect the Cloudflare Pages project named `strategic-operating-model`.
-3. Add the Cloudflare deployment secrets to GitHub.
-4. Run `Sync Actuals and Deploy to Cloudflare Pages`.
+2. Run `Sync Actuals` from GitHub Actions to refresh Shopify / Sheets data and validate the model.
+3. Connect the repository to Cloudflare Pages separately when ready.
 4. Hard refresh the deployed page.
 5. Open Tab 6 and confirm all formula QA checks are PASS.
 6. In the browser console, run `runModelQA()` for full year outputs.
 
 ## Required GitHub Secrets
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ACCOUNT_ID`
 - `SHOPIFY_CORRO_STORE`
 - `SHOPIFY_CORRO_TOKEN`
 - `SHOPIFY_CAVALI_STORE`
@@ -59,4 +56,4 @@ The first forecast year uses closed Shopify actual months plus remaining months 
 - Month selectors change Baseline / Current display only; they do NOT replace 2026 Actuals + FCS calculations.
 - 2026 FCS remains closed YTD actuals + remaining months at the editable run rate.
 - Existing Tabs 1–6, Display Year, scenario persistence, Paid Ads, Dover, COGS/Inventory separation, Cavali and Board logic are preserved.
-- The workflow deploys the static site and Pages Functions to Cloudflare Pages.
+- The workflow refreshes data and validates the static site. Cloudflare Pages deployment is managed separately from the repository connection.
