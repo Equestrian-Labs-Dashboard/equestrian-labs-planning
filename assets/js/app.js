@@ -103,12 +103,12 @@ function actualGm1(name){
 }
 function actualEngine(name,key){const a=actual2026();
   if(name==="Ecommerce"){if(key==="orders")return a.ecom.orders;if(key==="aov")return a.ecom.orders?a.ecom.grossSales/a.ecom.orders:null;if(key==="gm1")return actualGm1(name)}
-  if(name==="Concierge"){if(key==="orders")return a.con.orders;if(key==="aov")return a.con.orders?a.con.grossSales/a.con.orders:null;if(key==="gm1")return actualGm1(name)}
+  if(name==="Concierge"){if(key==="orders")return a.con.orders;if(key==="units")return a.con.units;if(key==="uniqueCustomers")return a.con.uniqueCustomers;if(key==="unitsPerClient")return a.con.uniqueCustomers?a.con.units/a.con.uniqueCustomers:null;if(key==="unitsPerOrder")return a.con.orders?a.con.units/a.con.orders:null;if(key==="aov")return a.con.orders?a.con.grossSales/a.con.orders:null;if(key==="gm1")return actualGm1(name)}
   if(name==="Wellington"){if(key==="orders")return a.well.orders;if(key==="aov")return a.well.orders?a.well.grossSales/a.well.orders:null;if(key==="gm1")return actualGm1(name)}
   if(name==="Cavali"){if(key==="orders")return a.cav.orders;if(key==="gm1")return actualGm1(name);if(key==="signatureMembers")return cavaliMembers("signature");if(key==="signatureBoxes")return cavaliBoxes("signature");if(key==="premierMembers")return cavaliMembers("premier");if(key==="premierBoxes")return cavaliBoxes("premier")}
   return null
 }
-function displayActualEngine(name,key){const a=monthlyDisplayActuals();if(name==="Ecommerce"){if(key==="orders")return a.ecom.orders;if(key==="aov")return a.ecom.orders?a.ecom.grossSales/a.ecom.orders:null;if(key==="gm1")return actualGm1(name)}if(name==="Concierge"){if(key==="orders")return a.con.orders;if(key==="aov")return a.con.orders?a.con.grossSales/a.con.orders:null;if(key==="uniqueCustomers")return a.con.uniqueCustomers;if(key==="gm1")return actualGm1(name)}if(name==="Wellington"){if(key==="orders")return a.well.orders;if(key==="aov")return a.well.orders?a.well.grossSales/a.well.orders:null;if(key==="gm1")return actualGm1(name)}if(name==="Cavali"){if(key==="orders")return a.cav.orders;if(key==="aov")return a.cav.orders?a.cav.grossSales/a.cav.orders:null;if(key==="gm1")return actualGm1(name)}return actualEngine(name,key)}
+function displayActualEngine(name,key){const a=monthlyDisplayActuals();if(name==="Ecommerce"){if(key==="orders")return a.ecom.orders;if(key==="aov")return a.ecom.orders?a.ecom.grossSales/a.ecom.orders:null;if(key==="gm1")return actualGm1(name)}if(name==="Concierge"){if(key==="orders")return a.con.orders;if(key==="units")return a.con.units;if(key==="aov")return a.con.orders?a.con.grossSales/a.con.orders:null;if(key==="uniqueCustomers")return a.con.uniqueCustomers;if(key==="unitsPerClient")return a.con.uniqueCustomers?a.con.units/a.con.uniqueCustomers:null;if(key==="unitsPerOrder")return a.con.orders?a.con.units/a.con.orders:null;if(key==="gm1")return actualGm1(name)}if(name==="Wellington"){if(key==="orders")return a.well.orders;if(key==="aov")return a.well.orders?a.well.grossSales/a.well.orders:null;if(key==="gm1")return actualGm1(name)}if(name==="Cavali"){if(key==="orders")return a.cav.orders;if(key==="aov")return a.cav.orders?a.cav.grossSales/a.cav.orders:null;if(key==="gm1")return actualGm1(name)}return actualEngine(name,key)}
 function engVal(name,key,y){
   const e=STATE.engines[name], map={signatureBoxesPerMemberYear:"signatureBoxes",premierBoxesPerMemberYear:"premierBoxes"};
   if(y==="2026" && !["signaturePrice","premierPrice","adSpend","roas","units","asp"].includes(key)){
@@ -124,8 +124,8 @@ function ecommerceBuild(y){const base=baseEcommerce(y),organic=organicRevenue(y)
 function engine(name,y){
   if(name==="Ecommerce"){const b=ecommerceBuild(y),gm=engVal(name,"gm1",y)||.30,aov=engVal(name,"aov",y),sales=b.total,orders=aov?sales/aov:0;return{sales,gm1:gm,orders,aov}}
   if(name==="Concierge"){
-    if(y==="2026"){const a=actual2026(),m=Math.max(1,a.monthsClosed),src=a.con,orders=n(src.orders),active=n(src.uniqueCustomers),aov=orders?n(src.grossSales)/orders:engVal(name,"aov",y),opc=active?orders/active:0,sales=n(src.grossSales)*(12/m);return{sales,gm1:engVal(name,"gm1",y)||.35,activeClients:active,ordersPerClient:opc,orders,aov,actualYtdSales:n(src.grossSales),cutoff:a.corroCutoff}}
-    const active=n(STATE.engines[name].activeClients[y]),opc=n(STATE.engines[name].ordersPerClient[y]),aov=engVal(name,"aov",y),orders=active*opc;return{sales:orders*aov,gm1:engVal(name,"gm1",y)||.35,activeClients:active,ordersPerClient:opc,orders,aov}}
+    if(y==="2026"){const a=actual2026(),m=Math.max(1,a.monthsClosed),src=a.con,orders=n(src.orders),active=n(src.uniqueCustomers),units=n(src.units),aov=orders?n(src.grossSales)/orders:engVal(name,"aov",y),opc=active?orders/active:0,upc=active?units/active:0,upo=orders?units/orders:0,sales=n(src.grossSales)*(12/m);return{sales,gm1:engVal(name,"gm1",y)||.35,activeClients:active,ordersPerClient:opc,orders,units,unitsPerClient:upc,unitsPerOrder:upo,aov,actualYtdSales:n(src.grossSales),cutoff:a.corroCutoff}}
+    const active=n(STATE.engines[name].activeClients[y]),opc=n(STATE.engines[name].ordersPerClient[y]),aov=engVal(name,"aov",y),orders=active*opc,upo=firstPositive(actualEngine("Concierge","unitsPerOrder"),0),units=orders*upo;return{sales:orders*aov,gm1:engVal(name,"gm1",y)||.35,activeClients:active,ordersPerClient:opc,orders,units,unitsPerOrder:upo,unitsPerClient:active?units/active:0,aov}}
   if(name==="Wellington"){
     if(y==="2026"){const a=actual2026(),m=Math.max(1,a.monthsClosed),src=a.well,aov=n(src.orders)?n(src.grossSales)/n(src.orders):engVal(name,"aov",y),orders=n(src.orders)*(12/m);return{sales:n(src.grossSales)*(12/m),gm1:engVal(name,"gm1",y)||.45,orders,aov,actualYtdSales:n(src.grossSales),cutoff:a.corroCutoff}}
     const orders=engVal(name,"orders",y),aov=engVal(name,"aov",y);return{sales:orders*aov,gm1:engVal(name,"gm1",y)||.45,orders,aov}}
@@ -182,6 +182,8 @@ function engineRows(name){
   `<tr><td>GM1 %</td><td class="baseline">${fmtPct(actualGm1(name))}</td>${actualThenFuture("gm1","pct")}</tr>`];
  if(name==="Concierge"){const mc=displayActualEngine(name,"uniqueCustomers"),ao=displayActualEngine(name,"orders"),opc=mc&&ao?n(ao)/n(mc):null;return[
   `<tr><td>Active Clients</td><td class="baseline">${valid(mc)?fmtNum(mc):"Data unavailable"}</td>${actualThenFuture("activeClients")}</tr>`,
+  `<tr><td>Units</td><td class="baseline">${actualFmt(name,"units")}</td><td class="calculated">${fmtNum(engine(name,"2026").units)}</td>${YEARS.slice(1).map(y=>`<td class="calculated">${fmtNum(engine(name,y).units)}</td>`).join("")}</tr>`,
+  `<tr><td>Units per Client</td><td class="baseline">${valid(displayActualEngine(name,"unitsPerClient"))?fmtNum(displayActualEngine(name,"unitsPerClient"),2):"Data unavailable"}</td><td class="calculated">${fmtNum(engine(name,"2026").unitsPerClient,2)}</td>${YEARS.slice(1).map(y=>`<td class="calculated">${fmtNum(engine(name,y).unitsPerClient,2)}</td>`).join("")}</tr>`,
   `<tr><td>Orders per Client</td><td class="baseline">${valid(engine(name,"2026").ordersPerClient)?engine(name,"2026").ordersPerClient.toFixed(2):"Data unavailable"}</td>${actualThenFuture("ordersPerClient")}</tr>`,
   `<tr><td>AOV</td><td class="baseline">${actualFmt(name,"aov","money",true)}</td>${actualThenFuture("aov","money")}</tr>`,
   `<tr><td>GM1 %</td><td class="baseline">${fmtPct(actualGm1(name))}</td>${actualThenFuture("gm1","pct")}</tr>`]}
@@ -215,8 +217,8 @@ function engineKpiSummary(y){
   const rows=portfolio(y).items.map(x=>{
     const isConcierge=x.name==="Concierge",isCavali=x.name==="Cavali",orders=valid(x.orders)?x.orders:null;
     const clients=isConcierge?x.activeClients:(isCavali?x.sm+x.pm:null);
-    const aov=orders&&orders>0?x.sales/orders:(valid(x.aov)?x.aov:null);
-    const rel=isConcierge&&valid(clients)&&valid(orders)?`${fmtNum(orders/clients,2)} orders/client`:isCavali?"Signature + Premier members":"";
+    const aov=valid(x.aov)?x.aov:(orders&&orders>0?x.sales/orders:null);
+    const rel=isConcierge&&valid(clients)&&valid(orders)?`${fmtNum(orders/clients,2)} orders/client · ${fmtNum(x.units||0)} units`:isCavali?"Signature + Premier members":"";
     return `<tr class="${isConcierge?"important":""}"><td>${x.name}</td><td>${fmtMoney(x.sales)}</td><td>${orders===null?"—":fmtCount(orders)}</td><td>${clients===null?"—":fmtCount(clients)}</td><td>${aov===null?"—":fmtMoney(aov)}</td><td>${fmtPct(x.gm1)}</td><td>${rel}</td></tr>`;
   });
   return table(["Growth Engine","Gross Sales","Orders","Clients / Members","AOV","GM1 %","Check"],rows);

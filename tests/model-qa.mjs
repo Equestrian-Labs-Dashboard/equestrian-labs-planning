@@ -1,8 +1,14 @@
 import fs from 'node:fs';
 const a=JSON.parse(fs.readFileSync(new URL('../data/assumptions.json',import.meta.url),'utf8'));
+const shopify=JSON.parse(fs.readFileSync(new URL('../data/shopify_actuals.json',import.meta.url),'utf8'));
 const Y=['2026','2027','2028','2029'];
 const sum=o=>Y.reduce((s,y)=>s+Number(o[y]||0),0);
 const checks=[]; const ok=(name,val)=>checks.push([name,!!val]);
+const conciergeRows=(shopify.brands?.corro?.revenue_share||[]).filter(x=>x.channel==='Concierge'&&String(x.period||'').startsWith('2026-'));
+const conciergeSum=k=>conciergeRows.reduce((s,x)=>s+Number(x[k]||0),0);
+const conciergeOrders=conciergeSum('nb_orders');
+const conciergeUnits=conciergeSum('nb_units');
+const conciergeClients=shopify.brands?.corro?.channel_yearly_unique_customers?.['2026']?.Concierge;
 ok('Dover base = $130M',a.commercial.doverMarketOpportunity===130000000);
 ok('Dover ramp totals 100%',Math.abs(sum(a.commercial.doverRampPct)-1)<1e-9);
 ok('Vendor mix totals 100%',Math.abs(a.purchasing.vendorMix.prepaid+a.purchasing.vendorMix.lt15+a.purchasing.vendorMix.d30_45-1)<1e-9);
@@ -19,5 +25,9 @@ ok('Wellington 2027 grows from actual base',a.engines.Wellington.orders['2027']>
 ok('Cavali Signature 2027 grows from observed base',a.engines.Cavali.signatureMembers['2027']>a.engines.Cavali.signatureMembers['2026']);
 ok('Private Label ramps gradually after launch',a.engines['Private Label'].units['2028']<500&&a.engines['Private Label'].units['2029']<=500);
 ok('Embroidery legacy launch scale is preserved',a.engines.Embroidery.orders['2027']===30000);
+ok('Concierge Shopify unit total is available',conciergeUnits===2717);
+ok('Concierge Shopify unique clients use yearly de-duplicated count',conciergeClients===214);
+ok('Concierge Shopify orders/client ratio is plausible',conciergeOrders/conciergeClients>1&&conciergeOrders/conciergeClients<2);
+ok('Concierge Shopify units/client ratio is plausible',conciergeUnits/conciergeClients>10&&conciergeUnits/conciergeClients<15);
 for(const [name,val] of checks)console.log(`${val?'PASS':'FAIL'}  ${name}`);
 if(checks.some(x=>!x[1]))process.exit(1);
