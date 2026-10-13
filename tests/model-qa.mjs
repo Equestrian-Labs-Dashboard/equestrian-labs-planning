@@ -16,6 +16,7 @@ ok('Vendor mix totals 100%',Math.abs(a.purchasing.vendorMix.prepaid+a.purchasing
 ok('2026 organic revenue assumption = 0%',a.commercial.organicGrowthPct['2026']===0);
 ok('Base ad spend = $20k/month',a.commercial.baseAdSpendMonthly===20000);
 ok('$3M main scenario preserves original round and adds $2M Nov-26 round',(()=>{const x=a.fundingScenarios['$3M'];return a.meta.fundingScenario==='$3M'&&a.meta.fundingDate==='Oct-26'&&Array.isArray(x.rounds)&&x.rounds.length===2&&x.rounds[0].date==='Oct-26'&&x.rounds[0].amount===3000000&&x.rounds[1].date==='Nov-26'&&x.rounds[1].amount===2000000})());
+ok('Added funding scenario carries Ceci allocation and 10% organic growth',(()=>{const r=a.fundingScenarios['$3M'].rounds[1];return r.organicGrowth===0.1&&r.embroidery===50000&&r.payables===390000&&r.inventory===682500&&r.marketing===682500})());
 ok('$3M allocation stays within total funding after added round',(()=>{const x=a.fundingScenarios['$3M'];return x.payables+x.inventory+x.marketing+x.embroidery+x.privateLabel<=x.funding})());
 ok('G&A remains flat 2026-2029',new Set(Object.values(a.opex.generalAdministrative)).size===1);
 ok('S&M is not advertising',Object.values(a.opex.salesMarketing).every(v=>Number(v)>=0));
