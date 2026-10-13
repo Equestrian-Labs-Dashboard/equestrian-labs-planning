@@ -347,16 +347,16 @@ function applyFinalDefaults(s){
  Object.values(s.fundingScenarios||{}).forEach(normalizeFundingScenario);
  const addedRound=addedFundingRound();
  const restoredMainFunding={
-   organicGrowth:.10,
+   organicGrowth:0,
    rounds:[
-     {label:"Round 1",date:"Oct-26",amount:3000000,organicGrowth:n(s.fundingScenarios?.["$3M"]?.organicGrowth),payables:650000,inventory:950000,marketing:950000,embroidery:50000,privateLabel:400000},
+     {label:"Round 1",date:"Oct-26",amount:3000000,organicGrowth:0,payables:650000,inventory:950000,marketing:950000,embroidery:50000,privateLabel:400000},
      addedRound
    ]
  };
  if(s.fundingScenarios?.["$3M"]){
    const x=s.fundingScenarios["$3M"];
    const addedCount=(x.rounds||[]).filter(r=>n(r.amount)===2000000&&r.date==="Nov-26").length;
-   if(!Array.isArray(x.rounds)||x.rounds.length<2||addedCount!==1||n(x.funding)!==5000000||n(x.rounds[0]?.amount)!==3000000||x.rounds[0]?.date!=="Oct-26"){
+   if(!Array.isArray(x.rounds)||x.rounds.length<2||addedCount!==1||n(x.funding)!==5000000||n(x.rounds[0]?.amount)!==3000000||x.rounds[0]?.date!=="Oct-26"||n(x.rounds[0]?.organicGrowth)!==0){
      x.organicGrowth=restoredMainFunding.organicGrowth;
      x.rounds=clone(restoredMainFunding.rounds);
      normalizeFundingScenario(x);

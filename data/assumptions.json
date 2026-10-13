@@ -36,7 +36,7 @@
     "$1M": {
       "funding": 1000000,
       "date": "Jul-26",
-      "organicGrowth": 0.1,
+      "organicGrowth": 0,
       "payables": 300000,
       "inventory": 300000,
       "marketing": 350000,
@@ -57,7 +57,7 @@
           "label": "Round 1",
           "date": "Oct-26",
           "amount": 3000000,
-          "organicGrowth": 0.1,
+          "organicGrowth": 0,
           "payables": 650000,
           "inventory": 950000,
           "marketing": 950000,
