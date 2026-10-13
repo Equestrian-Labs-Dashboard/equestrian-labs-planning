@@ -44,14 +44,36 @@
       "privateLabel": 0
     },
     "$3M": {
-      "funding": 3000000,
-      "date": "Oct-26",
+      "funding": 2500000,
+      "date": "Nov-26",
       "organicGrowth": 0.1,
-      "payables": 650000,
-      "inventory": 950000,
-      "marketing": 950000,
+      "payables": 390000,
+      "inventory": 682500,
+      "marketing": 682500,
       "embroidery": 50000,
-      "privateLabel": 400000
+      "privateLabel": 0,
+      "rounds": [
+        {
+          "label": "Round 1",
+          "date": "Nov-26",
+          "amount": 2000000,
+          "payables": 390000,
+          "inventory": 682500,
+          "marketing": 682500,
+          "embroidery": 50000,
+          "privateLabel": 0
+        },
+        {
+          "label": "Round 2",
+          "date": "Jan-27",
+          "amount": 500000,
+          "payables": 0,
+          "inventory": 0,
+          "marketing": 0,
+          "embroidery": 0,
+          "privateLabel": 0
+        }
+      ]
     },
     "$5M": {
       "funding": 5000000,
