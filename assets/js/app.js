@@ -284,7 +284,7 @@ function renderTab6(){const r=paidRamp(),sc=STATE.meta.fundingScenario,tests=[["
 function renderTab6(){
  const r=paidRamp(),sc=STATE.meta.fundingScenario,alloc=["payables","inventory","marketing","embroidery","privateLabel"].reduce((s,k)=>s+n(scenario()[k]),0);
  const tests=[
-  ["Funding rounds total $2.5M in main scenario",STATE.meta.fundingScenario==="$2.5M"&&n(STATE.fundingScenarios?.["$2.5M"]?.funding)===2500000],
+  ["Main scenario keeps original funding and adds $2M Nov-26 round",STATE.meta.fundingScenario==="$3M"&&n(STATE.fundingScenarios?.["$3M"]?.funding)===5000000&&STATE.fundingScenarios?.["$3M"]?.rounds?.some(r=>r.date==="Nov-26"&&n(r.amount)===2000000)],
   ["Funding allocation does not exceed funding",alloc<=n(scenario().funding)+1],
   ["Multiple funding rounds are enabled",activeRounds().length>=1],
   ["Paid Ads ramp totals 100% when marketing is allocated",n(scenario().marketing)===0||Math.abs(YEARS.reduce((s,y)=>s+r[y],0)-1)<1e-8],
@@ -303,7 +303,7 @@ function renderTab6(){
   ["Funding inventory stays in Cash Flow, not P&L COGS",true]
  ];
  const adRows=Object.entries(STATE.fundingScenarios).map(([name,x])=>{normalizeFundingScenario(x);const ads=y=>n(STATE.commercial.baseAdSpendMonthly)*12+x.rounds.reduce((s,round)=>s+n(round.marketing)*roundRamp(round)[y],0);return `<tr><td>${name}</td><td>${fmtMoney(x.marketing)}</td><td>${fmtMoney(ads("2026"))}</td><td>${fmtMoney(ads("2027"))}</td><td class="${name===sc?"qa-pass":""}">${name===sc?"Active":""}</td></tr>`});
- $("#tab6").innerHTML=`<div class="section"><div class="section-title accent-purple">Formula QA</div>${table(["Test","Status"],tests.map(([t,ok])=>`<tr><td>${t}</td><td class="${ok?"qa-pass":"qa-fail"}">${ok?"PASS":"FAIL"}</td></tr>`))}</div><div class="section"><div class="section-title accent-yellow">Paid Ads — Per-Scenario Verification</div>${table(["Scenario","Marketing Pool","2026 Total Ad Spend","2027 Total Ad Spend","Active"],adRows)}<p class="note">Incremental ad spend follows each funding round separately. The main scenario uses Round 1 in Nov-26 and Round 2 in Jan-27, so January funding is not available in November or December cash.</p></div><div class="card"><h3>Documented Logic</h3><p><b>Funding rounds:</b> Each round has its own date, amount and allocation. Total Funding is the sum of all rounds; cash receipts land in the year of each round date.</p><p><b>Main case:</b> Round 1 = $2.0M in Nov-26. Embroidery is $50k first, then the remaining $1.95M is allocated 20% Payables, 35% Inventory and 35% Marketing, with unallocated capital left visible. Round 2 = $500k in Jan-27.</p><p><b>Paid Ads:</b> Base $20k/month ($240k/yr) + incremental Marketing pool phased by each round's Funding Date.</p><p><b>COGS = Net Sales - GP1.</b> Funding Inventory is Cash Flow only, not an automatic P&L COGS charge.</p></div></div>`;
+ $("#tab6").innerHTML=`<div class="section"><div class="section-title accent-purple">Formula QA</div>${table(["Test","Status"],tests.map(([t,ok])=>`<tr><td>${t}</td><td class="${ok?"qa-pass":"qa-fail"}">${ok?"PASS":"FAIL"}</td></tr>`))}</div><div class="section"><div class="section-title accent-yellow">Paid Ads — Per-Scenario Verification</div>${table(["Scenario","Marketing Pool","2026 Total Ad Spend","2027 Total Ad Spend","Active"],adRows)}<p class="note">Incremental ad spend follows each funding round separately. The original funding remains in place and the added $2M round lands in Nov-26.</p></div><div class="card"><h3>Documented Logic</h3><p><b>Funding rounds:</b> Each round has its own date, amount and allocation. Total Funding is the sum of all rounds; cash receipts land in the year of each round date.</p><p><b>Main case:</b> Round 1 keeps the original funding. Round 2 adds $2.0M in Nov-26. Embroidery is $50k first, then the remaining $1.95M is allocated 20% Payables, 35% Inventory and 35% Marketing, with unallocated capital left visible.</p><p><b>Paid Ads:</b> Base $20k/month ($240k/yr) + incremental Marketing pool phased by each round's Funding Date.</p><p><b>COGS = Net Sales - GP1.</b> Funding Inventory is Cash Flow only, not an automatic P&L COGS charge.</p></div></div>`;
 }
 function renderAll(){renderTab1();renderTab2();renderTab3();renderTab4();renderTab5();renderTab6();bindEditable();syncHeader()}
 function bindEditable(){
@@ -336,30 +336,24 @@ function wire(){
 function applyFinalDefaults(s){
  s.meta.version="4.5";
  Object.values(s.fundingScenarios||{}).forEach(normalizeFundingScenario);
- const mainFunding={
+ const addedRound={label:"Round 2",date:"Nov-26",amount:2000000,payables:390000,inventory:682500,marketing:682500,embroidery:50000,privateLabel:0};
+ const restoredMainFunding={
    organicGrowth:.10,
    rounds:[
-     {label:"Round 1",date:"Nov-26",amount:2000000,payables:390000,inventory:682500,marketing:682500,embroidery:50000,privateLabel:0},
-     {label:"Round 2",date:"Jan-27",amount:500000,payables:0,inventory:0,marketing:0,embroidery:0,privateLabel:0}
+     {label:"Round 1",date:"Oct-26",amount:3000000,payables:650000,inventory:950000,marketing:950000,embroidery:50000,privateLabel:400000},
+     addedRound
    ]
  };
- if(!s.fundingScenarios?.["$2.5M"])s.fundingScenarios["$2.5M"]=clone(mainFunding);
- const main=s.fundingScenarios["$2.5M"];
- if(!Array.isArray(main.rounds)||main.funding!==2500000||main.rounds.length<2){
-   main.organicGrowth=mainFunding.organicGrowth;
-   main.rounds=clone(mainFunding.rounds);
-   normalizeFundingScenario(main);
- }
  if(s.fundingScenarios?.["$3M"]){
    const x=s.fundingScenarios["$3M"];
-   if(!Array.isArray(x.rounds)||x.funding===3000000||x.rounds.length<2){
-     x.organicGrowth=mainFunding.organicGrowth;
-     x.rounds=clone(mainFunding.rounds);
+   if(!Array.isArray(x.rounds)||x.rounds.length<2||!x.rounds.some(r=>n(r.amount)===2000000&&r.date==="Nov-26")){
+     x.organicGrowth=restoredMainFunding.organicGrowth;
+     x.rounds=clone(restoredMainFunding.rounds);
      normalizeFundingScenario(x);
    }
  }
- if(s.meta.fundingScenario==="$3M"&&n(s.fundingScenarios["$3M"]?.funding)===2500000)s.meta.fundingScenario="$2.5M";
- if(s.meta.fundingScenario==="$2.5M")s.meta.fundingDate="Nov-26";
+ if(s.meta.fundingScenario==="$2.5M")s.meta.fundingScenario="$3M";
+ if(s.meta.fundingScenario==="$3M")s.meta.fundingDate="Oct-26";
  if(s.engines?.Ecommerce?.gm1){s.engines.Ecommerce.gm1["2027"]=.37;s.engines.Ecommerce.gm1["2028"]=.42;s.engines.Ecommerce.gm1["2029"]=.46}
  try {
    if (typeof BASE !== "undefined" && BASE && BASE.engines) {
