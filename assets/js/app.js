@@ -284,7 +284,7 @@ function renderTab6(){const r=paidRamp(),sc=STATE.meta.fundingScenario,tests=[["
 function renderTab6(){
  const r=paidRamp(),sc=STATE.meta.fundingScenario,alloc=["payables","inventory","marketing","embroidery","privateLabel"].reduce((s,k)=>s+n(scenario()[k]),0);
  const tests=[
-  ["Funding rounds total $2.5M in main scenario",n(STATE.fundingScenarios?.["$3M"]?.funding)===2500000],
+  ["Funding rounds total $2.5M in main scenario",STATE.meta.fundingScenario==="$2.5M"&&n(STATE.fundingScenarios?.["$2.5M"]?.funding)===2500000],
   ["Funding allocation does not exceed funding",alloc<=n(scenario().funding)+1],
   ["Multiple funding rounds are enabled",activeRounds().length>=1],
   ["Paid Ads ramp totals 100% when marketing is allocated",n(scenario().marketing)===0||Math.abs(YEARS.reduce((s,y)=>s+r[y],0)-1)<1e-8],
@@ -336,17 +336,30 @@ function wire(){
 function applyFinalDefaults(s){
  s.meta.version="4.5";
  Object.values(s.fundingScenarios||{}).forEach(normalizeFundingScenario);
+ const mainFunding={
+   organicGrowth:.10,
+   rounds:[
+     {label:"Round 1",date:"Nov-26",amount:2000000,payables:390000,inventory:682500,marketing:682500,embroidery:50000,privateLabel:0},
+     {label:"Round 2",date:"Jan-27",amount:500000,payables:0,inventory:0,marketing:0,embroidery:0,privateLabel:0}
+   ]
+ };
+ if(!s.fundingScenarios?.["$2.5M"])s.fundingScenarios["$2.5M"]=clone(mainFunding);
+ const main=s.fundingScenarios["$2.5M"];
+ if(!Array.isArray(main.rounds)||main.funding!==2500000||main.rounds.length<2){
+   main.organicGrowth=mainFunding.organicGrowth;
+   main.rounds=clone(mainFunding.rounds);
+   normalizeFundingScenario(main);
+ }
  if(s.fundingScenarios?.["$3M"]){
    const x=s.fundingScenarios["$3M"];
    if(!Array.isArray(x.rounds)||x.funding===3000000||x.rounds.length<2){
-     x.organicGrowth=.10;
-     x.rounds=[
-       {label:"Round 1",date:"Nov-26",amount:2000000,payables:390000,inventory:682500,marketing:682500,embroidery:50000,privateLabel:0},
-       {label:"Round 2",date:"Jan-27",amount:500000,payables:0,inventory:0,marketing:0,embroidery:0,privateLabel:0}
-     ];
+     x.organicGrowth=mainFunding.organicGrowth;
+     x.rounds=clone(mainFunding.rounds);
      normalizeFundingScenario(x);
    }
  }
+ if(s.meta.fundingScenario==="$3M"&&n(s.fundingScenarios["$3M"]?.funding)===2500000)s.meta.fundingScenario="$2.5M";
+ if(s.meta.fundingScenario==="$2.5M")s.meta.fundingDate="Nov-26";
  if(s.engines?.Ecommerce?.gm1){s.engines.Ecommerce.gm1["2027"]=.37;s.engines.Ecommerce.gm1["2028"]=.42;s.engines.Ecommerce.gm1["2029"]=.46}
  try {
    if (typeof BASE !== "undefined" && BASE && BASE.engines) {

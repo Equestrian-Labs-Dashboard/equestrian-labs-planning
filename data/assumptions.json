@@ -3,8 +3,8 @@
     "version": "4.5",
     "displayYear": "2026",
     "status": "Draft",
-    "fundingScenario": "$3M",
-    "fundingDate": "Oct-26",
+    "fundingScenario": "$2.5M",
+    "fundingDate": "Nov-26",
     "baseEcommerceMonthly": 70000,
     "doverCapture": 0.15,
     "roas": 4.0,
@@ -42,6 +42,38 @@
       "marketing": 350000,
       "embroidery": 50000,
       "privateLabel": 0
+    },
+    "$2.5M": {
+      "funding": 2500000,
+      "date": "Nov-26",
+      "organicGrowth": 0.1,
+      "payables": 390000,
+      "inventory": 682500,
+      "marketing": 682500,
+      "embroidery": 50000,
+      "privateLabel": 0,
+      "rounds": [
+        {
+          "label": "Round 1",
+          "date": "Nov-26",
+          "amount": 2000000,
+          "payables": 390000,
+          "inventory": 682500,
+          "marketing": 682500,
+          "embroidery": 50000,
+          "privateLabel": 0
+        },
+        {
+          "label": "Round 2",
+          "date": "Jan-27",
+          "amount": 500000,
+          "payables": 0,
+          "inventory": 0,
+          "marketing": 0,
+          "embroidery": 0,
+          "privateLabel": 0
+        }
+      ]
     },
     "$3M": {
       "funding": 2500000,
