@@ -22,7 +22,9 @@
 
     <div class="controls">
       <label>MODEL STATUS<select id="statusSelect"><option>Draft</option><option>Budget</option><option>Forecast</option><option>Board</option></select></label>
-      <label>FUNDING SCENARIO<select id="fundingScenario"></select></label>
+      <label>FUNDING SCENARIO 1<select id="fundingScenario"></select></label>
+      <label>FUNDING SCENARIO 2<select id="fundingScenario2"><option value="added-2m-nov26">$2M · Nov-26</option><option value="none">None</option></select></label>
+      <label>TOTAL FUNDING<input id="fundingTotal" readonly /></label>
       <label>DISPLAY YEAR<select id="displayYear"><option>2026</option><option>2027</option><option>2028</option><option>2029</option></select></label>
       <label>CORRO ACTUALS THROUGH<select id="corroMonth"></select></label>
       <label>CAVALI ACTUALS THROUGH<select id="cavaliMonth"></select></label>
@@ -63,6 +65,6 @@
 </main>
 
 <script src="assets/js/dataService.js?v=450"></script>
-<script src="assets/js/app.js?v=452"></script>
+<script src="assets/js/app.js?v=453"></script>
 </body>
 </html>
