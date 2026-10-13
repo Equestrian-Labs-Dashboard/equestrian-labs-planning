@@ -42,7 +42,7 @@ function activeRounds(){return normalizeFundingScenario(scenario())?.rounds||[]}
 function addedFundingRound(){return {label:"Funding Scenario 2",date:"Nov-26",amount:2000000,organicGrowth:.10,payables:390000,inventory:682500,marketing:682500,embroidery:50000,privateLabel:0}}
 function setFundingScenario2(mode=STATE.meta?.fundingScenario2||"added-2m-nov26"){
  const sc=scenario();normalizeFundingScenario(sc);STATE.meta.fundingScenario2=mode;
- sc.rounds=sc.rounds.filter((r,i)=>i===0||r.label!=="Funding Scenario 2");
+ sc.rounds=sc.rounds.filter((r,i)=>i===0||!(r.label==="Funding Scenario 2"||n(r.amount)===2000000&&r.date==="Nov-26"));
  if(mode==="added-2m-nov26")sc.rounds.push(addedFundingRound());
  normalizeFundingScenario(sc);
 }
@@ -355,7 +355,8 @@ function applyFinalDefaults(s){
  };
  if(s.fundingScenarios?.["$3M"]){
    const x=s.fundingScenarios["$3M"];
-   if(!Array.isArray(x.rounds)||x.rounds.length<2||n(x.funding)!==5000000||n(x.rounds[0]?.amount)!==3000000||x.rounds[0]?.date!=="Oct-26"||!x.rounds.some(r=>n(r.amount)===2000000&&r.date==="Nov-26")){
+   const addedCount=(x.rounds||[]).filter(r=>n(r.amount)===2000000&&r.date==="Nov-26").length;
+   if(!Array.isArray(x.rounds)||x.rounds.length<2||addedCount!==1||n(x.funding)!==5000000||n(x.rounds[0]?.amount)!==3000000||x.rounds[0]?.date!=="Oct-26"){
      x.organicGrowth=restoredMainFunding.organicGrowth;
      x.rounds=clone(restoredMainFunding.rounds);
      normalizeFundingScenario(x);
