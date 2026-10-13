@@ -15,6 +15,7 @@ ok('Dover ramp totals 100%',Math.abs(sum(a.commercial.doverRampPct)-1)<1e-9);
 ok('Vendor mix totals 100%',Math.abs(a.purchasing.vendorMix.prepaid+a.purchasing.vendorMix.lt15+a.purchasing.vendorMix.d30_45-1)<1e-9);
 ok('2026 organic revenue assumption = 0%',a.commercial.organicGrowthPct['2026']===0);
 ok('Base ad spend = $20k/month',a.commercial.baseAdSpendMonthly===20000);
+ok('$500k scenario uses Ceci allocation and 10% organic growth',(()=>{const x=a.fundingScenarios['$500k'];return x.organicGrowth===0.1&&x.embroidery===50000&&x.payables===90000&&x.inventory===157500&&x.marketing===157500})());
 ok('$3M main scenario preserves original round and adds $2M Nov-26 round',(()=>{const x=a.fundingScenarios['$3M'];return a.meta.fundingScenario==='$3M'&&a.meta.fundingDate==='Oct-26'&&Array.isArray(x.rounds)&&x.rounds.length===2&&x.rounds[0].date==='Oct-26'&&x.rounds[0].amount===3000000&&x.rounds[1].date==='Nov-26'&&x.rounds[1].amount===2000000})());
 ok('$2M Nov-26 added funding is not duplicated',(()=>{const x=a.fundingScenarios['$3M'];return x.rounds.filter(r=>r.date==='Nov-26'&&r.amount===2000000).length===1&&x.funding===5000000})());
 ok('Funding Scenario 1 does not carry Ceci 10% organic growth',(()=>{const r=a.fundingScenarios['$3M'].rounds[0];return r.organicGrowth===0})());

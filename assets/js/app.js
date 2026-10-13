@@ -345,6 +345,12 @@ function wire(){
 function applyFinalDefaults(s){
  s.meta.version="4.5";
  Object.values(s.fundingScenarios||{}).forEach(normalizeFundingScenario);
+ if(s.fundingScenarios?.["$500k"]){
+   const x=s.fundingScenarios["$500k"];
+   x.organicGrowth=.10;
+   x.rounds=[{label:"Funding Scenario $500k",date:x.date||"Jul-26",amount:500000,organicGrowth:.10,payables:90000,inventory:157500,marketing:157500,embroidery:50000,privateLabel:0}];
+   normalizeFundingScenario(x);
+ }
  const addedRound=addedFundingRound();
  const restoredMainFunding={
    organicGrowth:0,

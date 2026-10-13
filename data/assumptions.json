@@ -26,12 +26,25 @@
     "$500k": {
       "funding": 500000,
       "date": "Jul-26",
-      "organicGrowth": 0.05,
-      "payables": 250000,
-      "inventory": 150000,
-      "marketing": 100000,
-      "embroidery": 0,
-      "privateLabel": 0
+      "organicGrowth": 0.1,
+      "payables": 90000,
+      "inventory": 157500,
+      "marketing": 157500,
+      "embroidery": 50000,
+      "privateLabel": 0,
+      "rounds": [
+        {
+          "label": "Funding Scenario $500k",
+          "date": "Jul-26",
+          "amount": 500000,
+          "organicGrowth": 0.1,
+          "payables": 90000,
+          "inventory": 157500,
+          "marketing": 157500,
+          "embroidery": 50000,
+          "privateLabel": 0
+        }
+      ]
     },
     "$1M": {
       "funding": 1000000,
