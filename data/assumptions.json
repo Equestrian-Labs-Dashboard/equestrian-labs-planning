@@ -1,16 +1,51 @@
 {
   "meta": {
-    "version": "4.5",
+    "version": "4.6",
     "displayYear": "2026",
     "status": "Draft",
-    "fundingScenario": "$3M",
-    "fundingDate": "Oct-26",
+    "fundingScenario": "$500k",
+    "fundingDate": "Nov-26",
     "baseEcommerceMonthly": 70000,
     "doverCapture": 0.15,
     "roas": 4.0,
-    "lastUpdated": "",
+    "lastUpdated": "2026-10-20",
     "corroMonth": "current",
     "cavaliMonth": "current"
+  },
+  "fundingPlan": {
+    "version": 2,
+    "rounds": [
+      {
+        "id": "funding-1",
+        "label": "Funding Scenario 1",
+        "preset": "$500k",
+        "enabled": true,
+        "date": "Nov-26",
+        "amount": 500000,
+        "payables": 0,
+        "inventory": 150000,
+        "marketing": 150000,
+        "embroidery": 50000,
+        "privateLabel": 0,
+        "opex": 150000,
+        "opexAuto": true
+      },
+      {
+        "id": "funding-2",
+        "label": "Funding Scenario 2",
+        "preset": "$3M",
+        "enabled": true,
+        "date": "Jan-27",
+        "amount": 3000000,
+        "payables": 0,
+        "inventory": 1250000,
+        "marketing": 1250000,
+        "embroidery": 0,
+        "privateLabel": 0,
+        "opex": 500000,
+        "opexAuto": true
+      }
+    ]
   },
   "fundingScenarios": {
     "Base": {
