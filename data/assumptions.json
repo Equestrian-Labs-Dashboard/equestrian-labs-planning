@@ -1,12 +1,12 @@
 {
   "meta": {
-    "version": "4.6",
+    "version": "4.7",
     "displayYear": "2026",
     "status": "Draft",
     "fundingScenario": "$500k",
     "fundingDate": "Nov-26",
     "baseEcommerceMonthly": 70000,
-    "doverCapture": 0.15,
+    "doverCapture": 0.1,
     "roas": 4.0,
     "lastUpdated": "2026-10-20",
     "corroMonth": "current",
@@ -14,6 +14,7 @@
   },
   "fundingPlan": {
     "version": 2,
+    "marketingTimingVersion": 1,
     "rounds": [
       {
         "id": "funding-1",
@@ -28,7 +29,8 @@
         "embroidery": 50000,
         "privateLabel": 0,
         "opex": 150000,
-        "opexAuto": true
+        "opexAuto": true,
+        "marketingTiming": "funding-year"
       },
       {
         "id": "funding-2",
@@ -43,7 +45,8 @@
         "embroidery": 0,
         "privateLabel": 0,
         "opex": 500000,
-        "opexAuto": true
+        "opexAuto": true,
+        "marketingTiming": "funding-year"
       }
     ]
   },
@@ -147,6 +150,7 @@
     }
   },
   "commercial": {
+    "revenueLogicVersion": 2,
     "baseAdSpendMonthly": 20000,
     "targetAdSpendPct": {
       "2026": 0.2,
@@ -198,10 +202,10 @@
     },
     "doverMarketOpportunity": 130000000,
     "doverTargetCapturePct": {
-      "2026": 0.15,
-      "2027": 0.15,
-      "2028": 0.15,
-      "2029": 0.15
+      "2026": 0.1,
+      "2027": 0.1,
+      "2028": 0.1,
+      "2029": 0.1
     },
     "paidAdsOverlapPct": {
       "2026": 0.3,
@@ -217,6 +221,11 @@
     }
   },
   "engines": {
+    "Other Corro Channels": {
+      "owner": "Corro",
+      "growthPct": {"2026": 0, "2027": 0, "2028": 0, "2029": 0},
+      "gm1": {"2026": null, "2027": 0.32, "2028": 0.32, "2029": 0.32}
+    },
     "Ecommerce": {
       "owner": "Emma",
       "orders": {
@@ -438,6 +447,22 @@
     }
   },
   "opex": {
+    "commissions": {
+      "version": 1,
+      "mode": "formula",
+      "basis": "net",
+      "rates": {
+        "Ecommerce": {"2026": 0, "2027": 0, "2028": 0, "2029": 0},
+        "Concierge": {"2026": 0.1, "2027": 0.1, "2028": 0.1, "2029": 0.1},
+        "Wellington": {"2026": 0.01, "2027": 0.01, "2028": 0.01, "2029": 0.01},
+        "Cavali": {"2026": 0, "2027": 0, "2028": 0, "2029": 0},
+        "Embroidery": {"2026": 0, "2027": 0, "2028": 0, "2029": 0},
+        "Private Label": {"2026": 0, "2027": 0, "2028": 0, "2029": 0},
+        "Other Corro Channels": {"2026": 0, "2027": 0, "2028": 0, "2029": 0}
+      },
+      "cjMonthly": {"2026": 3000, "2027": 3000, "2028": 3000, "2029": 3000},
+      "otherFixed": {"2026": 0, "2027": 0, "2028": 0, "2029": 0}
+    },
     "salesMarketing": {
       "2026": 210000,
       "2027": 300000,

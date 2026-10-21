@@ -36,7 +36,7 @@ for (const date of ['Oct-26', 'Nov-26', 'Dec-26', 'Jan-27', 'Feb-27', 'Mar-27'])
   assert.equal(F.fundingForYear(plan, F.dateParts(date).year), date.endsWith('26') ? 3500000 : 3000000);
   const ramp = F.roundRamp(plan.rounds[1]);
   close(Object.values(ramp).reduce((s, x) => s + x, 0), 1);
-  assert.equal(ramp[2026], date.endsWith('27') ? 0 : .05);
+  assert.equal(ramp[2026], date.endsWith('27') ? 0 : 1);
 }
 F.updateRound(plan.rounds[1], 'date', 'Nov-26');
 assert.equal(F.schedule(plan).find(r => r.label === 'Nov-26').funding, 3500000);
@@ -92,8 +92,34 @@ assert.equal(initial.years['2026'].cash.capex, 50000);
 assert.equal(initial.years['2027'].cash.capex, 0);
 assert.equal(initial.years['2026'].cash.opexFunding, 150000);
 assert.equal(initial.years['2027'].cash.opexFunding, 500000);
-close(initial.years['2026'].portfolio.advertising, 247500);
-close(initial.years['2027'].portfolio.advertising, 800000);
+close(initial.years['2026'].portfolio.advertising, 390000);
+close(initial.years['2027'].portfolio.advertising, 1490000);
+close(initial.years['2026'].ecommerce.paid, 600000);
+close(initial.years['2026'].ecommerce.dover, 455000);
+close(initial.actual2026.coverage.elapsedMonths, 9 + 12 / 31);
+close(initial.actual2026.coverage.remainingMonths, 2 + 19 / 31);
+close(initial.reconciliation2026.reduce((sum, row) => sum + row.actual, 0), 864428.74);
+close(initial.actual2026.other.grossSales, 188233.44);
+close(initial.years['2026'].ecommerce.base, initial.actual2026.ecom.grossSales + initial.actual2026.coverage.remainingMonths * 70000);
+for (const row of initial.reconciliation2026) close(row.actual + row.baseline + row.paid + row.dover, row.total);
+close(initial.reconciliation2026.reduce((sum, row) => sum + row.total, 0), initial.years['2026'].portfolio.gross);
+for (const year of ['2026', '2027', '2028', '2029']) {
+  const c = initial.commissions[year];
+  close(c.total, c.variable + c.cj + c.otherFixed);
+  close(c.variable, c.rows.reduce((sum, row) => sum + row.revenue * row.rate, 0));
+  close(c.weightedRate, c.variable / c.revenue);
+  close(initial.years[year].financial.sm, c.total);
+  close(initial.years[year].cash.sm, c.total);
+  close(initial.years[year].cash.cashIn, initial.years[year].portfolio.net + initial.years[year].portfolio.shipRev);
+}
+assert.notEqual(initial.years['2027'].financial.sm, initial.years['2028'].financial.sm);
+assert.equal(initial.commissions['2026'].cj, 36000);
+assert.equal(initial.commissionSettings.rates.Concierge['2026'], .10);
+assert.equal(initial.commissionSettings.rates.Wellington['2026'], .01);
+assert.equal(initial.actual2026.coverage.partial, true);
+assert.equal(context.DataService.coverageThrough({}, '2026-09', '2026-10-12T19:52:21Z').remainingMonths, 3);
+assert.equal(context.DataService.coverageThrough({}, '2028-02', '2028-02-29T00:00:00Z', 2028).partial, false);
+close(F.roundRamp({...plan.rounds[0], marketingTiming: 'phased'})[2026], .05);
 for (const year of ['2026', '2027', '2028', '2029']) {
   const {cash, financial} = initial.years[year];
   close(cash.cashOut, cash.inventory + cash.payables + cash.advertising + cash.shipping + cash.sm + cash.ga + cash.other + cash.capex + cash.privateLabel + assumptions.cash.otherCashOut[year]);
@@ -118,3 +144,5 @@ element('#statusSelect').onchange({target: {value: 'Draft'}});
 assert.equal(JSON.stringify(context.runModelQA().fundingPlan), changedPlan);
 assert.equal(element('#tab6').innerHTML.includes('>FAIL<'), false);
 console.log('PASS  Funding inputs, allocations, persistence, dates and all six application tabs');
+console.log('PASS  Revenue reconciliation, partial October, incremental ads and weighted commissions');
+console.log(JSON.stringify({audit2026: {actuals: initial.reconciliation2026.reduce((sum,r)=>sum+r.actual,0),remainingBaseline:initial.reconciliation2026.reduce((sum,r)=>sum+r.baseline,0),newMarketing:initial.years['2026'].ecommerce.paid,netDover:initial.years['2026'].ecommerce.dover,totalRevenue:initial.years['2026'].portfolio.gross},salesMarketing:Object.fromEntries(Object.entries(initial.commissions).map(([y,c])=>[y,c.total]))}));

@@ -78,5 +78,15 @@
     ]);
     return {assumptions,shopify,connected,smartrr};
   }
-  window.DataService={loadAll,currentPeriod,latestClosedMonth,aggregateClosed,channelClosed,monthRange,availableMonths,aggregateMonth,channelMonth,aggregateThrough,channelThrough};
+  function coverageThrough(brand, period, generatedAt, year=2026){
+    const selectedMonth=Number(String(period).split('-')[1])||1;
+    const stamp=new Date(generatedAt);
+    const validStamp=Number.isFinite(stamp.getTime());
+    const sourcePeriod=validStamp?`${stamp.getUTCFullYear()}-${String(stamp.getUTCMonth()+1).padStart(2,'0')}`:null;
+    const partial=sourcePeriod===period&&stamp.getUTCDate()<new Date(Date.UTC(year,selectedMonth,0)).getUTCDate();
+    const daysInMonth=new Date(Date.UTC(year,selectedMonth,0)).getUTCDate();
+    const elapsedMonths=partial?selectedMonth-1+stamp.getUTCDate()/daysInMonth:selectedMonth;
+    return {period,partial,elapsedMonths,closedMonths:partial?selectedMonth-1:selectedMonth,remainingMonths:Math.max(0,12-elapsedMonths),asOf:validStamp?stamp.toISOString().slice(0,10):null};
+  }
+  window.DataService={loadAll,currentPeriod,latestClosedMonth,aggregateClosed,channelClosed,monthRange,availableMonths,aggregateMonth,channelMonth,aggregateThrough,channelThrough,coverageThrough};
 })();

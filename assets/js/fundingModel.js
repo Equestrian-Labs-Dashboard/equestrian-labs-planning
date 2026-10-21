@@ -24,15 +24,16 @@
     round.label ||= `Funding Scenario ${index + 1}`;
     round.enabled = round.enabled !== false;
     round.preset ||= "custom";
+    round.marketingTiming ||= "funding-year";
     round.opexAuto = round.opexAuto !== false;
     ["amount", ...ALLOCATIONS].forEach(key => round[key] = money(round[key]));
     if (round.opexAuto) round.opex = Math.max(0, money(round.amount - ALLOCATIONS.filter(key => key !== "opex").reduce((sum, key) => sum + round[key], 0)));
     return round;
   }
   function defaultPlan() {
-    return {version: 2, rounds: [
-      normalizeRound({id: "funding-1", preset: "$500k", date: "Nov-26", amount: 500000, inventory: 150000, marketing: 150000, embroidery: 50000, opex: 150000}, 0),
-      normalizeRound({id: "funding-2", preset: "$3M", date: "Jan-27", amount: 3000000, inventory: 1250000, marketing: 1250000, opex: 500000}, 1)
+    return {version: 2, marketingTimingVersion: 1, rounds: [
+      normalizeRound({id: "funding-1", preset: "$500k", date: "Nov-26", amount: 500000, inventory: 150000, marketing: 150000, embroidery: 50000, opex: 150000, marketingTiming: "funding-year"}, 0),
+      normalizeRound({id: "funding-2", preset: "$3M", date: "Jan-27", amount: 3000000, inventory: 1250000, marketing: 1250000, opex: 500000, marketingTiming: "funding-year"}, 1)
     ]};
   }
   function ensurePlan(state, defaults = defaultPlan()) {
@@ -128,6 +129,7 @@
     const out = Object.fromEntries(YEARS.map(year => [year, 0]));
     if (!date) return out;
     const {year, month} = date;
+    if (round.marketingTiming === "funding-year") { out[year] = 1; return out; }
     if (year === 2026) {
       out[2026] = month >= 10 ? .05 : month >= 7 ? .10 : .20;
       out[2027] = .40; out[2028] = .30; out[2029] = 1 - out[2026] - .70;

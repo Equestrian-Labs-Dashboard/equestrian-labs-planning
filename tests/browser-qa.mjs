@@ -23,6 +23,54 @@ try {
   assert.equal(await page.locator('#fundingDate').inputValue(), 'Nov-26');
   assert.equal(await page.locator('#fundingDate2').inputValue(), 'Jan-27');
   assert.equal(await page.locator('.qa-fail').count(), 0);
+  await page.locator('#displayYear').selectOption('2027');
+  assert.equal(await page.locator('#roas').inputValue(),'4.2');
+  await page.locator('#displayYear').selectOption('2026');
+  assert.equal(await page.locator('#roas').inputValue(),'4');
+  const close = (a,b) => assert.ok(Math.abs(a-b)<.011, `${a} != ${b}`);
+  close(state.years['2026'].ecommerce.paid,600000);
+  close(state.years['2026'].ecommerce.dover,455000);
+  close(state.reconciliation2026.reduce((sum,row)=>sum+row.actual,0),864428.74);
+  const initial = state;
+  const conNet=state.commissions['2026'].rows.find(row=>row.name==='Concierge').revenue;
+  await amount('[data-commission-type="rate"][data-engine="Concierge"][data-year="2026"]',8);
+  state=await snapshot();
+  close(state.years['2026'].financial.sm,initial.years['2026'].financial.sm-conNet*.02);
+  close(state.years['2026'].financial.ebitda,initial.years['2026'].financial.ebitda+conNet*.02);
+  close(state.years['2026'].cash.ending,initial.years['2026'].cash.ending+conNet*.02);
+  await amount('[data-commission-type="cjMonthly"][data-year="2026"]',2000);
+  state=await snapshot();
+  close(state.years['2026'].financial.sm,initial.years['2026'].financial.sm-conNet*.02-12000);
+  await page.locator('#commissionMode').selectOption('manual');
+  close((await snapshot()).years['2026'].financial.sm,210000);
+  await amount('[data-commission-type="manual"][data-year="2026"]',45000);
+  close((await snapshot()).years['2026'].cash.sm,45000);
+  await page.locator('#commissionMode').selectOption('formula');
+  await page.locator('#commissionBasis').selectOption('gross');
+  state=await snapshot();
+  close(state.commissions['2026'].variable,state.commissions['2026'].rows.reduce((sum,row)=>sum+row.revenue*row.rate,0));
+  await amount('[data-commission-type="rate"][data-engine="Ecommerce"][data-year="2026"]',5);
+  const savedCommissions=JSON.stringify((await snapshot()).commissionSettings);
+  await page.reload();
+  await page.waitForFunction(()=>typeof window.runModelQA==='function');
+  assert.equal(JSON.stringify((await snapshot()).commissionSettings),savedCommissions);
+  await page.locator('#fundingDate').selectOption('Jan-27');
+  close((await snapshot()).years['2026'].ecommerce.paid,0);
+  await page.locator('#fundingDate').selectOption('Nov-26');
+  await page.locator('[data-funding-id="funding-1"][data-funding-key="marketingTiming"]').selectOption('phased');
+  close((await snapshot()).years['2026'].ecommerce.paid,30000);
+  await page.locator('[data-funding-id="funding-1"][data-funding-key="marketingTiming"]').selectOption('funding-year');
+  close((await snapshot()).years['2026'].ecommerce.paid,600000);
+  await page.locator('#fundingScenario').selectOption('none');
+  await page.locator('#fundingScenario2').selectOption('none');
+  close((await snapshot()).years['2026'].ecommerce.paid,0);
+  close((await snapshot()).years['2026'].portfolio.advertising,240000);
+  assert.equal(await page.locator('.qa-fail').count(),0);
+  console.log('PASS  Weighted commissions, manual override, cash/EBITDA propagation, marketing timing and no baseline-ad double count');
+  await page.evaluate(()=>localStorage.clear());
+  await page.reload();
+  await page.waitForFunction(()=>typeof window.runModelQA==='function');
+  state=await snapshot();
   const preciseInventory = page.locator('[data-funding-id="funding-2"][data-funding-key="inventory"]');
   await preciseInventory.focus();
   await preciseInventory.press('Tab');
@@ -75,9 +123,13 @@ try {
 
   const legacy = JSON.parse(fs.readFileSync(new URL('../data/assumptions.json', import.meta.url), 'utf8'));
   delete legacy.fundingPlan;
+  delete legacy.opex.commissions;
+  delete legacy.engines['Other Corro Channels'];
+  delete legacy.commercial.revenueLogicVersion;
   legacy.meta.fundingScenario = '$3M';
   legacy.meta.fundingScenario2 = 'added-2m-nov26';
   legacy.meta.baseEcommerceMonthly = 81000;
+  legacy.opex.generalAdministrative['2026']=1200000;
   await page.evaluate(data => localStorage.setItem('eqlabs-strategic-model:v45:Draft', JSON.stringify(data)), legacy);
   await page.reload();
   await page.waitForFunction(() => typeof window.runModelQA === 'function');
@@ -85,6 +137,9 @@ try {
   assert.equal(await page.locator('#baseEcommerce').inputValue(), '81000');
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('eqlabs-strategic-model:v45:Draft')));
   assert.deepEqual(saved.fundingHistory.scenarios, legacy.fundingScenarios);
+  assert.equal(saved.opex.generalAdministrative['2026'],1200000);
+  assert.deepEqual(saved.opex.legacySalesMarketing,legacy.opex.salesMarketing);
+  assert.equal(saved.opex.commissions.mode,'formula');
   console.log('PASS  Browser edits, recalculation, reload, legacy migration, statuses, round inclusion and same-month funding');
 
   await context.close();
@@ -101,6 +156,8 @@ try {
     for (let tab = 1; tab <= 6; tab++) {
       await visual.locator(`.tabs button[data-tab="${tab}"]`).click();
       assert.equal(await visual.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, `${name} overflow in tab ${tab}`);
+      if(tab===1)await visual.locator('#commissionAssumptions').screenshot({path:fileURLToPath(new URL(`${name}-commissions.png`,output))});
+      if(tab===2)await visual.locator('.revenue-audit').screenshot({path:fileURLToPath(new URL(`${name}-revenue.png`,output))});
     }
     assert.equal(await visual.locator('.qa-fail').count(), 0);
   }
