@@ -17,7 +17,7 @@ try {
   await page.goto(url);
   await page.waitForFunction(() => typeof window.runModelQA === 'function');
   const snapshot = () => page.evaluate(() => window.runModelQA());
-  const amount = async (id, value) => { await page.locator(id).fill(String(value)); await page.locator(id).press('Tab'); };
+  const amount = async (id, value) => { if(id==='#fundingAmount2'&&await page.locator('#fundingUnit2').inputValue()!=='full')await page.locator('#fundingUnit2').selectOption('full'); await page.locator(id).fill(String(value)); await page.locator(id).press('Tab'); };
   let state = await snapshot();
   assert.equal(state.funding.funding, 3500000);
   assert.equal(await page.locator('#fundingDate').inputValue(), 'Nov-26');
@@ -29,7 +29,25 @@ try {
   assert.equal(await page.locator('#roas').inputValue(),'4');
   const close = (a,b) => assert.ok(Math.abs(a-b)<.011, `${a} != ${b}`);
   close(state.years['2026'].ecommerce.paid,600000);
-  close(state.years['2026'].ecommerce.dover,455000);
+  close(state.years['2026'].ecommerce.dover,91000);
+  assert.equal(await page.locator('#doverCapture').inputValue(),'10');
+  assert.equal(await page.locator('#doverRamp').inputValue(),'1');
+  assert.equal(await page.locator('#doverRampRemaining').inputValue(),'4%');
+  assert.equal(await page.locator('#fundingUnit2').inputValue(),'millions');
+  assert.equal(await page.locator('#fundingAmount2').inputValue(),'3');
+  for(const text of ['2.5','2,5','$2,500,000']){
+    await page.locator('#fundingAmount2').fill(text);await page.locator('#fundingAmount2').press('Tab');
+    const changed=await snapshot();assert.equal(changed.fundingPlan.rounds[1].amount,2500000);assert.equal(changed.funding.funding,3000000);
+    assert.ok(Math.abs(changed.fundingPlan.rounds[1].inventory-1041666.67)<.011);
+    await page.reload();await page.waitForFunction(()=>typeof window.runModelQA==='function');
+    assert.equal((await snapshot()).fundingPlan.rounds[1].amount,2500000);
+    await page.locator('#fundingAmount2').fill('3');await page.locator('#fundingAmount2').press('Tab');
+  }
+  await amount('#doverRamp',2);close((await snapshot()).years['2026'].ecommerce.dover,182000);
+  await page.reload();await page.waitForFunction(()=>typeof window.runModelQA==='function');
+  assert.equal(await page.locator('#doverRamp').inputValue(),'2');
+  assert.deepEqual((await snapshot()).doverRamp,{'2026':.02,'2027':.20,'2028':.35,'2029':.40});
+  await amount('#doverRamp',1);state=await snapshot();
   close(state.reconciliation2026.reduce((sum,row)=>sum+row.actual,0),864428.74);
   const initial = state;
   const conNet=state.commissions['2026'].rows.find(row=>row.name==='Concierge').revenue;
@@ -160,6 +178,13 @@ try {
       if(tab===2)await visual.locator('.revenue-audit').screenshot({path:fileURLToPath(new URL(`${name}-revenue.png`,output))});
     }
     assert.equal(await visual.locator('.qa-fail').count(), 0);
+    await visual.locator('.tabs button[data-tab="1"]').click();
+    await visual.locator('#themeBtn').click();
+    await visual.evaluate(()=>window.scrollTo(0,0));
+    await visual.screenshot({path:fileURLToPath(new URL(`${name}-dark.png`,output)),fullPage:false});
+    assert.equal(await visual.locator('html').getAttribute('data-theme'),'dark');
+    assert.ok(await visual.locator('.ui-icon').count()>10);
+    await visual.locator('#themeBtn').click();
   }
   assert.deepEqual(errors, []);
   console.log('PASS  Desktop and mobile layouts across all six tabs; no page errors');

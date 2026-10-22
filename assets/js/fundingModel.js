@@ -24,6 +24,7 @@
     round.label ||= `Funding Scenario ${index + 1}`;
     round.enabled = round.enabled !== false;
     round.preset ||= "custom";
+    round.amountUnit ||= index === 1 ? "millions" : "full";
     round.marketingTiming ||= "funding-year";
     round.opexAuto = round.opexAuto !== false;
     ["amount", ...ALLOCATIONS].forEach(key => round[key] = money(round[key]));
@@ -71,6 +72,29 @@
     normalizeRound(round, 0);
     round.preset = "custom";
     return true;
+  }
+  function parseAmount(value, unit = "full") {
+    let text = String(value ?? "").trim().replace(/[$\s]/g, "");
+    let factor = String(value).includes("$") ? 1 : unit === "millions" ? 1e6 : 1;
+    const suffix = /([mk])$/i.exec(text);
+    if (suffix) { factor = suffix[1].toLowerCase() === "m" ? 1e6 : 1000; text = text.slice(0, -1); }
+    if (!/^\d+(?:[.,]\d+)*$/.test(text)) return null;
+    const dots = (text.match(/\./g) || []).length, commas = (text.match(/,/g) || []).length;
+    if (dots && commas) {
+      const decimal = text.lastIndexOf(".") > text.lastIndexOf(",") ? "." : ",";
+      const group = decimal === "." ? "," : ".";
+      const parts = text.split(decimal);
+      if (parts.length !== 2 || !/^\d+$/.test(parts[1]) || !/^\d{1,3}(?:[.,]\d{3})+$/.test(parts[0])) return null;
+      text = parts[0].split(group).join("") + "." + parts[1];
+    } else if (dots || commas) {
+      const separator = dots ? "." : ",", count = dots || commas;
+      if (count > 1 || (factor === 1 && /^\d{1,3}[.,]\d{3}$/.test(text))) {
+        if (!/^\d{1,3}(?:[.,]\d{3})+$/.test(text)) return null;
+        text = text.split(separator).join("");
+      } else text = text.replace(",", ".");
+    }
+    const amount = Number(text) * factor;
+    return Number.isFinite(amount) && amount >= 0 ? money(amount) : null;
   }
   function updateRound(round, key, value) {
     if (key === "amount") return updateAmount(round, value);
@@ -150,5 +174,5 @@
     });
     return issues;
   }
-  globalThis.FundingModel = {ALLOCATIONS, dateParts, months, defaultPlan, ensurePlan, activeRounds, summary, allocated, balance, normalizeRound, updateRound, updateAmount, selectPreset, fundingForYear, schedule, roundRamp, issues};
+  globalThis.FundingModel = {ALLOCATIONS, dateParts, months, defaultPlan, ensurePlan, activeRounds, summary, allocated, balance, normalizeRound, updateRound, updateAmount, parseAmount, selectPreset, fundingForYear, schedule, roundRamp, issues};
 })();

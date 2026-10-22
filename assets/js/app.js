@@ -8,6 +8,7 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const clone=o=>JSON.parse(JSON.stringify(o));
 const n=v=>Number.isFinite(Number(v))?Number(v):0;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const icon=name=>globalThis.ModelIcons?.render(name)||"";
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const valid=v=>v!==null&&v!==undefined&&v!==""&&Number.isFinite(Number(v));
 const rate=v=>{ if(!valid(v))return null; const x=Number(v); return Math.abs(x)>1?x/100:x; };
@@ -19,7 +20,7 @@ function fmtPct(v){return valid(v)?`${(n(v)*100).toFixed(1).replace(".0","")}%`:
 function fmtX(v){return valid(v)?`${n(v).toFixed(1)}x`:"—"}
 function fmtNum(v,d=0){return valid(v)?Number(v).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}):"Data unavailable"}
 function fmtCount(v,d=0){if(!valid(v))return"Data unavailable";const x=n(v),s=x<0?"-":"",a=Math.abs(x);if(a>=1e6)return`${s}${(a/1e6).toFixed(1).replace(".0","")}M`;if(a>=1e4)return`${s}${(a/1e3).toFixed(1).replace(".0","")}K`;return Number(x).toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d})}
-function parseUserValue(t,f="number"){let raw=String(t??"").trim().toLowerCase().replace(/[$,%x,]/g,"");if(!raw)return null;let mult=1;if(raw.endsWith("m")){mult=1e6;raw=raw.slice(0,-1)}else if(raw.endsWith("k")){mult=1e3;raw=raw.slice(0,-1)}let v=parseFloat(raw);if(!Number.isFinite(v))return null;v*=mult;if(f==="pct")v=v>1?v/100:v;return v}
+function parseUserValue(t,f="number"){let raw=String(t??"").trim().toLowerCase().replace(/[$,%x,]/g,"");if(!raw)return null;let mult=1;if(raw.endsWith("m")){mult=1e6;raw=raw.slice(0,-1)}else if(raw.endsWith("k")){mult=1e3;raw=raw.slice(0,-1)}let v=parseFloat(raw);if(!Number.isFinite(v))return null;v*=mult;if(f==="pct")v=String(t).includes("%")||Math.abs(v)>1?v/100:v;return v}
 function storageKey(status=STATE.meta?.status||"Draft"){return `eqlabs-strategic-model:v45:${status}`}
 function loadSaved(status){try{const x=localStorage.getItem(storageKey(status));return x?JSON.parse(x):null}catch{return null}}
 function save(){syncFundingMeta();STATE.meta.lastUpdated=new Date().toISOString().slice(0,10);localStorage.setItem(storageKey(),JSON.stringify(STATE));if($("#lastUpdated"))$("#lastUpdated").value=STATE.meta.lastUpdated;flash("Saved ✓")}
@@ -35,6 +36,12 @@ function baseAds(){return n(STATE.commercial.baseAdSpendMonthly)*12}
 function incrementalAds(y){return activeRounds().reduce((s,r)=>s+n(r.marketing)*roundRamp(r)[y],0)}
 function totalAds(y){return baseAds()+incrementalAds(y)}
 function roas(y){return n(STATE.commercial.roasByYear[y]??STATE.meta.roas)}
+function doverRampRemaining(){return 1-YEARS.reduce((sum,y)=>sum+n(STATE.commercial.doverRampPct[y]),0)}
+function updateDoverRamp(y,value){
+ const percent=Number(value);
+ if(String(value).trim()===""||!Number.isFinite(percent)||percent<0||percent>100)return false;
+ STATE.commercial.doverRampPct[y]=percent/100;return true;
+}
 function doverGross(y){return n(STATE.commercial.doverMarketOpportunity)*n(STATE.commercial.doverTargetCapturePct[y])*n(STATE.commercial.doverRampPct[y])}
 function doverNet(y){return doverGross(y)*(1-n(STATE.commercial.paidAdsOverlapPct[y]))}
 function connected(path,fallback=null){let o=ACTUALS.connected;for(const k of path.split("."))o=o?.[k];return o??fallback}
@@ -357,14 +364,14 @@ function renderFundingAssignment(){
  const issues=FM.issues(fundingPlan());
  const deployment=fundingPlan().rounds.map(round=>`<tr><td>${esc(round.label)}</td><td><select data-funding-id="${esc(round.id)}" data-funding-key="marketingTiming" aria-label="${esc(round.label)} marketing timing"><option value="funding-year" ${round.marketingTiming==="funding-year"?"selected":""}>Spend in funding year</option><option value="phased" ${round.marketingTiming==="phased"?"selected":""}>Multi-year ramp</option></select></td>${YEARS.map(y=>`<td>${exactMoney(round.enabled?round.marketing*roundRamp(round)[y]:0)}</td>`).join("")}</tr>`);
  const monthly=FM.schedule(fundingPlan()).map(row=>`<tr><td>${row.label}</td><td>${exactMoney(row.funding)}</td><td>${exactMoney(row.accumulated)}</td><td>${exactMoney(row.inventory)}</td><td>${exactMoney(row.marketing)}</td><td>${exactMoney(row.embroidery)}</td><td>${exactMoney(row.opex)}</td></tr>`);
- return `<div class="section" id="fundingAssignment"><div class="section-title">Section 1 - Funding Scenario Assignment</div><div class="funding-heading"><h3>Funding Allocation</h3><button class="funding-action" id="addFundingRound">Add funding round</button></div>${issues.length?`<div class="funding-issues" role="alert">${issues.map(esc).join("<br>")}</div>`:""}${table(["Funding Scenario","Funding Date","Funding Amount","Payables","Stock Inventory","Marketing","Embroidery","Private Label","OPEX","Unallocated"],rows).replace('class="grid"','class="grid funding-grid"')}<h3>Marketing Deployment</h3>${table(["Funding Scenario","Marketing Timing",...YEARS],deployment)}<h3>Monthly Funding Schedule</h3>${table(["Month","New Funding","Accumulated Funding","Stock Inventory","Marketing","Embroidery","OPEX Allocation"],monthly)}</div>`;
+ return `<div class="section" id="fundingAssignment"><div class="section-title">Section 1 - Funding Scenario Assignment</div><div class="funding-heading"><h3>Funding Allocation</h3><button class="funding-action" id="addFundingRound" title="Add an independent funding round">${icon("Plus")}<span>Add funding round</span></button></div>${issues.length?`<div class="funding-issues" role="alert">${issues.map(esc).join("<br>")}</div>`:""}${table(["Funding Scenario","Funding Date","Funding Amount","Payables","Stock Inventory","Marketing","Embroidery","Private Label","OPEX","Unallocated"],rows).replace('class="grid"','class="grid funding-grid"')}<h3>Marketing Deployment</h3>${table(["Funding Scenario","Marketing Timing",...YEARS],deployment)}<h3>Monthly Funding Schedule</h3>${table(["Month","New Funding","Accumulated Funding","Stock Inventory","Marketing","Embroidery","OPEX Allocation"],monthly)}</div>`;
 }
 function renderTab1(){const y=STATE.meta.displayYear,r=paidRamp(),rounds=activeRounds(),sc=scenario();
 
  const acq=[`<tr><td>Base Ad Spend</td><td class="baseline">${fmtMoney(STATE.commercial.baseAdSpendMonthly)} / month</td>${YEARS.map(z=>`<td>${fmtMoney(baseAds())}</td>`).join("")}</tr>`,`<tr><td>Incremental Ad Spend</td><td class="baseline">Funding Marketing Pool</td>${YEARS.map(z=>`<td>${fmtMoney(incrementalAds(z))}</td>`).join("")}</tr>`,`<tr class="important"><td>Total Ad Spend</td><td class="baseline">Base + Incremental</td>${YEARS.map(z=>`<td>${fmtMoney(totalAds(z))}</td>`).join("")}</tr>`,`<tr><td>ROAS</td><td class="baseline">Scenario / editable</td>${YEARS.map(z=>field(STATE.commercial,"roasByYear",z)).join("")}</tr>`,`<tr><td>Target Ad Spend % of Ecommerce Gross Sales</td><td class="baseline">Target</td>${YEARS.map(z=>field(STATE.commercial,"targetAdSpendPct",z,"pct")).join("")}</tr>`,`<tr><td>Ad Spend % of Ecommerce Gross Sales</td><td class="baseline">Calculated</td>${YEARS.map(z=>`<td>${fmtPct(totalAds(z)/(ecommerceBuild(z).total||1))}</td>`).join("")}</tr>`];
  const ret=[`<tr><td>Returning Customers %</td><td class="baseline">${fmtPct(returningCustomers())}</td>${YEARS.map(z=>field(STATE.commercial,"returningCustomersPct",z,"pct")).join("")}</tr>`,`<tr><td>Incremental Revenue Carryover %</td><td class="baseline">${carryoverCurrent()===null?"Data unavailable":fmtPct(carryoverCurrent())}</td>${YEARS.map(z=>field(STATE.commercial,"carryoverPct",z,"pct")).join("")}</tr>`,`<tr><td>Purchase Frequency</td><td class="baseline">${purchaseFrequency()===null?"Data unavailable":purchaseFrequency().toFixed(2)}</td>${YEARS.map(z=>z==="2026"?`<td>${purchaseFrequency()===null?"Data unavailable":purchaseFrequency().toFixed(2)}</td>`:field(STATE.commercial,"purchaseFrequency",z)).join("")}</tr>`,`<tr><td>Annual GP per Customer</td><td class="baseline">Calculated</td>${YEARS.map(z=>`<td>${fmtMoney(annualGpCustomer(z))}</td>`).join("")}</tr>`];
- const market=[`<tr><td>Organic Growth %</td><td class="baseline">2026 FCS: no synthetic organic add</td>${YEARS.map(z=>field(STATE.commercial,"organicGrowthPct",z,"pct")).join("")}</tr>`,`<tr><td>Dover Market Opportunity (Gross)</td><td class="baseline">Fixed market base</td>${YEARS.map(()=>`<td>${fmtMoney(STATE.commercial.doverMarketOpportunity)}</td>`).join("")}</tr>`,`<tr><td>Dover Target Capture % (Gross)</td><td class="baseline">Scenario</td>${YEARS.map(z=>field(STATE.commercial,"doverTargetCapturePct",z,"pct")).join("")}</tr>`,`<tr><td>Paid Ads Overlap %</td><td class="baseline">Assumption</td>${YEARS.map(z=>field(STATE.commercial,"paidAdsOverlapPct",z,"pct")).join("")}</tr>`];
- $("#tab1").innerHTML=`<div class="section"><div class="section-title accent-green">Current Strategic Scenario</div><div class="kpis">${fundingPlan().rounds.slice(0,2).map((round,i)=>kpi(`Funding Scenario ${i+1}`,round.enabled?fmtMoney(round.amount):"None",round.enabled?esc(round.date):"Excluded")).join("")}${kpi("Total Funding",fmtMoney(sc.funding),rounds.map(round=>esc(round.date)).join(" + "))}${kpi("Base Ecommerce",fmtMoney(STATE.meta.baseEcommerceMonthly),"Monthly Run Rate")}${kpi("Dover Capture",fmtPct(STATE.commercial.doverTargetCapturePct[y]),`Forecast ${y}`)}${kpi("ROAS",fmtX(roas(y)),`Forecast ${y}`)}</div></div>${renderFundingAssignment()}<div class="section"><div class="section-title accent-green">Section 2 — Commercial Strategy</div><div class="card"><h3>Acquisition Strategy — Emma</h3>${table(["Driver","Baseline / Current",...YEARS],acq)}<p class="note">Base Ads = $20k/month ($240k/year). Incremental Ads comes from each funding round's Marketing allocation and date. Current blended ramp: ${YEARS.map(z=>fmtPct(r[z])).join(" / ")}. Paid Growth = Total Ad Spend × ROAS.</p></div><div class="card"><h3>Retention Strategy — Berna</h3>${table(["Driver","Baseline / Current",...YEARS],ret)}<p class="note">Carryover is applied once to the following year's Ecommerce base.</p></div><div class="card"><h3>Market Growth Strategy</h3>${table(["Driver","Baseline / Current",...YEARS],market)}<p class="note">Dover market opportunity remains $130M unless management explicitly changes it.</p></div></div><div id="enginesMagic"></div><div id="purchasingMagic"></div><div id="operationsMagic"></div><div id="opexMagic"></div><div id="initiativesMagic"></div>`;renderEngineSections();renderPurchasing();renderOperations();renderOperatingAssumptions();renderInitiatives()}
+ const market=[`<tr><td>Organic Growth %</td><td class="baseline">2026 FCS: no synthetic organic add</td>${YEARS.map(z=>field(STATE.commercial,"organicGrowthPct",z,"pct")).join("")}</tr>`,`<tr><td>Dover Market Opportunity (Gross)</td><td class="baseline"><input id="doverMarketOpportunity" class="assumption-input" type="number" min="0" step="1000000" required value="${STATE.commercial.doverMarketOpportunity}" aria-label="Dover market opportunity"></td>${YEARS.map(()=>`<td>${fmtMoney(STATE.commercial.doverMarketOpportunity)}</td>`).join("")}</tr>`,`<tr><td>Dover Target Capture % (Gross)</td><td class="baseline">Scenario</td>${YEARS.map(z=>field(STATE.commercial,"doverTargetCapturePct",z,"pct")).join("")}</tr>`,`<tr><td>Dover Ramp %</td><td class="baseline">Annual deployment</td>${YEARS.map(z=>`<td><input class="assumption-input" type="number" min="0" max="100" step=".1" required value="${n(STATE.commercial.doverRampPct[z])*100}" data-dover-ramp-year="${z}" aria-label="Dover ramp ${z} percent"></td>`).join("")}</tr>`,`<tr><td>Net Dover Revenue</td><td class="baseline">Capture after overlap</td>${YEARS.map(z=>`<td>${exactMoney(doverNet(z))}</td>`).join("")}</tr>`,`<tr><td>Paid Ads Overlap %</td><td class="baseline">Assumption</td>${YEARS.map(z=>field(STATE.commercial,"paidAdsOverlapPct",z,"pct")).join("")}</tr>`];
+ $("#tab1").innerHTML=`<div class="section"><div class="section-title accent-green">Current Strategic Scenario</div><div class="kpis">${fundingPlan().rounds.slice(0,2).map((round,i)=>kpi(`Funding Scenario ${i+1}`,round.enabled?fmtMoney(round.amount):"None",round.enabled?esc(round.date):"Excluded")).join("")}${kpi("Total Funding",fmtMoney(sc.funding),rounds.map(round=>esc(round.date)).join(" + "))}${kpi("Base Ecommerce",fmtMoney(STATE.meta.baseEcommerceMonthly),"Monthly Run Rate")}${kpi("Dover Capture",fmtPct(STATE.commercial.doverTargetCapturePct[y]),`Forecast ${y}`)}${kpi("ROAS",fmtX(roas(y)),`Forecast ${y}`)}</div></div>${renderFundingAssignment()}<div class="section"><div class="section-title accent-green">Section 2 — Commercial Strategy</div><div class="card"><h3>Acquisition Strategy — Emma</h3>${table(["Driver","Baseline / Current",...YEARS],acq)}<p class="note">Base Ads = $20k/month ($240k/year). Incremental Ads comes from each funding round's Marketing allocation and date. Current blended ramp: ${YEARS.map(z=>fmtPct(r[z])).join(" / ")}. Incremental Paid Growth = New Marketing Spend × ROAS.</p></div><div class="card"><h3>Retention Strategy — Berna</h3>${table(["Driver","Baseline / Current",...YEARS],ret)}<p class="note">Carryover is applied once to the following year's Ecommerce base.</p></div><div class="card"><h3>Market Growth Strategy</h3>${table(["Driver","Baseline / Current",...YEARS],market)}<p class="ramp-status ${doverRampRemaining()<0?"negative":""}">Dover ramp allocated: ${fmtPct(1-doverRampRemaining())} · Remaining: ${fmtPct(doverRampRemaining())}</p></div></div><div id="enginesMagic"></div><div id="purchasingMagic"></div><div id="operationsMagic"></div><div id="opexMagic"></div><div id="initiativesMagic"></div>`;renderEngineSections();renderPurchasing();renderOperations();renderOperatingAssumptions();renderInitiatives()}
 function renderTab2(){const y=STATE.meta.displayYear,f=financial(y),revenue=[["Ecommerce Actuals + Remaining Baseline",z=>baseEcommerce(z)],["+ Organic Growth",z=>organicRevenue(z)],["+ Incremental Paid Growth Revenue",z=>paidRevenue(z)],["+ Net Dover Capture",z=>doverNet(z)],["Total Ecommerce Gross Sales",z=>ecommerceBuild(z).total]].map(([l,fn],i)=>`<tr class="${i===4?"important":""}"><td>${l}</td>${YEARS.map(z=>`<td>${fmtMoney(fn(z))}</td>`).join("")}</tr>`),p=portfolio(y),pr=p.items.map(x=>`<tr><td>${x.name}</td><td>${STATE.engines[x.name].owner}</td><td>${fmtMoney(x.sales)}</td><td>${fmtPct(x.sales/(p.gross||1))}</td><td>${fmtPct(x.gm1)}</td><td>${fmtMoney(x.gp1)}</td><td>${fmtPct(x.gp1/(p.gp1||1))}</td></tr>`),bridge=[["Gross Sales","gross","money"],["Discounts & Returns",z=>-portfolio(z).gross*portfolio(z).disc,"money"],["Net Sales","net","money"],["COGS",z=>-portfolio(z).cogs,"money"],["GP1","gp1","money"],["GM1 %",z=>portfolio(z).net?portfolio(z).gp1/portfolio(z).net:0,"pct"],["Outbound Shipping",z=>-portfolio(z).outbound,"money"],["Packaging",z=>-portfolio(z).packaging,"money"],["Shipping Revenue","shipRev","money"],["GP2","gp2","money"],["GM2 %",z=>portfolio(z).net?portfolio(z).gp2/portfolio(z).net:0,"pct"],["Advertising",z=>-portfolio(z).advertising,"money"],["GP3","gp3","money"],["GM3 %",z=>portfolio(z).net?portfolio(z).gp3/portfolio(z).net:0,"pct"]].map(([l,k,t])=>`<tr class="${["Gross Sales","Net Sales","GP1","GP2","GP3"].includes(l)?"important":["GM1 %","GM2 %","GM3 %"].includes(l)?"margin-pct-row":""}"><td>${l}</td>${YEARS.map(z=>{const q=portfolio(z),v=typeof k==="function"?k(z):q[k];return `<td class="${v<0?"negative":""}">${t==="pct"?fmtPct(v):fmtMoney(v)}</td>`}).join("")}</tr>`);$("#tab2").innerHTML=`<div class="section"><div class="section-title accent-green">Financial Snapshot</div><div class="kpis">${kpi("Gross Sales",fmtMoney(f.gross),y)}${kpi("Net Sales",fmtMoney(f.net),"After Discounts & Returns")}${kpi("GM1 %",fmtPct(f.net?f.gp1/f.net:0),"GP1 / Net Sales")}${kpi("Gross Profit 1",fmtMoney(f.gp1),fmtPct(f.gp1/(f.net||1))+" of Net Sales")}${kpi("Gross Profit 3",fmtMoney(f.gp3),fmtPct(f.gp3/(f.net||1))+" of Net Sales")}</div></div><div class="section"><div class="section-title accent-yellow">Growth Engines — Revenue & Profit Contribution</div><h3>Ecommerce Revenue Build</h3>${table(["Revenue Components",...YEARS],revenue)}${renderRevenueReconciliation()}<h3>Growth Engine Portfolio — ${y}</h3>${table(["Growth Engine","Owner","Gross Sales","% Total Sales","GM1 %","GP1","% Total GP1"],pr)}<div class="kpis">${kpi("Paid Revenue Influenced",fmtMoney(paidRevenueInfluenced(y)),fmtPct(paidRevenueInfluenced(y)/(ecommerceBuild(y).total||1))+" of Ecommerce")}${kpi("ROAS",fmtX(roas(y)),"Paid efficiency")}${kpi("Email Revenue %",fmtPct(STATE.commercial.emailRevenuePct[y]),"Influence KPI")}${kpi("Purchase Frequency",y==="2026"?(purchaseFrequency()??0).toFixed(2):n(STATE.commercial.purchaseFrequency[y]).toFixed(1),`Returning Customers: ${fmtPct(STATE.commercial.returningCustomersPct[y])}`)}</div></div><div class="section"><div class="section-title accent-purple">Margin Bridge — incl. GM %</div>${table(["Stage",...YEARS],bridge)}<p class="note">GM1 % = GP1 / Net Sales · GM2 % = GP2 / Net Sales · GM3 % = GP3 / Net Sales. Forecast Ecommerce GM1 defaults: 37% / 42% / 46% (within 36–38% / 41–43% / 45–47% bands). $900K inventory captured in Cash Flow only — not in COGS — preserving gradual, natural margin improvement.</p></div>`}
 function renderTab3(){const y=STATE.meta.displayYear,f=financial(y),gm1pct=f.net?f.gp1/f.net:0,gm2pct=f.net?f.gp2/f.net:0,gm3pct=f.net?f.gp3/f.net:0,rows=[["Gross Sales","gross","money"],["Discounts & Returns",z=>-portfolio(z).gross*portfolio(z).disc,"money"],["Net Sales","net","money"],["COGS",z=>-portfolio(z).cogs,"money"],["GP1","gp1","money"],["GM1 %",z=>financial(z).net?financial(z).gp1/financial(z).net:0,"pct"],["Outbound Shipping",z=>-portfolio(z).outbound,"money"],["Packaging",z=>-portfolio(z).packaging,"money"],["Shipping Revenue","shipRev","money"],["GP2","gp2","money"],["GM2 %",z=>financial(z).net?financial(z).gp2/financial(z).net:0,"pct"],["Advertising",z=>-portfolio(z).advertising,"money"],["GP3","gp3","money"],["GM3 %",z=>financial(z).net?financial(z).gp3/financial(z).net:0,"pct"],["Sales & Marketing (S&M)",z=>-opex(z).sm,"money"],["General & Administrative (G&A)",z=>-opex(z).ga,"money"],["Other Operating Expenses",z=>-opex(z).other,"money"],["EBITDA",z=>financial(z).ebitda,"money"],["EBITDA %",z=>financial(z).ebitdaPct,"pct"]].map(([l,k,t])=>`<tr class="${["Gross Sales","Net Sales","GP1","GP2","GP3","EBITDA"].includes(l)?"important":["GM1 %","GM2 %","GM3 %"].includes(l)?"margin-pct-row":""}"><td>${l}</td>${YEARS.map(z=>{const q=financial(z),v=typeof k==="function"?k(z):q[k];return `<td class="${v<0?"negative":""}">${t==="pct"?fmtPct(v):fmtMoney(v)}</td>`}).join("")}</tr>`),newCust=y==="2026"?Math.round((actual2026().ecom.uniqueCustomers||0)*n(STATE.commercial.newCustomerMix[y])):Math.round(n(STATE.engines.Ecommerce.orders[y])*n(STATE.commercial.newCustomerMix[y]));$("#tab3").innerHTML=`<div class="section"><div class="section-title accent-green">KPI Cards</div><div class="kpis">${kpi("Gross Sales",fmtMoney(f.gross),`${y} Forecast`)}${kpi("Net Sales",fmtMoney(f.net),"After Discounts")}${kpi("GM1 %",fmtPct(gm1pct),"GP1 / Net Sales")}${kpi("GP1",fmtMoney(f.gp1),fmtPct(gm1pct)+" of Net Sales")}${kpi("GM2 %",fmtPct(gm2pct),"GP2 / Net Sales")}${kpi("GP2",fmtMoney(f.gp2),fmtPct(gm2pct)+" of Net Sales")}${kpi("GM3 %",fmtPct(gm3pct),"GP3 / Net Sales")}${kpi("GP3",fmtMoney(f.gp3),fmtPct(gm3pct)+" of Net Sales")}${kpi("EBITDA",fmtMoney(f.ebitda),"After Operating Expenses")}</div></div><div class="section"><div class="section-title accent-purple">Commercial P&L</div>${table(["Commercial P&L",...YEARS],rows)}<h3>Sales &amp; Marketing Commissions</h3>${renderCommissionBreakdown()}<h3>OPEX Funding Coverage</h3>${fundingCoverageTable()}<p class="note">GM1 % = GP1 / Net Sales · GM2 % = GP2 / Net Sales · GM3 % = GP3 / Net Sales · EBITDA % = EBITDA / Net Sales. Ecommerce GM1 targets: 37% (2027) / 42% (2028) / 46% (2029) — within 36–38% / 41–43% / 45–47% bands.</p></div><div class="section"><div class="section-title accent-green">Growth Engine GM</div>${engineKpiSummary(y)}<p class="note">Concierge uses Shopify channel actuals for 2026 YTD and annualizes sales/orders through the selected Corro cutoff. Orders, clients and AOV are shown together to make the scale check explicit.</p></div><div class="section"><div class="section-title accent-yellow">Operating KPIs</div><div class="kpis">${kpi("Orders",fmtCount(engine("Ecommerce",y).orders||0),"Ecommerce")}${kpi("New Customers",fmtCount(newCust),"Unique new customers")}${kpi("ROAS",fmtX(roas(y)),"Scenario assumption")}${kpi("Ad Spend",fmtMoney(portfolio(y).advertising),"Advertising")}${kpi("Net / Gross Ratio",fmtPct(f.net/(f.gross||1)),"Net / Gross")}${kpi("Annual GP per Customer",annualGpCustomer(y)!==null?fmtMoney(annualGpCustomer(y)):"Data unavailable","AOV × Purchase Frequency × Ecommerce GM1")}</div></div>`}
 function renderTab4(){const cash=cashAll(),y=STATE.meta.displayYear,c=cash[y],ins=[["Corro Receipts (Net Sales)",z=>portfolio(z).items.filter(item=>item.name!=="Cavali").reduce((sum,item)=>sum+item.net,0)],["Cavali Receipts (Net Sales)",z=>portfolio(z).items.find(item=>item.name==="Cavali").net],["Shipping Revenue",z=>portfolio(z).shipRev],["Funding",z=>cash[z].funding],["Other Cash Receipts",z=>n(STATE.cash.otherReceipts[z])],["TOTAL CASH IN",z=>cash[z].totalCashIn]],outs=[["Payables",z=>-cash[z].payables],["Inventory",z=>-cash[z].inventory],["Advertising",z=>-cash[z].advertising],["Shipping & Fulfillment",z=>-cash[z].shipping],["Sales & Marketing (S&M)",z=>-cash[z].sm],["General & Administrative (G&A)",z=>-cash[z].ga],["Other Operating Expenses",z=>-cash[z].other],["CapEx",z=>-cash[z].capex],["Private Label Investment",z=>-cash[z].privateLabel],["Other Cash Out",z=>-n(STATE.cash.otherCashOut[z])],["TOTAL CASH OUT",z=>-cash[z].cashOut]],nets=[["OPENING CASH",z=>cash[z].opening],["TOTAL CASH IN",z=>cash[z].totalCashIn],["TOTAL CASH OUT",z=>-cash[z].cashOut],["NET CASH FLOW",z=>cash[z].netFlow],["ENDING CASH",z=>cash[z].ending]];const rs=a=>a.map(([l,fn])=>`<tr class="${l.includes("TOTAL")||l.includes("CASH")?"important":""}"><td>${l}</td>${YEARS.map(z=>{const v=fn(z);return `<td class="${v<0?"negative":""}">${fmtMoney(v)}</td>`}).join("")}</tr>`);$("#tab4").innerHTML=`<div class="section"><div class="section-title accent-green">Cash Summary</div><div class="kpis">${kpi("Opening Cash",fmtMoney(c.opening),`Forecast ${y}`)}${kpi("Cash In",fmtMoney(c.totalCashIn),"Includes funding when applicable")}${kpi("Operating Cash Out",fmtMoney(-(c.advertising+c.shipping+c.sm+c.ga+c.other)),"Ads + Shipping + S&M + G&A + Other OPEX")}${kpi("Ending Cash",fmtMoney(c.ending),`Forecast ${y}`)}${kpi("Cash Runway",c.runway===null?"—":`${c.runway.toFixed(1)} mo`,"Ending Cash ÷ avg monthly operating cash out")}</div></div><div class="section"><div class="section-title">Cash In</div>${table(["Cash In",...YEARS],rs(ins))}</div><div class="section"><div class="section-title accent-purple">Cash Out</div>${table(["Cash Out",...YEARS],rs(outs))}<h3>OPEX Funding Coverage</h3>${fundingCoverageTable()}<p class="note">Funding Inventory is cash timing only. It is not added directly to P&L COGS; COGS is recognized through sold revenue and GM1.</p></div><div class="section"><div class="section-title accent-orange">Net Cash Flow</div>${table(["Net Cash Flow",...YEARS],rs(nets))}</div>`}
@@ -381,7 +388,7 @@ function renderTab6(){
   ["OPEX allocation is not charged twice",YEARS.every(y=>Math.abs(financial(y).total-opex(y).total)<.01)],
   ["Cash out includes payables, inventory and embroidery once",YEARS.every(y=>{const c=cash[y];return Math.abs(c.cashOut-(c.inventory+c.payables+c.advertising+c.shipping+c.sm+c.ga+c.other+c.capex+c.privateLabel+n(STATE.cash.otherCashOut[y])))<.01})],
   ["Ending cash rolls into next opening cash",YEARS.slice(1).every(y=>Math.abs(cash[y].opening-cash[String(n(y)-1)].ending)<.01)],
-  ["Dover ramp totals 100%",Math.abs(YEARS.reduce((sum,y)=>sum+n(STATE.commercial.doverRampPct[y]),0)-1)<1e-8],
+  ["Dover ramp stays within 100%; remainder is unassigned",doverRampRemaining()>=-1e-8&&YEARS.every(y=>n(STATE.commercial.doverRampPct[y])>=0&&n(STATE.commercial.doverRampPct[y])<=1)],
   ["2026 Organic Growth revenue is zero",organicRevenue("2026")===0],
   ["COGS = Net Sales - GP1",YEARS.every(y=>Math.abs(portfolio(y).cogs-(portfolio(y).net-portfolio(y).gp1))<.01)],
   ["Paid growth adds only new marketing revenue",YEARS.every(y=>Math.abs(paidRevenue(y)-incrementalAds(y)*roas(y))<.01)],
@@ -402,6 +409,15 @@ function updateStickyHeader(){
 }
 function renderAll(){renderTab1();renderTab2();renderTab3();renderTab4();renderTab5();renderTab6();bindEditable();syncHeader();updateStickyHeader()}
 function bindEditable(){
+ $$("[data-dover-ramp-year]").forEach(input=>input.onchange=()=>{
+   if(!input.checkValidity()||!updateDoverRamp(input.dataset.doverRampYear,input.value)){input.reportValidity();return}
+   save();renderAll();
+ });
+ if($("#doverMarketOpportunity"))$("#doverMarketOpportunity").onchange=e=>{
+   if(!e.target.checkValidity()){e.target.reportValidity();return}
+   STATE.commercial.doverMarketOpportunity=n(e.target.value);save();renderAll();
+ };
+
  $$("[data-commission-type]").forEach(input=>input.onchange=()=>{
    if(!input.checkValidity()){input.reportValidity();return}
    const cfg=STATE.opex.commissions,type=input.dataset.commissionType,y=input.dataset.year,value=n(input.value);
@@ -440,28 +456,62 @@ function syncFundingMeta(){
  STATE.meta.fundingScenario2=fundingPlan().rounds[1]?.enabled?fundingPlan().rounds[1]?.preset:"none";
 }
 function syncFundingHeader(){
- const slots=[["#fundingScenario","#fundingDate","#fundingAmount1"],["#fundingScenario2","#fundingDate2","#fundingAmount2"]];
- slots.forEach(([selector,dateSelector,amountSelector],index)=>{
-   const round=fundingPlan().rounds[index],select=$(selector);
+ const slots=[["#fundingScenario","#fundingDate","#fundingAmount1","#fundingUnit1"],["#fundingScenario2","#fundingDate2","#fundingAmount2","#fundingUnit2"]];
+ slots.forEach(([selector,dateSelector,amountSelector,unitSelector],index)=>{
+   const round=fundingPlan().rounds[index],select=$(selector),input=$(amountSelector),unit=$(unitSelector);
    if(!round)return;
    const presets=[...new Set(["Base",...Object.keys(STATE.fundingScenarios||{}),"$1M","$2M","$2.5M","$3M"])];
    select.innerHTML=presets.map(key=>`<option value="${esc(key)}">${esc(key)}</option>`).join("")+'<option value="custom">Custom amount</option><option value="none">None</option>';
    select.value=round.enabled?round.preset:"none";
    $(dateSelector).innerHTML=fundingDateOptions(round.date);$(dateSelector).value=round.date;
-   $(amountSelector).value=round.amount;
+   unit.value=round.amountUnit;
+   input.value=(round.amount/(round.amountUnit==="millions"?1e6:1)).toLocaleString("en-US",{maximumFractionDigits:round.amountUnit==="millions"?8:2,useGrouping:round.amountUnit!=="millions"});
+   input.oninput=()=>input.setCustomValidity?.("");
    select.onchange=event=>{FM.selectPreset(fundingPlan(),index,event.target.value,STATE.fundingScenarios);save();renderAll()};
    $(dateSelector).onchange=event=>{FM.updateRound(round,"date",event.target.value);save();renderAll()};
-   $(amountSelector).onchange=event=>{if(!event.target.checkValidity()){event.target.reportValidity();return}FM.updateRound(round,"amount",event.target.value);save();renderAll()};
+   unit.onchange=event=>{round.amountUnit=event.target.value;save();renderAll()};
+   input.onchange=event=>{
+     const amount=FM.parseAmount(event.target.value,round.amountUnit);
+     if(amount===null){event.target.setCustomValidity?.("Enter a valid funding amount.");event.target.reportValidity?.();return}
+     event.target.setCustomValidity?.("");FM.updateRound(round,"amount",amount);save();renderAll();
+   };
  });
  $("#fundingTotal").value=exactMoney(scenario().funding);
  syncFundingMeta();
 }
 function syncHeader(){
  const m=STATE.meta;syncFundingHeader();
- $("#statusSelect").value=m.status;$("#displayYear").value=m.displayYear;$("#baseEcommerce").value=m.baseEcommerceMonthly;$("#doverCapture").value=STATE.commercial.doverTargetCapturePct[m.displayYear];$("#roas").value=roas(m.displayYear);$("#lastUpdated").value=m.lastUpdated||"";$("#corroMonth").value=selectedCorroMonth();$("#cavaliMonth").value=selectedCavaliMonth();
+ $("#doverRamp").value=n(STATE.commercial.doverRampPct[m.displayYear])*100;
+ $("#doverRampYearLabel").textContent=`DOVER RAMP (${m.displayYear})`;
+ $("#doverRampRemaining").value=fmtPct(doverRampRemaining());
+ $("#doverRampRemaining").className=doverRampRemaining()<-.00001?"negative":"";
+ $("#modelSettingsSummary").textContent=`${m.displayYear} / ROAS ${fmtX(roas(m.displayYear))} / Dover ramp ${fmtPct(STATE.commercial.doverRampPct[m.displayYear])}`;
+
+ $("#statusSelect").value=m.status;$("#displayYear").value=m.displayYear;$("#baseEcommerce").value=m.baseEcommerceMonthly;$("#doverCapture").value=n(STATE.commercial.doverTargetCapturePct[m.displayYear])*100;$("#roas").value=roas(m.displayYear);$("#lastUpdated").value=m.lastUpdated||"";$("#corroMonth").value=selectedCorroMonth();$("#cavaliMonth").value=selectedCavaliMonth();
  $("#sourceStatus").textContent=ACTUALS.shopify.generated_at?`Actuals source: ${ACTUALS.shopify.generated_at.slice(0,10)} - Corro YTD through ${monthLabel(selectedCorroMonth())}${actual2026().coverage.partial?" (partial)":""} - Cavali YTD through ${monthLabel(selectedCavaliMonth())}${actual2026().cavCoverage.partial?" (partial)":""}`:"Actuals not loaded";
 }
+function refreshThemeButton(){
+ const button=$("#themeBtn");if(!button)return;
+ const dark=document.documentElement.dataset.theme==="dark";
+ button.innerHTML=icon(dark?"Sun":"Moon");
+ button.title=dark?"Switch to light theme":"Switch to dark theme";
+ button.setAttribute?.("aria-label",button.title);
+}
+function decorateControls(){
+ [["#saveBtn","Save","Save"],["#refreshBtn","RefreshCw","Refresh Actuals"],["#downloadBtn","Download","Download"],["#publishBtn","Upload","Publish To..."],[".actions .action-link","ExternalLink","Returns Report"]].forEach(([selector,name,label])=>{
+   const button=$(selector);if(button){button.innerHTML=icon(name)+`<span>${label}</span>`;button.setAttribute?.("aria-label",label)}
+ });
+ const names=["SlidersHorizontal","TrendingUp","ChartNoAxesCombined","Wallet","LayoutDashboard","ClipboardCheck"];
+ $$(".tabs button").forEach(button=>{button.innerHTML=icon(names[n(button.dataset.tab)-1])+`<span>${esc(button.textContent)}</span>`});
+ refreshThemeButton();
+}
 function wire(){
+ decorateControls();
+ const settings=$("#modelSettings"),savedOpen=localStorage.getItem("eqlabs-settings-open");
+ if(settings){
+   settings.open=savedOpen!==null?savedOpen==="true":!(typeof matchMedia==="function"&&matchMedia("(max-width: 600px)").matches);
+   settings.ontoggle=()=>{localStorage.setItem("eqlabs-settings-open",String(settings.open));updateStickyHeader()};
+ }
  if(typeof ResizeObserver==="function")new ResizeObserver(updateStickyHeader).observe($(".topbar"));
 
  $$(".tabs button").forEach(b=>b.onclick=()=>{$$(".tabs button").forEach(x=>x.classList.remove("active"));b.classList.add("active");$$(".tab-panel").forEach(x=>x.classList.remove("active"));$(`#tab${b.dataset.tab}`).classList.add("active")});
@@ -469,18 +519,25 @@ function wire(){
  $("#refreshBtn").onclick=async()=>{const d=await DataService.loadAll();ACTUALS={shopify:d.shopify,connected:d.connected,smartrr:d.smartrr||{}};populateMonthFilters();renderAll();flash(ACTUALS.shopify?.generated_at?"Actuals refreshed ✓":"Actuals file is empty")};
  $("#downloadBtn").onclick=()=>{const blob=new Blob([JSON.stringify(STATE,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`strategic-model-${STATE.meta.status.toLowerCase()}-${Date.now()}.json`;a.click();URL.revokeObjectURL(a.href)};
  $("#publishBtn").onclick=()=>alert("Cloudflare Pages is static. Save persists in this browser; Download exports the selected scenario.");
- $("#themeBtn").onclick=()=>{const dark=document.documentElement.dataset.theme==="dark";document.documentElement.dataset.theme=dark?"":"dark";$("#themeBtn").textContent=dark?"☀":"☾";localStorage.setItem("eqlabs-theme",dark?"light":"dark")};
+ $("#themeBtn").onclick=()=>{const dark=document.documentElement.dataset.theme==="dark";document.documentElement.dataset.theme=dark?"":"dark";localStorage.setItem("eqlabs-theme",dark?"light":"dark");refreshThemeButton()};
  $("#statusSelect").onchange=e=>{const status=e.target.value;STATE=applyFinalDefaults(loadSaved(status)||clone(BASE));STATE.meta.status=status;populateMonthFilters();save();renderAll()};
 
  $("#displayYear").onchange=e=>{STATE.meta.displayYear=e.target.value;save();renderAll()};
  $("#corroMonth").onchange=e=>{STATE.meta.corroMonth=e.target.value;save();renderAll()};
  $("#cavaliMonth").onchange=e=>{STATE.meta.cavaliMonth=e.target.value;save();renderAll()};
  $("#baseEcommerce").onchange=e=>{STATE.meta.baseEcommerceMonthly=n(e.target.value);save();renderAll()};
- $("#doverCapture").onchange=e=>{STATE.meta.doverCapture=n(e.target.value);YEARS.forEach(y=>STATE.commercial.doverTargetCapturePct[y]=n(e.target.value));save();renderAll()};
+ $("#doverCapture").onchange=e=>{if(!e.target.checkValidity()){e.target.reportValidity();return}STATE.meta.doverCapture=n(e.target.value)/100;YEARS.forEach(y=>STATE.commercial.doverTargetCapturePct[y]=STATE.meta.doverCapture);save();renderAll()};
+ $("#doverRamp").onchange=e=>{if(!updateDoverRamp(STATE.meta.displayYear,e.target.value)){e.target.reportValidity?.();return}save();renderAll()};
  $("#roas").onchange=e=>{STATE.meta.roas=n(e.target.value);YEARS.forEach(y=>STATE.commercial.roasByYear[y]=n(e.target.value));save();renderAll()}
 }
 function applyFinalDefaults(s){
- s.meta.version="4.7";
+ s.meta.version="4.8";
+ if(s.commercial.doverRampRevision!=="2026-10-21"){
+   s.commercial.previousDoverRampPct||=clone(s.commercial.doverRampPct);
+   s.commercial.doverRampPct["2026"]=.01;
+   s.commercial.doverRampRevision="2026-10-21";
+   s.meta.lastUpdated="2026-10-21";
+ }
  if(s.commercial.revenueLogicVersion!==2){
    s.commercial.revenueLogicVersion=2;
    if(n(s.meta.doverCapture)===.15&&YEARS.every(y=>n(s.commercial.doverTargetCapturePct[y])===.15)){
@@ -528,7 +585,7 @@ function setDefaultIfLegacy(target,path,y,value,legacy){
 function applyActualBasedForecastDefaults(s){
   const a=monthlyDisplayActuals();
   if(!a?.corro?.monthsClosed)return s;
-  const smoothDover={2026:.05,2027:.20,2028:.35,2029:.40};
+  const smoothDover={2026:.01,2027:.20,2028:.35,2029:.40};
   YEARS.forEach(y=>{
     const old=LEGACY_FORECAST_DEFAULTS.commercial.doverRampPct[y];
     if(sameNumber(s.commercial.doverRampPct[y],old))s.commercial.doverRampPct[y]=smoothDover[y];
@@ -687,7 +744,7 @@ async function init(){
  populateMonthFilters();applyActualBasedForecastDefaults(STATE);
  if(localStorage.getItem("eqlabs-theme")==="dark"){document.documentElement.dataset.theme="dark";$("#themeBtn").textContent="Dark"}
  wire();renderAll();localStorage.setItem(storageKey(),JSON.stringify(STATE));
- window.runModelQA=()=>({fundingPlan:clone(fundingPlan()),funding:scenario(),schedule:FM.schedule(fundingPlan()),fundingIssues:FM.issues(fundingPlan()),actual2026:actual2026(),reconciliation2026:revenueReconciliation(),commissionSettings:clone(STATE.opex.commissions),commissions:Object.fromEntries(YEARS.map(y=>[y,commissionBreakdown(y)])),paidRamp:paidRamp(),years:Object.fromEntries(YEARS.map(y=>[y,{ecommerce:ecommerceBuild(y),portfolio:portfolio(y),financial:financial(y),cash:cashAll()[y]}])),cavali:{signatureMembers:actualEngine("Cavali","signatureMembers"),signatureBoxes:actualEngine("Cavali","signatureBoxes"),premierMembers:actualEngine("Cavali","premierMembers"),premierBoxes:actualEngine("Cavali","premierBoxes"),gm1:actualGm1("Cavali")}});
+ window.runModelQA=()=>({fundingPlan:clone(fundingPlan()),funding:scenario(),schedule:FM.schedule(fundingPlan()),fundingIssues:FM.issues(fundingPlan()),doverRamp:clone(STATE.commercial.doverRampPct),doverRampRemaining:doverRampRemaining(),actual2026:actual2026(),reconciliation2026:revenueReconciliation(),commissionSettings:clone(STATE.opex.commissions),commissions:Object.fromEntries(YEARS.map(y=>[y,commissionBreakdown(y)])),paidRamp:paidRamp(),years:Object.fromEntries(YEARS.map(y=>[y,{ecommerce:ecommerceBuild(y),portfolio:portfolio(y),financial:financial(y),cash:cashAll()[y]}])),cavali:{signatureMembers:actualEngine("Cavali","signatureMembers"),signatureBoxes:actualEngine("Cavali","signatureBoxes"),premierMembers:actualEngine("Cavali","premierMembers"),premierBoxes:actualEngine("Cavali","premierBoxes"),gm1:actualGm1("Cavali")}});
 }
 init().catch(e=>{console.error(e);document.body.insertAdjacentHTML("beforeend",`<pre class="fatal">${esc(e.stack||e.message)}</pre>`)});
 })();

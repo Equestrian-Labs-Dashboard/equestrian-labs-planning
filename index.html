@@ -3,21 +3,31 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Equestrian Labs — Strategic Operating Model</title>
-  <link rel="stylesheet" href="assets/css/styles.css?v=470" />
+  <title>Equestrian Labs - Strategic Operating Model</title>
+  <link rel="stylesheet" href="assets/css/styles.css?v=480" />
+  <link rel="stylesheet" href="assets/css/workspace.css?v=480" />
 </head>
 <body>
 <header class="topbar">
   <div class="topbar-inner">
-    <div class="brand">
-      <small>EQUESTRIAN LABS</small>
-      <h1>Strategic Operating Model <span class="version">v4.7</span></h1>
-      <div>2026 – 2029</div>
+    <div class="workspace-heading">
+      <div class="brand">
+        <small>EQUESTRIAN LABS</small>
+        <h1>Strategic Operating Model <span class="version">v4.8</span></h1>
+        <div>2026 - 2029</div>
+      </div>
+      <div class="actions">
+        <button id="saveBtn" class="primary" title="Save model">Save</button>
+        <button id="refreshBtn" title="Refresh actuals">Refresh Actuals</button>
+        <button id="downloadBtn" title="Download model">Download</button>
+        <button id="publishBtn" title="Publishing options">Publish To...</button>
+        <a class="action-link" href="returns.html" title="Returns report">Returns Report</a>
+        <button id="themeBtn" aria-label="Toggle theme" title="Toggle theme"></button>
+      </div>
     </div>
-
     <div class="legend">
-      <span>■ Editable</span><span>□ Calculated</span><span>□ Baseline / Historical</span>
-      <span id="sourceStatus">Actuals loading…</span>
+      <span class="editable-key">Editable</span><span class="calculated-key">Calculated</span><span>Baseline / Historical</span>
+      <span id="sourceStatus">Actuals loading...</span>
     </div>
 
     <div class="funding-controls">
@@ -25,48 +35,43 @@
         <legend>FUNDING SCENARIO 1</legend>
         <label>SCENARIO<select id="fundingScenario"></select></label>
         <label>FUNDING DATE<select id="fundingDate"></select></label>
-        <label>FUNDING AMOUNT<input id="fundingAmount1" type="number" min="0" step="0.01" required /></label>
+        <label>FUNDING AMOUNT<div class="amount-entry"><input id="fundingAmount1" type="text" inputmode="decimal" required autocomplete="off" /><select id="fundingUnit1" aria-label="Funding Scenario 1 amount unit" title="Funding amount unit"><option value="full">$</option><option value="millions">M</option></select></div></label>
       </fieldset>
       <fieldset class="funding-slot">
         <legend>FUNDING SCENARIO 2</legend>
         <label>SCENARIO<select id="fundingScenario2"></select></label>
         <label>FUNDING DATE<select id="fundingDate2"></select></label>
-        <label>FUNDING AMOUNT<input id="fundingAmount2" type="number" min="0" step="0.01" required /></label>
+        <label>FUNDING AMOUNT<div class="amount-entry"><input id="fundingAmount2" type="text" inputmode="decimal" required autocomplete="off" /><select id="fundingUnit2" aria-label="Funding Scenario 2 amount unit" title="Funding amount unit"><option value="full">$</option><option value="millions" selected>M</option></select></div></label>
       </fieldset>
       <label class="funding-total">TOTAL FUNDING<input id="fundingTotal" readonly /></label>
     </div>
 
+    <details class="model-settings" id="modelSettings" open>
+    <summary><span>Model inputs</span><span id="modelSettingsSummary"></span></summary>
     <div class="controls">
       <label>MODEL STATUS<select id="statusSelect"><option>Draft</option><option>Budget</option><option>Forecast</option><option>Board</option></select></label>
       <label>DISPLAY YEAR<select id="displayYear"><option>2026</option><option>2027</option><option>2028</option><option>2029</option></select></label>
-      <label title="Historical data cutoff; funding dates are above">CORRO ACTUALS THROUGH<select id="corroMonth"></select></label>
-      <label title="Historical data cutoff; funding dates are above">CAVALI ACTUALS THROUGH<select id="cavaliMonth"></select></label>
       <label>BASE ECOMMERCE<input id="baseEcommerce" type="number" step="1000" /></label>
-      <label title="Selected year's target; changes here apply to all forecast years">DOVER CAPTURE<input id="doverCapture" type="number" step="0.01" min="0" max="1" /></label>
       <label title="Selected year's ROAS; changes here apply to all forecast years">ROAS<input id="roas" type="number" step="0.1" min="0" /></label>
       <label>LAST UPDATED<input id="lastUpdated" readonly /></label>
+      <label title="Selected year's market capture target; changes here apply to all forecast years">DOVER CAPTURE<div class="percent-entry"><input id="doverCapture" type="number" step="0.1" min="0" max="100" required /><span>%</span></div></label>
+      <label><span id="doverRampYearLabel">DOVER RAMP (2026)</span><div class="percent-entry"><input id="doverRamp" type="number" step="0.1" min="0" max="100" required /><span>%</span></div></label>
+      <label>DOVER RAMP REMAINING<input id="doverRampRemaining" readonly /></label>
+      <label title="Historical data cutoff; funding dates are above">CORRO ACTUALS THROUGH<select id="corroMonth"></select></label>
+      <label title="Historical data cutoff; funding dates are above">CAVALI ACTUALS THROUGH<select id="cavaliMonth"></select></label>
     </div>
+    </details>
 
-    <div class="actions">
-      <button id="saveBtn" class="primary">Save</button>
-      <button id="refreshBtn">Refresh Actuals</button>
-      <button id="downloadBtn">Download</button>
-      <button id="publishBtn">Publish To…</button>
-      <a class="action-link" href="returns.html">Returns Report</a>
-      <button id="themeBtn" aria-label="Toggle theme">☀</button>
-    </div>
-
-    <nav class="tabs">
-      <button data-tab="1" class="active">01 · Magic Page</button>
-      <button data-tab="2">02 · Growth & Margin Engine</button>
-      <button data-tab="3">03 · Financial Summary</button>
-      <button data-tab="4">04 · Commercial Cash Flow</button>
-      <button data-tab="5">05 · Board Dashboard</button>
-      <button data-tab="6">06 · Formula QA</button>
+    <nav class="tabs" aria-label="Model views">
+      <button data-tab="1" class="active">01 - Magic Page</button>
+      <button data-tab="2">02 - Growth &amp; Margin Engine</button>
+      <button data-tab="3">03 - Financial Summary</button>
+      <button data-tab="4">04 - Commercial Cash Flow</button>
+      <button data-tab="5">05 - Board Dashboard</button>
+      <button data-tab="6">06 - Formula QA</button>
     </nav>
   </div>
 </header>
-
 <main id="app">
   <section id="tab1" class="tab-panel active"></section>
   <section id="tab2" class="tab-panel"></section>
@@ -75,9 +80,9 @@
   <section id="tab5" class="tab-panel"></section>
   <section id="tab6" class="tab-panel"></section>
 </main>
-
-<script src="assets/js/dataService.js?v=470"></script>
-<script src="assets/js/fundingModel.js?v=470"></script>
-<script src="assets/js/app.js?v=470"></script>
+<script src="assets/js/icons.js?v=480"></script>
+<script src="assets/js/dataService.js?v=480"></script>
+<script src="assets/js/fundingModel.js?v=480"></script>
+<script src="assets/js/app.js?v=480"></script>
 </body>
 </html>

@@ -1,0 +1,134 @@
+:root {
+  --paper: #f5f7fa;
+  --card: #ffffff;
+  --text: #202c38;
+  --muted: #566775;
+  --line: #dce3e9;
+  --blue: #eaf2fc;
+  --green: #148369;
+  --red: #bf3f4a;
+  --purple: #7567a0;
+  --orange: #b77c16;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgb(20 40 60 / 4%);
+  --action: #1768cf;
+  --input: #f5f9ff;
+  --input-line: #adc6e4;
+  --table-head: #edf2f6;
+}
+body { font-size: 14px; font-variant-numeric: tabular-nums; }
+button, input, select { font-family: inherit; }
+button, input, select, a { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--action); outline-offset: 3px;
+}
+.topbar { background: var(--card); color: var(--text); box-shadow: none; border-bottom: 1px solid var(--line); }
+.topbar-inner, #app { max-width: 1640px; }
+.topbar-inner { padding: 22px 30px 0; }
+.workspace-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
+.brand { min-width: 0; }
+.brand small { font-size: 10px; color: var(--action); letter-spacing: 0; font-weight: 800; }
+.brand h1 { font-size: 24px; font-weight: 700; line-height: 1.3; margin: 5px 0; letter-spacing: 0; }
+.brand > div { font-size: 12px; color: var(--muted); }
+.version { display: inline-block; border: 1px solid var(--line); background: var(--paper); color: var(--muted); border-radius: 4px; font-size: 10px; padding: 3px 6px; }
+.actions { margin: 0; align-items: center; gap: 6px; }
+.actions button, .actions .action-link, .funding-action {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 36px;
+  border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px;
+  background: var(--card); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.actions button:hover, .actions .action-link:hover, .funding-action:hover { background: var(--blue); border-color: var(--input-line); }
+.actions .primary { background: var(--action); border-color: var(--action); color: #ffffff; }
+.actions .primary:hover { background: #1258b2; }
+#themeBtn { width: 36px; padding: 8px; }
+.ui-icon { display: block; flex: 0 0 18px; width: 18px; height: 18px; }
+.legend { color: var(--muted); gap: 14px; align-items: center; margin: 16px 0; font-size: 11px; line-height: 1.6; }
+.editable-key, .calculated-key { display: inline-flex; align-items: center; gap: 6px; }
+.editable-key::before, .calculated-key::before { content: ""; width: 8px; height: 8px; border: 1px solid var(--input-line); border-radius: 2px; background: var(--blue); }
+.calculated-key::before { background: var(--card); border-color: var(--line); }
+#sourceStatus { margin-left: auto; color: var(--muted); font-weight: 400; }
+.funding-controls { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 170px; gap: 16px; margin: 8px 0 20px; }
+.funding-slot { grid-template-columns: minmax(100px,1fr) 120px minmax(145px,1fr); gap: 10px; border: 1px solid var(--line); border-top: 2px solid var(--action); border-radius: 6px; background: var(--card); padding: 12px; }
+.funding-slot:nth-child(2) { border-top-color: var(--green); }
+.funding-slot legend { padding: 0 7px; font-size: 10px; font-weight: 800; color: var(--text); }
+.controls label, .funding-controls label { font-size: 10px; font-weight: 650; color: var(--muted); letter-spacing: 0; }
+.controls input, .controls select, .funding-controls input, .funding-controls select {
+  height: 38px; margin-top: 5px; border: 1px solid var(--input-line); border-radius: 5px;
+  background: var(--input); color: var(--text); padding: 8px 10px; font-size: 13px; font-weight: 550;
+}
+input[readonly] { background: var(--paper); border-color: var(--line); color: var(--muted); }
+.funding-total { padding-bottom: 12px; }
+.funding-total input { background: #e9f5f0; border-color: #a3cfbc; color: #116649; font-size: 17px; font-weight: 750; }
+.amount-entry, .percent-entry { display: grid; grid-template-columns: minmax(0,1fr) 46px; gap: 0; }
+.amount-entry input, .percent-entry input { border-radius: 5px 0 0 5px; min-width: 0; }
+.amount-entry select { padding: 6px; border-left: 0; border-radius: 0 5px 5px 0; min-width: 0; font-weight: 750; }
+.percent-entry { grid-template-columns: minmax(0,1fr) 28px; }
+.percent-entry span { margin-top: 5px; display: grid; place-items: center; background: var(--blue); color: var(--muted); border: 1px solid var(--input-line); border-left: 0; border-radius: 0 5px 5px 0; font-size: 12px; }
+.model-settings { border-top: 1px solid var(--line); padding: 14px 0; }
+.model-settings summary { display: flex; gap: 12px; align-items: center; cursor: pointer; color: var(--text); font-size: 12px; font-weight: 700; list-style-position: inside; }
+.model-settings summary::before { content: "+"; display: inline-grid; place-items: center; width: 16px; height: 16px; color: var(--action); font-size: 16px; }
+.model-settings[open] summary::before { content: "-"; }
+#modelSettingsSummary { margin-left: auto; font-size: 11px; font-weight: 400; color: var(--muted); }
+.model-settings[open] summary { margin-bottom: 12px; }
+.controls { grid-template-columns: repeat(5,minmax(0,1fr)); gap: 12px; }
+.tabs { margin-top: 0; padding-top: 10px; padding-bottom: 0; gap: 8px; border-top: 1px solid var(--line); flex-wrap: nowrap; overflow-x: auto; }
+.tabs button { display: flex; align-items: center; justify-content: center; gap: 7px; flex: 0 0 auto; border: 0; border-bottom: 3px solid transparent; border-radius: 5px 5px 0 0; background: transparent; color: var(--muted); padding: 12px 10px; font-size: 12px; font-weight: 600; }
+.tabs button:hover { background: var(--paper); color: var(--action); }
+.tabs button.active { background: var(--blue); color: var(--action); border-bottom-color: var(--action); }
+.tabs .ui-icon { width: 16px; height: 16px; flex-basis: 16px; }
+#app { padding: 26px 30px 70px; }
+.section { margin-bottom: 30px; }
+.section-title { display: flex; align-items: center; min-height: 32px; background: none; border-left-width: 3px; padding: 6px 10px; margin-bottom: 14px; color: var(--text); font-size: 12px; font-weight: 750; letter-spacing: 0; }
+h3 { font-size: 15px; font-weight: 650; }
+.kpis { gap: 12px; }
+.kpi { border-radius: 6px; padding: 17px; text-align: left; box-shadow: var(--shadow); border-top: 2px solid var(--line); }
+.kpi:first-child { border-top-color: var(--action); }
+.kpi:nth-child(2), .kpi:nth-child(3) { border-top-color: var(--green); }
+.kpi .label { font-size: 10px; line-height: 1.5; color: var(--muted); font-weight: 650; letter-spacing: 0; }
+.kpi .value { color: var(--text); font-size: 26px; font-weight: 750; line-height: 1.3; min-height: 34px; margin: 9px 0 4px; }
+.kpi .sub { color: var(--muted); font-size: 11px; font-style: normal; line-height: 1.5; }
+.card { border-radius: 6px; box-shadow: none; padding: 18px; }
+.card h3 { font-size: 15px; }
+.engine-grid { gap: 16px; }
+.note { font-size: 12px; line-height: 1.6; font-style: normal; }
+.table-wrap { border: 1px solid var(--line); border-radius: 6px; background: var(--card); }
+.grid { background: var(--card); }
+.grid th { padding: 11px 12px; color: var(--muted); background: var(--table-head); font-size: 11px; font-weight: 650; }
+.grid td { padding: 11px 12px; border-color: var(--line); font-size: 13px; }
+.grid th:first-child, .grid td:first-child { position: sticky; left: 0; z-index: 1; background: var(--card); }
+.grid th:first-child { background: var(--table-head); z-index: 2; }
+.grid .baseline { background: var(--paper); color: var(--muted); font-style: normal; }
+.grid .editable { background: var(--input); color: var(--text); box-shadow: inset 0 0 0 1px rgb(23 104 207 / 5%); }
+.grid .editable:focus { box-shadow: inset 0 0 0 2px var(--action); }
+.grid .important td { background: #edf5f1; font-weight: 750; }
+.grid .margin-pct-row td { background: var(--paper); color: var(--action); font-style: normal; font-size: 12px; }
+.funding-grid { min-width: 1320px; }
+.funding-grid th, .funding-grid td { padding: 10px 8px; font-size: 12px; }
+.funding-grid th:first-child { width: 156px; }
+.funding-grid input[type=number], .funding-grid select, .assumption-input {
+  border: 1px solid var(--input-line); background: var(--input); color: var(--text); border-radius: 4px; min-height: 34px; font-weight: 550;
+}
+.round-state, .balance-auto { color: var(--muted); }
+input[type=checkbox] { accent-color: var(--action); }
+.funding-heading { margin: 16px 0 12px; }
+.funding-heading h3 { font-size: 15px; }
+.ramp-status { display: inline-block; margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+.qa-pass { color: var(--green); }.qa-fail { color: var(--red); }
+.purchasing-kpi, .vendor-mix div { border-radius: 6px; box-shadow: none; }
+.purchasing-kpi strong { color: var(--text); font-size: 24px; }
+.vendor-mix div { background: var(--paper); }
+.board-bars { border: 1px solid var(--line); border-radius: 6px; box-shadow: none; }
+.bar { background: #258a72; border-radius: 4px 4px 0 0; }.bar:nth-child(2) { background: #3683d3; }.bar:nth-child(3) { background: #ca9a3d; }.bar:nth-child(4) { background: #57799b; }
+html[data-theme=dark] { --paper: #171c22; --card: #20262e; --text: #ecf0f5; --muted: #b0bdc9; --line: #39434e; --blue: #26394c; --input: #25313d; --input-line: #526d88; --table-head: #28313b; --action: #85b7fa; --green: #71c9a9; --red: #ff9aa2; }
+html[data-theme=dark] .topbar, html[data-theme=dark] .kpi, html[data-theme=dark] .card, html[data-theme=dark] .grid, html[data-theme=dark] .board-bars, html[data-theme=dark] .purchasing-kpi { background: var(--card); }
+html[data-theme=dark] .grid th, html[data-theme=dark] .grid th:first-child { background: var(--table-head); color: var(--muted); }
+html[data-theme=dark] .grid td:first-child { background: var(--card); }
+html[data-theme=dark] .grid .important td { background: #203b34; }
+html[data-theme=dark] .grid .baseline, html[data-theme=dark] .grid .margin-pct-row td { background: var(--paper); color: var(--muted); }
+html[data-theme=dark] .grid .editable, html[data-theme=dark] .calculated { color: var(--text); }
+html[data-theme=dark] .kpi .value, html[data-theme=dark] .purchasing-kpi strong { color: var(--text); }
+html[data-theme=dark] .funding-total input { background: #203b34; color: #a5e0c5; border-color: #4f8b72; }
+html[data-theme=dark] .actions .primary { background: #2b72c7; color: #ffffff; border-color: #2b72c7; }
+@media(max-width:1200px) { .workspace-heading { align-items: flex-start; }.controls { grid-template-columns: repeat(5,minmax(0,1fr)); }.funding-controls { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }.funding-total { grid-column: 1/-1; display: flex; align-items: center; gap: 14px; padding: 0; }.funding-total input { width: 180px; margin: 0; }.funding-slot { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }.funding-slot label:first-of-type { grid-column: 1/-1; } }
+@media(max-width:820px) { .topbar-inner { padding: 18px 16px 0; }#app { padding: 22px 16px 60px; }.controls { grid-template-columns: repeat(2,minmax(0,1fr)); }.kpi .value { font-size: 23px; }.legend { gap: 8px; }#sourceStatus { margin-left: 0; }.workspace-heading { gap: 14px; }.brand h1 { font-size: 22px; }.tabs button { padding: 11px 9px; } }
+@media(max-width:600px) { .workspace-heading { display: block; }.actions { margin-top: 14px; }.actions button, .actions .action-link { width: 37px; min-height: 37px; padding: 8px; }.actions button span, .actions .action-link span { display: none; }.legend { display: flex; margin: 12px 0; }.legend > span:not(#sourceStatus) { display: none; }#sourceStatus { font-size: 10px; line-height: 1.5; }.funding-controls { grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; }.funding-slot { grid-template-columns: minmax(0,1fr) minmax(0,1fr); padding: 10px; }.funding-total { grid-column: auto; }.brand h1 { font-size: 20px; }#modelSettingsSummary { font-size: 10px; text-align: right; max-width: 70%; }.model-settings { padding: 12px 0; }.kpis { gap: 10px; }.kpi { padding: 13px; }.kpi .value { font-size: 23px; }.grid th:first-child, .grid td:first-child { min-width: 150px; }.funding-grid th:first-child { width: 150px; }.card { padding: 13px; }.grid th, .grid td { padding: 10px; }.funding-heading { gap: 8px; }.funding-action { font-size: 11px; padding: 7px 8px; }.section-title { font-size: 11px; }.assumption-controls { gap: 10px; }.purchasing-layout { gap: 12px; } }

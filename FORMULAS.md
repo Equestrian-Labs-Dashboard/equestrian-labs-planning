@@ -1,4 +1,16 @@
-# Strategic Operating Model v4.7 - Formula Map
+# Strategic Operating Model v4.8 - Formula Map
+
+## 21 October 2026 Adjustments
+
+Dover's 2026 annual ramp is now 1%. Target capture remains 10% in the initial case; ramp and target capture are separate controls. The 2027-2029 ramp percentages remain 20%, 35% and 40%. Total assigned ramp is 96%, with 4% explicitly unassigned rather than silently shifted to a later year. Formula QA accepts an incomplete allocation and flags negative values or totals above 100%. All four annual ramp percentages are editable in Market Growth Strategy; the header shows the selected year's ramp.
+
+2026 Gross Dover = 130,000,000 times 10% capture times 1% ramp = 130,000. Net Dover = 130,000 times (1 - 30% overlap) = 91,000. The other initial assumptions give 2026 gross revenue of 1,918,684.81. Changes flow through ecommerce, margins, commissions where applicable, EBITDA, cash, carryover and Board outputs.
+
+The one-time Dover revision changes 2026 only and retains the previous ramp in the saved model. Later user edits persist across saves, reloads and statuses.
+
+Funding Amount 2 defaults to a visible M unit. Inputs 2.5 and 2,5 both mean 2,500,000 in that unit. The unit selector also supports full currency amounts. Explicit M/k suffixes and currency-formatted full amounts are accepted. Display units never change the stored funding amount; amounts remain full-precision currency values for all allocations and calculations.
+
+The refreshed workspace keeps all six views, model statuses, actuals cutoffs, saved assumptions, funding rounds, downloads, reports and light/dark themes. Model inputs can be collapsed; on mobile they start collapsed to keep both funding assignments accessible. Icons are a local subset of Lucide under assets/vendor/LUCIDE-LICENSE.txt, with no new external runtime dependency.
 
 ## Variable Funding Plan (20 October 2026)
 
@@ -30,7 +42,7 @@ The source file was generated on 12 October 2026. October is partial: elapsed mo
 
 The 70,000 monthly run rate applies to the Ecommerce channel only. It is not the total Corro or Corro-plus-Cavali run rate. Other Corro Channels retains Legacy and Shopify Collective actuals, which were previously omitted from the portfolio. Concierge, Wellington and Other Corro use their own YTD revenue and annualize only the remaining period. Cavali 2026 uses actual YTD sales plus remaining-period Signature/Premier forecasts; it does not replace known sales with a second full-year membership estimate.
 
-The 2026 Actuals to Forecast table reconciles each engine's actual YTD + remaining baseline + new marketing revenue + net Dover = forecast total. With the supplied data, 70,000 Ecommerce run rate, November marketing 150,000, ROAS 4 and Dover 10%, the reconciliation is 864,428.74 + 363,256.07 + 600,000 + 455,000 = 2,282,684.81 gross revenue. The model does not force a 2 million target.
+The 2026 Actuals to Forecast table reconciles each engine's actual YTD + remaining baseline + new marketing revenue + net Dover = forecast total. With the supplied data, 70,000 Ecommerce run rate, November marketing 150,000, ROAS 4, Dover capture 10% and annual ramp 1%, the reconciliation is 864,428.74 + 363,256.07 + 600,000 + 91,000 = 1,918,684.81 gross revenue. The model does not force a 2 million target.
 
 ## Organic Growth
 2026 Organic Growth Revenue = 0 incremental revenue because 2026 is Actuals + Forecast.
@@ -53,7 +65,7 @@ The previous annual base-ad addition was 240,000 times ROAS 4 = 960,000, which d
 Dover Market Opportunity base = $130M unless management explicitly edits the market-size assumption.
 Gross Dover Capture = $130M × Target Capture % × annual ramp %.
 Net Dover Capture = Gross Dover Capture × (1 - Paid Ads Overlap %).
-Dover ramp must total 100%.
+Dover ramp may total less than 100%; the unassigned percentage remains visible. It must not exceed 100%.
 
 ## Growth Engines
 Ecommerce = Base + Organic + Paid + Net Dover.

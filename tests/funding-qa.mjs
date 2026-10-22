@@ -9,6 +9,9 @@ const assumptions = JSON.parse(read('data/assumptions.json'));
 const copy = value => JSON.parse(JSON.stringify(value));
 const close = (a, b) => assert.ok(Math.abs(a - b) < .011, `${a} != ${b}`);
 const plan = copy(assumptions.fundingPlan);
+for(const [text,unit,expected] of [['2.5','millions',2500000],['2,5','millions',2500000],['2.5M','full',2500000],['2,5m','full',2500000],['2,500,000','full',2500000],['2.500.000','full',2500000],['2,500,000.00','full',2500000],['2.500.000,00','full',2500000],['500k','full',500000],['2.5','full',2.5]])assert.equal(F.parseAmount(text,unit),expected);
+for(const text of ['', '-2.5', '2xyz', '1,2,3', 'NaN'])assert.equal(F.parseAmount(text,'millions'),null);
+assert.equal(F.parseAmount('$2,500,000','millions'),2500000);
 assert.deepEqual(plan.rounds.map(r => [r.date, r.amount, r.inventory, r.marketing, r.embroidery, r.opex]), [
   ['Nov-26', 500000, 150000, 150000, 50000, 150000],
   ['Jan-27', 3000000, 1250000, 1250000, 0, 500000]
@@ -95,7 +98,15 @@ assert.equal(initial.years['2027'].cash.opexFunding, 500000);
 close(initial.years['2026'].portfolio.advertising, 390000);
 close(initial.years['2027'].portfolio.advertising, 1490000);
 close(initial.years['2026'].ecommerce.paid, 600000);
-close(initial.years['2026'].ecommerce.dover, 455000);
+close(initial.years['2026'].ecommerce.dover, 91000);
+close(initial.doverRamp['2026'], .01);
+close(initial.doverRampRemaining, .04);
+assert.equal(element('#fundingUnit2').value,'millions');
+assert.equal(element('#fundingAmount2').value,'3');
+element('#fundingAmount2').onchange({target:{value:'2,5'}});
+assert.equal(context.runModelQA().fundingPlan.rounds[1].amount,2500000);
+assert.equal(context.runModelQA().funding.funding,3000000);
+element('#fundingAmount2').onchange({target:{value:'3'}});
 close(initial.actual2026.coverage.elapsedMonths, 9 + 12 / 31);
 close(initial.actual2026.coverage.remainingMonths, 2 + 19 / 31);
 close(initial.reconciliation2026.reduce((sum, row) => sum + row.actual, 0), 864428.74);
@@ -130,7 +141,7 @@ for (let tab = 1; tab <= 6; tab++) assert.ok(element('#tab' + tab).innerHTML.len
 assert.equal(element('#tab6').innerHTML.includes('>FAIL<'), false);
 
 const baseline2027 = initial.years['2027'];
-element('#fundingAmount2').onchange({target: {value: '2000000', checkValidity: () => true}});
+element('#fundingAmount2').onchange({target: {value: '2', checkValidity: () => true}});
 element('#fundingDate2').onchange({target: {value: 'Mar-27'}});
 const changed = context.runModelQA();
 assert.equal(changed.funding.funding, 2500000);
@@ -143,6 +154,20 @@ assert.equal(context.runModelQA().funding.funding, 3500000);
 element('#statusSelect').onchange({target: {value: 'Draft'}});
 assert.equal(JSON.stringify(context.runModelQA().fundingPlan), changedPlan);
 assert.equal(element('#tab6').innerHTML.includes('>FAIL<'), false);
+
+const older=copy(assumptions);
+delete older.commercial.doverRampRevision;
+older.commercial.doverRampPct={'2026':.05,'2027':.23,'2028':.31,'2029':.41};
+F.updateAmount(older.fundingPlan.rounds[1],1700000);
+storage.set('eqlabs-strategic-model:v45:Board',JSON.stringify(older));
+element('#statusSelect').onchange({target:{value:'Board'}});
+assert.deepEqual(copy(context.runModelQA().doverRamp),{'2026':.01,'2027':.23,'2028':.31,'2029':.41});
+assert.equal(context.runModelQA().fundingPlan.rounds[1].amount,1700000);
+element('#doverRamp').onchange({target:{value:'2'}});
+element('#statusSelect').onchange({target:{value:'Draft'}});
+element('#statusSelect').onchange({target:{value:'Board'}});
+assert.equal(context.runModelQA().doverRamp['2026'],.02);
+assert.equal(element('#tab6').innerHTML.includes('>FAIL<'),false);
 console.log('PASS  Funding inputs, allocations, persistence, dates and all six application tabs');
 console.log('PASS  Revenue reconciliation, partial October, incremental ads and weighted commissions');
 console.log(JSON.stringify({audit2026: {actuals: initial.reconciliation2026.reduce((sum,r)=>sum+r.actual,0),remainingBaseline:initial.reconciliation2026.reduce((sum,r)=>sum+r.baseline,0),newMarketing:initial.years['2026'].ecommerce.paid,netDover:initial.years['2026'].ecommerce.dover,totalRevenue:initial.years['2026'].portfolio.gross},salesMarketing:Object.fromEntries(Object.entries(initial.commissions).map(([y,c])=>[y,c.total]))}));
